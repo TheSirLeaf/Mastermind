@@ -20,20 +20,8 @@
 - `exportPresentationFile`, `exportPackagesFile`, `downloadFile`, `slugifyTitle`, CSS de impressão/PDF
 - Export inclui somente pacotes referenciados (`data-pkg`)
 - Correção do path de `updateElementHTML` (section → filhos)
-- Testes de importação, store (CRUD/undo/coalescência) e export: 50 testes
-- Corrigido host de runtime: revivia apenas funções como string, não `{ $fn }` (runtimes não rodavam no export); teste de integração play/final
-- Coverage inclui `src/packages/*/*Runtime.ts`; Storybook inclui stories em `src/packages/**`
-- Removida a worktree/branch D (`agent-d/qa`) local e remota; restam A, B e C
-- Pacote `sim` (Tela simulada): janela de app, tabela, formulário, transação, mensagens,
-  painel de código opcional e roteiro por linha; presets Agenda (sucesso + rollback) e Cadastro
-- Runtime do `sim` é autossuficiente (serializável), restaura o HTML final e respeita reduced motion;
-  CSS prefixado `.pk-sim-*`; 4 testes novos (56 no total)
-
-## Em Andamento
-
+- Testes de importação, store (CRUD/undo/coalescência) e export: 50 testes## Em Andamento
 - Importação de decks HTML, export/PDF e endurecimento do core
-- Revisão do sistema de pacotes: chaves de formulário são planas, presets não são mesclados
-  pelo registry e runtimes precisam ser autossuficientes (o `sim` segue essas regras)
 
 ## Próximo (Agente A)
 
