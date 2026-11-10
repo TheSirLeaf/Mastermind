@@ -17,7 +17,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['src/packages/core/**/*.{ts,tsx}', 'src/packages/*/Runtime.ts'],
+      include: ['src/packages/core/**/*.{ts,tsx}', 'src/packages/*/*Runtime.ts'],
     },
   },
 });

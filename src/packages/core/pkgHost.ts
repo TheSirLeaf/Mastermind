@@ -65,8 +65,11 @@ export const PKG_HOST_SRC = `(function(){
       var id = root.getAttribute('data-pkg');
       var entry = id ? registry[id] : null;
       var def = entry && entry.def;
-      if (!def || typeof def.runtime !== 'function') return;
+      if (!def || !def.runtime) return;
       if (typeof def.runtime === 'string') def.runtime = revive(def.runtime);
+      else if (typeof def.runtime === 'object' && typeof def.runtime.$fn === 'string') {
+        def.runtime = revive(def.runtime.$fn);
+      }
       if (typeof def.runtime !== 'function') return;
       var spec = {};
       try { spec = JSON.parse(root.getAttribute('data-spec') || '{}'); } catch (e) {}

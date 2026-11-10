@@ -20,7 +20,9 @@
 - `exportPresentationFile`, `exportPackagesFile`, `downloadFile`, `slugifyTitle`, CSS de impressão/PDF
 - Export inclui somente pacotes referenciados (`data-pkg`)
 - Correção do path de `updateElementHTML` (section → filhos)
-- Testes de importação, store (CRUD/undo/coalescência) e export: 50 testes## Em Andamento
+- Testes de importação, store (CRUD/undo/coalescência) e export: 50 testes
+- Corrigido host de runtime: revivia apenas funções como string, não `{ $fn }` (runtimes não rodavam no export); teste de integração play/final
+- Coverage inclui `src/packages/*/*Runtime.ts`; Storybook inclui stories em `src/packages/**`## Em Andamento
 - Importação de decks HTML, export/PDF e endurecimento do core
 
 ## Próximo (Agente A)
