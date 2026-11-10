@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+storybook-static/
+coverage/
+playwright-report/
+test-results/
+
+# Current monolithic file (archived)
+holy-grail.html
+
+# Work area (scratch scripts, decoded artifacts, agent worktrees)
+.work/
+
+# Fonte bruta / material de referência (não versionado)
+/Archive/
+/Assets/
+/Repositories/
+
+# Env
+.env
+.env.*
+!.env.example
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store

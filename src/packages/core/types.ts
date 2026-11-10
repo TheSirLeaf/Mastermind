@@ -1,0 +1,241 @@
+// packages/core/types.ts
+import type { ReactNode } from 'react';
+
+/**
+ * Contrato compartilhado entre Editor, Pacotes e Apresentação.
+ *
+ * ATENÇÃO: este arquivo é protegido pelo AGENTS_CONTRACT.md. Mudanças exigem PR
+ * com aprovação de pelo menos 1 outro agente.
+ */
+
+/** Especificação livre de um pacote. Cada pacote define sua própria interface. */
+export interface PackageSpec {
+  [key: string]: unknown;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Formulário do Inspector                                                    */
+/* -------------------------------------------------------------------------- */
+
+export type ShowIfOperator = 'eq' | 'ne' | 'in';
+
+/** Visibilidade condicional de um campo ou grupo. */
+export interface ShowIf {
+  k: string;
+  eq?: unknown;
+  ne?: unknown;
+  in?: unknown[];
+}
+
+export type FormFieldType =
+  | 'text'
+  | 'textarea'
+  | 'code'
+  | 'number'
+  | 'range'
+  | 'color'
+  | 'select'
+  | 'toggle'
+  | 'seg'
+  | 'check'
+  | 'list'
+  | 'row'
+  | 'info'
+  | 'buttons';
+
+/** Par [valor, rótulo] ou [valor, rótulo, ícone]. */
+export type FormOption = [string, string] | [string, string, string];
+
+/** Botão de ação dentro de um grupo do formulário. */
+export interface FormAction {
+  label: string;
+  icon?: string;
+  do: (spec: PackageSpec) => void;
+}
+
+export interface FormField {
+  k?: string;
+  type: FormFieldType;
+  label?: string;
+  placeholder?: string;
+  help?: string;
+  title?: string;
+  options?: FormOption[];
+  min?: number;
+  max?: number;
+  step?: number;
+  unit?: string;
+  rows?: number;
+  /** Para `list`: campos de cada item. */
+  item?: FormField[];
+  /** Para `list`: valor de um novo item. */
+  itemDefault?: Record<string, unknown>;
+  /** Para `row`: campos na mesma linha. */
+  fields?: FormField[];
+  /** Para `buttons`. */
+  items?: FormAction[];
+  /** Para `info`. */
+  text?: string;
+  addLabel?: string;
+  /** Largura no grid do formulário (ex.: `1fr`, `64px`). */
+  w?: string;
+  showIf?: ShowIf;
+}
+
+export interface FormGroup {
+  group: string;
+  icon?: string;
+  open?: boolean;
+  showIf?: ShowIf;
+  fields: FormField[];
+}
+
+export type FormSchema = FormGroup[];
+
+/* -------------------------------------------------------------------------- */
+/* Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/** Utilitários puros disponíveis para `render` e `runtime`. */
+export interface HelperAPI {
+  /** Escapa HTML. */
+  esc: (s: string) => string;
+  /** Converte um número em formato pt-BR (aceita `"90,0"` e `"90.0"`). */
+  num: (s: unknown) => number;
+  /** Formata um número em pt-BR com `d` casas decimais. */
+  fmt: (v: number, d?: number) => string;
+  /** Converte `"2, 4-6"` em um mapa `{2:true, 4:true, 5:true, 6:true}`. */
+  range: (s: string) => Record<number, true>;
+  /** Realce de sintaxe por linha. Retorna um array com o HTML de cada linha. */
+  hl: (code: string, lang: string, prefix?: string) => string[];
+}
+
+/** API fornecida pelo host da apresentação para os runtimes de pacote. */
+export interface RuntimeAPI {
+  /** `prefers-reduced-motion: reduce` ativo. */
+  reduced: boolean;
+  /** `false` quando o slide saiu de cena. */
+  alive: () => boolean;
+  /** Sleep cooperativo que não continua se o slide sair de cena. */
+  wait: (ms: number) => Promise<void>;
+  /** Loop de animação; retornar `false` interrompe. */
+  frame: (fn: (ts: number) => boolean | void) => void;
+}
+
+/** Controller devolvido por um runtime. */
+export interface RuntimeController {
+  play: () => void | Promise<void>;
+  /** Sempre chamado na troca de slide; deve restaurar o HTML final. */
+  final: () => void;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Pacotes                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export interface Preset<TSpec extends PackageSpec = PackageSpec> {
+  name: string;
+  desc?: string;
+  spec: Partial<TSpec>;
+}
+
+export interface BoxHint {
+  w?: number;
+  h?: number;
+}
+
+/** Reconhecer e atualizar elementos de apresentações legadas. */
+export interface AdoptRules<TSpec extends PackageSpec = PackageSpec> {
+  match(el: Element): Element | null;
+  parse(root: Element, h: HelperAPI): TSpec;
+  apply(root: Element, spec: TSpec, h: HelperAPI): void;
+}
+
+export type PackageRender<TSpec extends PackageSpec = PackageSpec> = (
+  spec: TSpec,
+  h: HelperAPI
+) => ReactNode;
+
+export type PackageRuntime<TSpec extends PackageSpec = PackageSpec> = (
+  root: HTMLElement,
+  spec: TSpec,
+  api: RuntimeAPI
+) => RuntimeController | null;
+
+export interface PackageDef<TSpec extends PackageSpec = PackageSpec> {
+  /** kebab-case único. */
+  id: string;
+  name: string;
+  version: string;
+  /** Nome de ícone Lucide. */
+  icon: string;
+  author?: string;
+  description?: string;
+  defaults: TSpec;
+  presets?: Preset<TSpec>[];
+  box?: BoxHint;
+  form: FormSchema;
+  render(spec: TSpec, h: HelperAPI): ReactNode;
+  css?: string;
+  runtime?(root: HTMLElement, spec: TSpec, api: RuntimeAPI): RuntimeController | null;
+  duration?(spec: TSpec): number;
+  adopt?: AdoptRules<TSpec>;
+}
+
+/** Pacote serializado: funções viram `{ $fn: "..." }`. */
+export interface SerializedPackage {
+  id: string;
+  name: string;
+  version: string;
+  icon: string;
+  author?: string;
+  description?: string;
+  defaults: PackageSpec;
+  presets?: Array<{ name: string; desc?: string; spec: PackageSpec }>;
+  box?: BoxHint;
+  form: FormSchema;
+  css?: string;
+  /** Formato legado usado pelo editor monolítico. */
+  render?: { $fn: string } | string;
+  runtime?: { $fn: string } | string;
+  duration?: { $fn: string } | string;
+  adopt?: {
+    match: { $fn: string } | string;
+    parse: { $fn: string } | string;
+    apply: { $fn: string } | string;
+  };
+}
+
+/** Arquivo `.dialcron-pkg.json`. */
+export interface PackageFile {
+  format: 'dialcron-package';
+  spec: 1;
+  packages: SerializedPackage[];
+}
+
+export interface ImportResult {
+  imported: PackageDef[];
+  skipped: Array<{ id: string; name: string; reason: string }>;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Slides / deck                                                              */
+/* -------------------------------------------------------------------------- */
+
+export interface Slide {
+  id: string;
+  /** `<section class="slide ...">...</section>` — HTML completo do slide. */
+  html: string;
+}
+
+export interface Deck {
+  title: string;
+  slides: Slide[];
+}
+
+/** Dados de seleção reportados pelo iframe do editor. */
+export interface SelectionInfo {
+  path: number[];
+  tag: string;
+  label: string;
+}
