@@ -156,11 +156,13 @@ export const useDeckStore = create<DeckState>()((set, get) => {
       if (!slide) return;
 
       const doc = new DOMParser().parseFromString(slide.html, 'text/html');
-      let node: Element | null = doc.body;
+      // O primeiro item do path é o índice do slide; os demais são filhos da section.
+      let node: Element | null = doc.body.firstElementChild;
       for (const part of rest) {
         node = node?.children[part] ?? null;
         if (!node) return;
       }
+      if (!node) return;
       node.innerHTML = innerHTML;
       const html = doc.body.firstElementChild?.outerHTML ?? slide.html;
       get().updateSlideHTML(slideIndex, html, `element:${path.join('.')}`);

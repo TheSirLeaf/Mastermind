@@ -4,6 +4,7 @@ export * from './serialization';
 export * from './PackageRegistry';
 export * from './history';
 export * from './deck';
+export * from './importDeck';
 export * from './storage';
 export * from './export';
 export * from './iframeBridge';

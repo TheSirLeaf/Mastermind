@@ -16,10 +16,12 @@
 - 30 testes unitários cobrindo core
 - CI (lint, typecheck, test, build, e2e) e configs de Storybook/Playwright
 - App shell funcional de 3 painéis (Agente C substitui pela UI definitiva)
-
-## Em Andamento
-
-- Criação do remoto GitHub e das 3 worktrees
+- `parseDeckHTML` / `looksLikeDeckHTML` para importar o monolito, exportações e decks legados
+- `exportPresentationFile`, `exportPackagesFile`, `downloadFile`, `slugifyTitle`, CSS de impressão/PDF
+- Export inclui somente pacotes referenciados (`data-pkg`)
+- Correção do path de `updateElementHTML` (section → filhos)
+- Testes de importação, store (CRUD/undo/coalescência) e export: 50 testes## Em Andamento
+- Importação de decks HTML, export/PDF e endurecimento do core
 
 ## Próximo (Agente A)
 
