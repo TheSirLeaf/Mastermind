@@ -1,36 +1,34 @@
-# agent-b.md — 2026-11-10 (atualizado)
+# agent-b.md — 2026-11-10
 
 ## Feito
 
-- Leitura de AGENTS_CONTRACT.md, ARCHITECTURE.md, holy-grail.html
-- Scaffold inicial criado: package.json, tsconfig.json, index.html, src/main.tsx, src/App.tsx, tailwind.config.js, postcss.config.js, eslint.config.js, vitest.setup.ts
-- src/packages/core/types.ts (versão inicial, depois assumida pelo core do Agent A)
-- src/packages/core/PackageRegistry.ts (versão inicial com serialize/import de .dialcron-pkg.json, depois sobrescrito pelo core do Agent A)
-- src/packages/index.ts com registerBuiltins(code, chart)
-- Pacotes code + chart (autorizados por mim): CodeSpec/ChartSpec, CodeRenderer/ChartRenderer, CodeRuntime/ChartRuntime, css, formSchema, index, stories — **typecheckaram e testaram verde (4 testes) antes de serem sobrescritos**
-- components/Inspector/forms/FormGenerator.tsx (JSON Schema/FormGroup → react-hook-form + zod)
-- testes/unit/packages.test.ts (4 testes passando)
+- Refatorou `code` pacote para a estrutura do contrato (seção 7 do AGENTS_CONTRACT.md):
+  `CodePackage.ts`, `CodeRenderer.tsx`, `CodeRuntime.ts`, `formSchema.ts`, `code.css.ts`, `index.ts`, `Code.stories.tsx`.
+- Refatorou `chart` pacote para a mesma estrutura:
+  `ChartPackage.ts`, `ChartRenderer.tsx`, `ChartRuntime.ts`, `formSchema.ts`, `chart.css.ts`, `index.ts`, `Chart.stories.tsx`.
+- Removeu os arquivos monolíticos `CodePackage.tsx` e `ChartPackage.tsx`.
+- Atualizou `src/packages/index.ts` (mantém exports `CodePackage`, `ChartPackage`, `registerBuiltins`).
+- Criou `FormGenerator` em `src/components/Inspector/forms/FormGenerator.tsx` (JSON Schema → React Hook Form + Zod; tipos text/textarea/code/number/range/color/select/toggle/seg/check/list/row/info/buttons; showIf condicional).
+- Testes unit: `tests/unit/code.test.ts` (5) e `tests/unit/chart.test.ts` (4) cobrindo runtime (play/final/null-casos/reduced/alive/countUp).
+- `npm run typecheck`, `npm run lint`, `npm run test` (39 testes) e `npm run build` passam.
 
 ## Em Andamento
 
-- Nenhado (bloqueado)
+- (nada)
 
 ## Próximo (Próximas 2-3 sessões)
 
-- Aguardar resolução do conflito de domínio abaixo antes de continuar os pacotes
+- Aguardar integração do FormGenerator no Inspector pelo Agent C.
+- Avaliar pacotes futuros (tabela, imagem, etc.) se solicitado.
+- Ajustar stories se o Agent C mover o glob do Storybook para `src/packages/**`.
 
 ## Bloqueios / Dependências
 
-- [BLOQUEIO] Arquivos do meu domínio (src/packages/code/_, src/packages/chart/_) estão sendo SOBRESCRITOS por um processo/agente paralelo entre o write e a validação (mesmo turno). Minhas versões limpas (que typecheckam e passam nos testes) são substituídas por versões elaboradas com JSX dentro de .ts (erros `'>' expected`, parse errors), o que deixa o build vermelho.
-  - Per AGENTS_CONTRACT.md §9, conflito de domínio deve ser discutido no .sync/ e decidido por consenso (2/3 agentes). Não vou forçar writes.
-  - Preciso que o dono dos writes paralelos em src/packages/code/ e src/packages/chart/ pare de sobrescrever, ou que definamos quem é o responsável por cada arquivo.
-- src/packages/core/* (types.ts, PackageRegistry.ts, helper.ts, storage.ts, index.ts) é domínio do Agent A (core/infra, protegido). types.ts atual exporta FormSchema = FormGroup[], FormField com `k`, opções como tuplas, ShowIf = {k, eq?, ne?, in?} — meus formSchema precisam se conformar a esse contrato real. Os arquivos de core do Agent A têm erros de typecheck (helper.ts, storage.ts, index.ts) que travam o `tsc` geral — responsabilidade do Agent A.
+- O glob do Storybook (`.storybook/main.ts`) aponta para `../stories/`; as stories dos pacotes ficam em `src/packages/<nome>/<Nome>.stories.tsx` conforme o contrato (seção 7). Precisa do Agent C incluir esse caminho no glob para aparecer no Storybook.
+- O `vitest.config.ts` coverage.include usa `src/packages/*/Runtime.ts` (nome literal), enquanto o contrato nomeia o arquivo `<Nome>Runtime.ts` (ex.: `CodeRuntime.ts`); cobertura dos runtimes não é reportada automaticamente. Ajuste de config é responsabilidade do Agent A (build/CI).
 
 ## Decisões Tomadas
 
-- Conformar formSchema ao contrato real de types.ts (FormGroup[], FormField.k, opções tuplas, ShowIf.k/eq) — não implementado ainda por causa do bloqueio acima.
-
-## Dependências instaladas
-
-- react, react-dom, lucide-react, react-hook-form, zod, @hookform/resolvers + devDeps (vite, ts, tailwind, vitest, jsdom, storybook, eslint)
-- Conflito de peer do eslint 9.39.5 vs @eslint/js@10 resolvido com --legacy-peer-deps; eslint roda em modo mínimo (sem type-checked, sem react plugin) para evitar erro `ecmaFeatures`.
+- `CodeSpec`/`ChartSpec` estendem `PackageSpec` para satisfazer o índice `[key: string]: unknown`.
+- `PackageDef.render` usa `React.createElement(CodeRenderer, { spec, h })` porque `CodePackage.ts` é `.ts` (sem JSX) conforme contrato.
+- Mantido `packages/index.ts` protegido; apenas atualizados caminhos de importação.
