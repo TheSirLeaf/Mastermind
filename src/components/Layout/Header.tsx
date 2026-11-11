@@ -60,14 +60,16 @@ export function Header() {
   };
 
   return (
-      <header
-        id="top"
-        className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-3.5 h-13 bg-payday-bg border-b border-payday-border"
-      >
-        <div className="brand flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-gold-DEFAULT" />
-          <span className="text-sm font-semibold tracking-[0.2em] text-payday-textMuted">MASTERMIND</span>
-        </div>
+    <header
+      id="top"
+      className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-3.5 h-13 bg-payday-bg border-b border-payday-border"
+    >
+      <div className="brand flex items-center gap-1.5">
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-gold-DEFAULT" />
+        <span className="text-sm font-semibold tracking-[0.2em] text-payday-textMuted">
+          MASTERMIND
+        </span>
+      </div>
 
       <div className="grp flex shrink-0 items-center gap-1.5 border-r border-payday-border pr-2.5">
         <button

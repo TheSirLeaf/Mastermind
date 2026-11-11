@@ -18,24 +18,24 @@ export function WelcomeModal() {
           /* stop propagation */
         }}
       >
-          <h2 className="font-serif font-bold text-3xl text-gold-DEFAULT mb-2">
+        <h2 className="font-serif font-bold text-3xl text-gold-DEFAULT mb-2">
           Bem-vindo ao Mastermind
         </h2>
-          <p className="text-payday-textMuted mb-6">
+        <p className="text-payday-textMuted mb-6">
           Editor de apresentações com sistema de pacotes extensível
         </p>
 
         <div className="space-y-3 mb-6">
-            <button
-              className="w-full justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-gold-DEFAULT to-gold-dark text-payday-bg font-semibold text-sm border-0 hover:opacity-90 transition"
+          <button
+            className="w-full justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-gold-DEFAULT to-gold-dark text-payday-bg font-semibold text-sm border-0 hover:opacity-90 transition"
             onClick={() => {
               closeWelcome();
             }}
           >
             <FileText className="w-5 h-5" /> Nova apresentação
           </button>
-            <button
-              className="w-full justify-center gap-2 px-4 py-2.5 rounded-lg bg-payday-surface border border-payday-border text-payday-text text-sm hover:bg-payday-panel transition"
+          <button
+            className="w-full justify-center gap-2 px-4 py-2.5 rounded-lg bg-payday-surface border border-payday-border text-payday-text text-sm hover:bg-payday-panel transition"
             onClick={() => {
               closeWelcome();
             }}
@@ -56,8 +56,8 @@ export function WelcomeModal() {
           <span>Não mostrar novamente</span>
         </label>
 
-          <button
-            className="absolute top-4 right-4 rounded p-1.5 text-payday-textMuted hover:bg-payday-surface hover:text-gold-DEFAULT transition"
+        <button
+          className="absolute top-4 right-4 rounded p-1.5 text-payday-textMuted hover:bg-payday-surface hover:text-gold-DEFAULT transition"
           onClick={closeWelcome}
           aria-label="Fechar"
         >

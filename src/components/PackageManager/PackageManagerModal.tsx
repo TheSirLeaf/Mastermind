@@ -270,7 +270,7 @@ export function PackageManagerModal() {
                             </span>
                           )}
                         </div>
-                         <p className="truncate text-sm text-payday-textMuted/60">
+                        <p className="truncate text-sm text-payday-textMuted/60">
                           {(def?.description as string) || 'Sem descrição'}
                         </p>
                       </div>

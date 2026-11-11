@@ -19,10 +19,10 @@ export function Layout() {
       <Header />
 
       <div className="flex min-h-0 flex-1">
-          <aside
-            id="left"
-            className="flex w-60 shrink-0 flex-col border-r border-payday-border bg-payday-surface"
-            style={{ width: leftPanelWidth }}
+        <aside
+          id="left"
+          className="flex w-60 shrink-0 flex-col border-r border-payday-border bg-payday-surface"
+          style={{ width: leftPanelWidth }}
         >
           <Sidebar />
         </aside>

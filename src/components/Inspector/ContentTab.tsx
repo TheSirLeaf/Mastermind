@@ -114,7 +114,7 @@ export function ContentTab({ selection }: { selection: SelectionInfo }) {
 
   return (
     <div className="space-y-4">
-    <div className="rounded border border-white/10 p-3 text-[11px] leading-relaxed text-payday-textDim/60">
+      <div className="rounded border border-white/10 p-3 text-[11px] leading-relaxed text-payday-textDim/60">
         Este tipo de elemento não tem conteúdo editável diretamente. Use a aba Estilo ou Pacote.
       </div>
     </div>
@@ -127,7 +127,9 @@ const inputClass =
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[10px] uppercase tracking-widest text-payday-textDim/50">{label}</label>
+      <label className="text-[10px] uppercase tracking-widest text-payday-textDim/50">
+        {label}
+      </label>
       {children}
     </div>
   );
@@ -144,7 +146,7 @@ function Hint({ children }: { children: ReactNode }) {
 function Icon({ path }: { path: string }) {
   return (
     <svg
-        className="h-4 w-4 text-gold-DEFAULT"
+      className="h-4 w-4 text-gold-DEFAULT"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
