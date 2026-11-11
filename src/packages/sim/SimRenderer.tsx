@@ -2,7 +2,15 @@ import type { JSX } from 'react';
 
 import type { HelperAPI } from '../core/types';
 
-import { cellsOf, listOf, type SimRow, type SimSpec } from './SimSpec';
+import {
+  cellsOf,
+  cursorOf,
+  listOf,
+  toastsOf,
+  type SimRow,
+  type SimSpec,
+  type SimToast,
+} from './SimSpec';
 
 function toneClass(tone: SimRow['tone']): string {
   return tone === 'ok' ? 'pk-sim-ok' : tone === 'danger' ? 'pk-sim-danger' : 'pk-sim-warn';
@@ -13,9 +21,19 @@ function statusDot(row: SimRow, index: number, statusColumn: number): JSX.Elemen
   return <span className={`pk-sim-dotcell ${toneClass(row.tone)}`} aria-hidden="true" />;
 }
 
+function toastIcon(toast: SimToast): string {
+  if (toast.icon) return toast.icon;
+  if (toast.tone === 'error') return '×';
+  if (toast.tone === 'success') return '✓';
+  if (toast.tone === 'warning') return '!';
+  return 'i';
+}
+
 export function SimRenderer({ spec, h }: { spec: SimSpec; h: HelperAPI }): JSX.Element {
   const codeLines = spec.codeEnabled ? h.hl(spec.codeCode, spec.codeLang, 'pk-sim-tk-') : [];
   const hasTx = spec.txChips.length > 0;
+  const toasts = toastsOf(spec);
+  const cursor = cursorOf(spec);
 
   return (
     <div className="pk-sim" style={{ maxWidth: `${spec.width}px` }}>
@@ -155,6 +173,27 @@ export function SimRenderer({ spec, h }: { spec: SimSpec; h: HelperAPI }): JSX.E
                 </div>
 
                 <div className="pk-sim-dim" data-sim-dim />
+                <div className="pk-sim-toasts" data-sim-toasts>
+                  {toasts.map((toast) => (
+                    <div
+                      key={toast.id}
+                      className={`pk-sim-toast is-${toast.tone ?? 'info'}${toast.visible ? ' is-show' : ''}`}
+                      data-sim-toast={toast.id}
+                    >
+                      <div className="pk-sim-toast-ic">{toastIcon(toast)}</div>
+                      <div className="pk-sim-toast-body">
+                        <span className="pk-sim-toast-app">{toast.app}</span>
+                        <b>{toast.title}</b>
+                        <p>{toast.body}</p>
+                        {toast.action ? (
+                          <span className="pk-sim-toast-action">{toast.action}</span>
+                        ) : null}
+                      </div>
+                      <span className="pk-sim-toast-time">{toast.time ?? 'agora'}</span>
+                    </div>
+                  ))}
+                </div>
+
                 {(['success', 'error', 'confirm'] as const).map((kind) => {
                   const text =
                     kind === 'success'
@@ -187,6 +226,28 @@ export function SimRenderer({ spec, h }: { spec: SimSpec; h: HelperAPI }): JSX.E
                 })}
               </div>
             </div>
+            {cursor.visible ? (
+              <div
+                className={`pk-sim-cursor${cursor.trail ? ' has-trail' : ''}`}
+                data-sim-cursor
+                style={{
+                  left: `${cursor.x}%`,
+                  top: `${cursor.y}%`,
+                  width: `${cursor.size}px`,
+                  height: `${cursor.size}px`,
+                }}
+              >
+                <svg viewBox="0 0 28 28" aria-hidden="true">
+                  <path
+                    d="M4 2 24 14l-9 1.8L10 25z"
+                    fill="#fff"
+                    stroke="#1E1B1C"
+                    strokeWidth="1.8"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            ) : null}
           </div>
 
           {hasTx ? (

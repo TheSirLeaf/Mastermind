@@ -3,7 +3,7 @@ import type { FormSchema, PackageDef } from '../core/types';
 import { simCss } from './sim.css';
 import { SimRenderer } from './SimRenderer';
 import { simRuntime } from './simRuntime';
-import { agendaSteps, simDefaults, successSteps, type SimSpec } from './SimSpec';
+import { agendaSteps, simDefaults, successSteps, windowsToastSteps, type SimSpec } from './SimSpec';
 
 export const simForm: FormSchema = [
   {
@@ -132,6 +132,90 @@ export const simForm: FormSchema = [
     ],
   },
   {
+    group: 'Notificações Windows',
+    icon: 'bell',
+    open: true,
+    fields: [
+      {
+        k: 'toasts',
+        label: 'Avisos flutuantes',
+        type: 'list',
+        addLabel: 'Adicionar aviso',
+        help: 'O roteiro mostra/esconde cada aviso pelo id.',
+        item: [
+          { k: 'id', label: 'ID', type: 'text', placeholder: 'backup' },
+          { k: 'app', label: 'Aplicativo', type: 'text', placeholder: 'Backup do Windows' },
+          { k: 'title', label: 'Título', type: 'text', placeholder: 'Backup concluído' },
+          {
+            k: 'body',
+            label: 'Mensagem',
+            type: 'textarea',
+            rows: 3,
+            placeholder: 'Seus arquivos foram salvos com sucesso.',
+          },
+          {
+            k: 'tone',
+            label: 'Tom',
+            type: 'select',
+            options: [
+              ['info', 'Informação'],
+              ['success', 'Sucesso'],
+              ['warning', 'Atenção'],
+              ['error', 'Erro'],
+            ],
+          },
+          { k: 'icon', label: 'Ícone', type: 'text', placeholder: '✓' },
+          { k: 'time', label: 'Horário', type: 'text', placeholder: 'agora' },
+          { k: 'action', label: 'Ação', type: 'text', placeholder: 'Abrir local' },
+          { k: 'visible', label: 'Visível no estado final', type: 'check' },
+          {
+            k: 'autoHide',
+            label: 'Fechar sozinho após',
+            type: 'number',
+            min: 0,
+            step: 100,
+            unit: ' ms',
+          },
+        ],
+        itemDefault: {
+          id: 'aviso',
+          app: 'Windows',
+          title: 'Notificação',
+          body: 'Mensagem do sistema.',
+          tone: 'info',
+          time: 'agora',
+          visible: true,
+          autoHide: 0,
+        },
+      },
+    ],
+  },
+  {
+    group: 'Mouse',
+    icon: 'mouse-pointer-2',
+    open: true,
+    fields: [
+      { k: 'cursorVisible', label: 'Mostrar cursor', type: 'toggle' },
+      {
+        type: 'row',
+        fields: [
+          { k: 'cursorX', label: 'X inicial', type: 'range', min: 0, max: 100, step: 1, unit: '%' },
+          { k: 'cursorY', label: 'Y inicial', type: 'range', min: 0, max: 100, step: 1, unit: '%' },
+        ],
+      },
+      {
+        k: 'cursorSize',
+        label: 'Tamanho',
+        type: 'range',
+        min: 16,
+        max: 44,
+        step: 1,
+        unit: ' px',
+      },
+      { k: 'cursorTrail', label: 'Rastro de movimento', type: 'toggle' },
+    ],
+  },
+  {
     group: 'Transação',
     icon: 'database',
     open: true,
@@ -251,7 +335,7 @@ export const simForm: FormSchema = [
     fields: [
       {
         type: 'info',
-        text: 'Cada passo pode usar `at` (linha de código, 0-based) e `wait` (ms). Sem `at`, roda após a digitação. Ações: valid, state, stateTone, press, message, chips, chipDetails, row, note, rollback.',
+        text: 'Cada passo pode usar `at` (linha de código, 0-based) e `wait` (ms). Sem `at`, roda após a digitação. Ações: valid, state, stateTone, press, message, chips, chipDetails, row, note, rollback, cursor e toast. Cursor: { x, y, target, duration, ease, click }; toast: { id, action: show|hide|click }.',
       },
       {
         k: 'steps',
@@ -297,11 +381,11 @@ const cadastroSteps: SimSpec['steps'] = JSON.stringify(
 export const SimPackage: PackageDef<SimSpec> = {
   id: 'sim',
   name: 'Tela simulada',
-  version: '1.0.0',
+  version: '2.0.0',
   icon: 'monitor-play',
   author: 'Dialcron',
   description:
-    'Janela de aplicativo com tabela, formulário, transação e roteiro animado — código digitado, commit e rollback.',
+    'Janela de aplicativo com tabela, formulário, transação, toasts do Windows e cursor animado — com roteiro de código, commit e rollback.',
   defaults: simDefaults,
   box: { w: 1680, h: 780 },
   presets: [
@@ -344,6 +428,59 @@ export const SimPackage: PackageDef<SimSpec> = {
         steps: cadastroSteps,
       },
     },
+    {
+      name: 'Windows · backup concluído',
+      desc: 'Toast do Windows com cursor entrando, clicando na notificação e fechando o aviso.',
+      spec: {
+        ...simDefaults,
+        appName: 'Backup do Windows',
+        subtitle: 'Serviço de backup',
+        menu: 'Backup; Restauração; Histórico',
+        activeMenu: 'Backup',
+        heading: 'Backup',
+        date: 'Hoje, 14:32',
+        columns: 'Arquivo; Pasta; Situação',
+        statusColumn: 2,
+        rows: [
+          { cells: ['Documentos', 'Usuário', 'Concluído'], tone: 'ok' },
+          { cells: ['Fotos', 'Usuário', 'Concluído'], tone: 'ok' },
+          { cells: ['Projetos', 'Usuário', 'Em andamento'], tone: 'warn' },
+        ],
+        fields: [
+          { label: 'Último backup', value: 'Hoje, 14:30' },
+          { label: 'Destino', value: 'OneDrive' },
+          { label: 'Tamanho', value: '3,2 GB' },
+          { label: 'Arquivos', value: '12.481' },
+        ],
+        buttons: [
+          { label: 'Backup agora', tone: 'primary' },
+          { label: 'Configurações', tone: 'secondary' },
+        ],
+        codeEnabled: false,
+        txTitle: 'WINDOWS · BACKUP',
+        txChips: [{ table: 'backup', detail: '3,2 GB salvos' }],
+        txNote: '',
+        toasts: [
+          {
+            id: 'backup',
+            app: 'Backup do Windows',
+            title: 'Backup concluído',
+            body: 'Seus arquivos foram salvos no OneDrive.',
+            tone: 'success',
+            time: 'agora',
+            action: 'Abrir local',
+            visible: true,
+            autoHide: 0,
+          },
+        ],
+        cursorVisible: true,
+        cursorX: 84,
+        cursorY: 72,
+        cursorSize: 26,
+        cursorTrail: true,
+        steps: JSON.stringify(windowsToastSteps, null, 2),
+      },
+    },
   ],
   form: simForm,
   css: simCss,
@@ -364,7 +501,10 @@ export const SimPackage: PackageDef<SimSpec> = {
       spec.codeEnabled && spec.codeTyping
         ? (spec.codeCode.length / Math.max(10, spec.codeCps)) * 1000 + spec.codeDelay
         : 0;
-    const waits = steps.reduce((total, step) => total + (step.wait ?? 0), 0);
+    const waits = steps.reduce(
+      (total, step) => total + (step.wait ?? 0) + (step.cursor?.duration ?? 0),
+      0
+    );
     return Math.round(typing + waits + 1500);
   },
 };

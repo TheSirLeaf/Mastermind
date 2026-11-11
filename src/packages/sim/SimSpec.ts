@@ -25,6 +25,36 @@ export interface SimChip {
 
 export type SimStepAction = 'ok' | 'fail' | 'undo' | 'pending';
 
+export type SimToastTone = 'info' | 'success' | 'error' | 'warning';
+
+export interface SimToast {
+  id: string;
+  app: string;
+  title: string;
+  body: string;
+  /** Emoji ou letra curta no ícone do toast. */
+  icon?: string;
+  tone?: SimToastTone;
+  time?: string;
+  action?: string;
+  /** Estado final estático; o runtime esconde e reexibe conforme o roteiro. */
+  visible?: boolean;
+  /** Auto-dismiss em ms; 0 mantém o toast na tela. */
+  autoHide?: number;
+}
+
+export type SimCursorEase = 'linear' | 'easeOutCubic' | 'spring';
+
+export interface SimCursorStep {
+  x?: number;
+  y?: number;
+  /** `toast:id`, `button:Rótulo` ou um seletor CSS. */
+  target?: string;
+  duration?: number;
+  ease?: SimCursorEase;
+  click?: boolean;
+}
+
 export interface SimStep {
   /** Linha de código (0-based) que dispara o passo. Sem `at` = após digitar. */
   at?: number;
@@ -41,6 +71,8 @@ export interface SimStep {
   note?: boolean;
   rollback?: boolean;
   row?: { index: number; action: 'show' | 'hide' | 'highlight' | 'clear' };
+  cursor?: SimCursorStep;
+  toast?: { id: string; action: 'show' | 'hide' | 'click' };
 }
 
 export interface SimSpec extends PackageSpec {
@@ -58,6 +90,15 @@ export interface SimSpec extends PackageSpec {
   rows: SimRow[];
   fields: SimField[];
   buttons: SimButton[];
+
+  /** Avisos flutuantes no estilo Windows 11. */
+  toasts: SimToast[];
+  cursorVisible: boolean;
+  /** Posição inicial do cursor, em % da área do aplicativo. */
+  cursorX: number;
+  cursorY: number;
+  cursorSize: number;
+  cursorTrail: boolean;
 
   msgSuccess: string;
   msgError: string;
@@ -110,6 +151,28 @@ export function cellsOf(row: SimRow): string[] {
   return listOf(String(row.cells ?? ''));
 }
 
+/** Aceita specs antigos sem `toasts`. */
+export function toastsOf(spec: SimSpec): SimToast[] {
+  return Array.isArray(spec.toasts) ? spec.toasts.filter((toast) => Boolean(toast?.id)) : [];
+}
+
+/** Configuração efetiva do cursor, com defaults para specs antigos. */
+export function cursorOf(spec: SimSpec): {
+  visible: boolean;
+  x: number;
+  y: number;
+  size: number;
+  trail: boolean;
+} {
+  return {
+    visible: spec.cursorVisible === true,
+    x: Number.isFinite(spec.cursorX) ? spec.cursorX : 82,
+    y: Number.isFinite(spec.cursorY) ? spec.cursorY : 68,
+    size: Number.isFinite(spec.cursorSize) ? spec.cursorSize : 26,
+    trail: spec.cursorTrail === true,
+  };
+}
+
 export const agendaSteps: SimStep[] = [
   { at: 0, wait: 350, valid: true },
   { at: 1, wait: 250, state: 'conexão aberta', stateTone: 'begin' },
@@ -142,6 +205,16 @@ export const successSteps: SimStep[] = [
   { at: 8, wait: 300, state: 'COMMIT ✓', stateTone: 'ok' },
   { at: 8, wait: 300, press: 'Salvar', row: { index: 2, action: 'show' } },
   { at: 9, wait: 300, message: 'success' },
+];
+
+export const windowsToastSteps: SimStep[] = [
+  { wait: 700, toast: { id: 'backup', action: 'show' } },
+  {
+    wait: 500,
+    cursor: { target: 'toast:backup', duration: 650, ease: 'spring', click: true },
+  },
+  { wait: 300, toast: { id: 'backup', action: 'click' } },
+  { wait: 1000, toast: { id: 'backup', action: 'hide' } },
 ];
 
 export const simDefaults: SimSpec = {
@@ -182,6 +255,12 @@ export const simDefaults: SimSpec = {
     { label: 'Salvar', tone: 'primary' },
     { label: 'Excluir', tone: 'secondary' },
   ],
+  toasts: [],
+  cursorVisible: false,
+  cursorX: 82,
+  cursorY: 68,
+  cursorSize: 26,
+  cursorTrail: false,
   msgSuccess: 'Atendimento cadastrado com sucesso.',
   msgError: 'Não foi possível salvar o atendimento: falha simulada.',
   msgConfirm: 'Confirmar a exclusão do atendimento?',
