@@ -50,7 +50,7 @@ export function WelcomeModal() {
             className="accent-[#F7D98B]"
             defaultChecked={false}
             onChange={() => {
-              /* don't show again */
+              closeWelcome();
             }}
           />
           <span>Não mostrar novamente</span>
