@@ -30,6 +30,7 @@
   CSS prefixado `.pk-sim-*`; 4 testes novos (56 no total)
 
 ## Em Andamento
+
 - Importação de decks HTML, export/PDF e endurecimento do core
 - Revisão do sistema de pacotes: chaves de formulário são planas, presets não são mesclados
   pelo registry e runtimes precisam ser autossuficientes (o `sim` segue essas regras)
