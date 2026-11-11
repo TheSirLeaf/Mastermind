@@ -5,10 +5,13 @@ import { CodePackage } from '@packages/code';
 import { useUIStore } from '@stores/uiStore';
 import { clsx } from 'clsx';
 import { X, Download, Upload, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { SVGProps } from 'react';
 
+import { exportPackagesFile } from '@packages/core/export';
+
 import { insertPackage } from '../../editor/insertPackage';
+import { importPackagesText, persistCustomPackages } from '../../editor/packages';
 
 type SVGIconProps = SVGProps<SVGSVGElement>;
 
@@ -106,8 +109,9 @@ function PackageIcon(props: SVGIconProps) {
 
 export function PackageManagerModal() {
   const { isPackageManagerOpen, closePackageManager, showToast } = useUIStore();
-  const { listPackages, getPackageDef, importPackage, exportPackages, registerPackage } =
-    usePackageRegistry();
+  const { registry, listPackages, getPackageDef, registerPackage } = usePackageRegistry();
+  const [, setVersion] = useState(0);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -122,30 +126,43 @@ export function PackageManagerModal() {
       pkg.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleImport = async () => {
+  const handleImport = async (text: string = importJson) => {
     try {
-      const result = await importPackage(importJson);
-      const imported = result.imported.map((p) => p.id).join(', ') || 'nenhum';
-      const skipped = result.skipped.map((s) => s.id).join(', ') || 'nenhum';
-      showToast(`Importados: ${imported}\nIgnorados: ${skipped}`, 'success');
-      if (result.imported.length > 0) setImportJson('');
-      setShowImportModal(false);
-    } catch (e) {
-      showToast('Erro ao importar: ' + e, 'error');
+      const result = await importPackagesText(text);
+      const imported = result.imported.map((p) => p.name).join(', ');
+      const skipped = result.skipped.map((s) => `${s.name} (${s.reason})`).join('; ');
+      if (imported) showToast(`Importados: ${imported}`, 'success');
+      if (skipped) showToast(`Ignorados: ${skipped}`, 'error');
+      if (!imported && !skipped) showToast('Nenhum pacote encontrado no arquivo.', 'error');
+      if (result.imported.length > 0) {
+        setImportJson('');
+        setShowImportModal(false);
+        setVersion((v) => v + 1);
+      }
+    } catch {
+      showToast('Esse conteúdo não é um pacote válido.', 'error');
     }
   };
 
+  const handleImportFile = async (file: File) => {
+    await handleImport(await file.text());
+  };
+
+  const customIds = packages.filter((p) => !registry.isBuiltin(p.id)).map((p) => p.id);
+
   const handleExport = () => {
-    const ids = packages.map((p) => p.id);
-    const exported = exportPackages(ids);
-    const blob = new Blob([JSON.stringify(exported, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'packages.dialcron-pkg.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    // Exporta os pacotes importados; sem nenhum, exporta todos (inclusive built-ins).
+    const ids = customIds.length > 0 ? customIds : packages.map((p) => p.id);
+    exportPackagesFile(registry, ids);
     showToast('Pacotes exportados', 'success');
+  };
+
+  const handleRemove = async (id: string) => {
+    if (!registry.unregister(id)) return;
+    await persistCustomPackages();
+    setSelectedPackage(null);
+    setVersion((v) => v + 1);
+    showToast('Pacote removido', 'success');
   };
 
   const handleInsert = (id: string) => {
@@ -236,7 +253,7 @@ export function PackageManagerModal() {
             <div className="space-y-3">
               {filteredPackages.map((pkg) => {
                 const def = getPackageDef(pkg.id);
-                const isBuiltin = ['code', 'chart'].includes(pkg.id);
+                const isBuiltin = registry.isBuiltin(pkg.id);
                 return (
                   <div
                     key={pkg.id}
@@ -279,6 +296,7 @@ export function PackageManagerModal() {
                           className="rounded p-1.5 text-payday-textDim/60 hover:bg-payday-surface hover:text-payday-text transition"
                           onClick={(e) => {
                             e.stopPropagation();
+                            void handleRemove(pkg.id);
                           }}
                           title="Remover pacote"
                         >
@@ -390,14 +408,34 @@ export function PackageManagerModal() {
               </button>
             </div>
             <div className="p-4">
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".json,application/json"
+                className="hidden"
+                aria-hidden="true"
+                tabIndex={-1}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (file) void handleImportFile(file);
+                }}
+              />
+              <button
+                type="button"
+                className="mb-3 rounded border border-gold-DEFAULT/40 bg-gold-DEFAULT/10 px-3 py-1.5 text-sm text-gold-DEFAULT transition hover:bg-gold-DEFAULT/20"
+                onClick={() => fileRef.current?.click()}
+              >
+                Escolher arquivo .dialcron-pkg.json…
+              </button>
               <label className="block text-sm text-payday-textMuted/60 mb-2">
-                Cole o JSON do pacote (.dialcron-pkg.json)
+                …ou cole o JSON do pacote
               </label>
               <textarea
                 className="w-full min-h-[200px] resize-y rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-sm text-payday-text outline-none focus:border-gold-DEFAULT/40 font-mono"
                 value={importJson}
                 onChange={(e) => setImportJson(e.target.value)}
-                placeholder='[{"id": "meu-pacote", "name": "Meu Pacote", "version": "1.0.0", "icon": "package", "defaults": {}, "form": [], "css": "", "runtime": ""}]'
+                placeholder='{"format": "dialcron-package", "spec": 1, "packages": [ … ]}'
               />
             </div>
             <div className="p-4 border-t border-payday-border flex justify-end gap-2">
@@ -409,7 +447,7 @@ export function PackageManagerModal() {
               </button>
               <button
                 className="rounded px-4 py-2 text-sm font-semibold bg-gradient-to-r from-gold-DEFAULT to-gold-dark text-payday-bg border-0 hover:opacity-90 transition"
-                onClick={handleImport}
+                onClick={() => void handleImport()}
               >
                 Importar
               </button>

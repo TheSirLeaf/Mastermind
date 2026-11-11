@@ -6,13 +6,34 @@ export interface BridgeEvents {
   onSelect?: (selection: SelectionInfo | null) => void;
   onEdit?: (path: number[], html: string) => void;
   onSlideChange?: (index: number) => void;
+  /** O iframe alterou um slide (mover, redimensionar, digitar…): HTML já limpo. */
+  onSlideHTML?: (index: number, html: string, key: string) => void;
+  /** Atalho/ação disparada dentro do iframe (undo, redo, save, next, prev…). */
+  onKey?: (key: string) => void;
+  /** Arquivo solto sobre o palco (imagem, .html ou pacote .json). */
+  onDropFile?: (file: File) => void;
 }
+
+/** Comandos executados pelo iframe sobre o elemento selecionado. */
+export type BridgeCommand =
+  | 'delete'
+  | 'duplicate'
+  | 'front'
+  | 'back'
+  | 'reset'
+  | 'parent'
+  | 'edit'
+  | 'nudge'
+  | 'format';
 
 type DeckMessage =
   | { __mm: 'deck'; type: 'ready'; count: number }
   | { __mm: 'deck'; type: 'select'; path: number[] | null; tag: string; label: string }
   | { __mm: 'deck'; type: 'edit'; path: number[]; html: string }
-  | { __mm: 'deck'; type: 'slide'; index: number };
+  | { __mm: 'deck'; type: 'slide'; index: number }
+  | { __mm: 'deck'; type: 'slide-html'; index: number; html: string; key?: string }
+  | { __mm: 'deck'; type: 'key'; key: string }
+  | { __mm: 'deck'; type: 'drop'; file: File };
 
 /**
  * Ponte com o iframe do palco.
@@ -24,7 +45,7 @@ export class IframeBridge {
   private readonly handler: (event: MessageEvent) => void;
   private ready = false;
   private pendingGoto: number | null = null;
-  private pendingSelect: number[] | null = null;
+  private pendingSelect: { path: number[]; edit: boolean } | null = null;
   private readonly iframe: HTMLIFrameElement;
   private readonly events: BridgeEvents;
 
@@ -51,9 +72,9 @@ export class IframeBridge {
           this.send({ type: 'goto', index });
         }
         if (this.pendingSelect) {
-          const path = this.pendingSelect;
+          const { path, edit } = this.pendingSelect;
           this.pendingSelect = null;
-          this.send({ type: 'select', path });
+          this.send(edit ? { type: 'select', path, edit: true } : { type: 'select', path });
         }
         break;
       case 'select':
@@ -66,6 +87,15 @@ export class IframeBridge {
         break;
       case 'slide':
         this.events.onSlideChange?.(data.index);
+        break;
+      case 'slide-html':
+        this.events.onSlideHTML?.(data.index, data.html, data.key ?? '');
+        break;
+      case 'key':
+        this.events.onKey?.(data.key);
+        break;
+      case 'drop':
+        this.events.onDropFile?.(data.file);
         break;
       default:
         break;
@@ -93,12 +123,17 @@ export class IframeBridge {
     this.send({ type: 'goto', index });
   }
 
-  select(path: number[] | null): void {
+  select(path: number[] | null, edit = false): void {
     if (!this.ready) {
-      if (path) this.pendingSelect = path;
+      if (path) this.pendingSelect = { path, edit };
       return;
     }
-    this.send({ type: 'select', path });
+    this.send(edit ? { type: 'select', path, edit: true } : { type: 'select', path });
+  }
+
+  /** Executa uma ação sobre o elemento selecionado (excluir, duplicar, z-order…). */
+  command(name: BridgeCommand, arg?: Record<string, unknown>): void {
+    this.send({ type: 'cmd', name, arg });
   }
 
   /** Substitui o HTML de um slide já carregado, sem recarregar o iframe. */

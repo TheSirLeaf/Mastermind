@@ -1,67 +1,107 @@
-// components/common/WelcomeModal.tsx
+import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
-import { X, FileText, FolderOpen } from 'lucide-react';
+import { FileText, FolderOpen, History, X } from 'lucide-react';
+import { useRef, useState, type ChangeEvent } from 'react';
+
+import { newDeck, openDeckFile } from '../../editor/actions';
 
 export function WelcomeModal() {
-  const { isWelcomeOpen, closeWelcome } = useUIStore();
+  const { isWelcomeOpen, closeWelcome, hasDraft } = useUIStore();
+  const savedAt = useDeckStore((state) => state.savedAt);
+  const slideCount = useDeckStore((state) => state.deck.slides.length);
+  const [remember, setRemember] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   if (!isWelcomeOpen) return null;
 
+  const close = () => closeWelcome(remember);
+
+  const onFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (await openDeckFile(file)) close();
+  };
+
   return (
     <div
-      className="fixed inset-0 bg-black/92 z-[200] grid place-items-center p-4"
-      onClick={closeWelcome}
+      className="fixed inset-0 z-[200] grid place-items-center bg-black/90 p-4"
+      onClick={close}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Boas-vindas"
     >
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".html,.htm,text/html"
+        className="hidden"
+        aria-hidden="true"
+        tabIndex={-1}
+        onChange={(event) => void onFile(event)}
+      />
       <div
-        className="w-full max-w-md text-center bg-payday-surface border border-payday-border rounded-2xl p-8"
-        onClick={() => {
-          /* stop propagation */
-        }}
+        className="relative w-full max-w-md rounded-2xl border border-payday-border bg-payday-surface p-8 text-center"
+        onClick={(event) => event.stopPropagation()}
       >
-        <h2 className="font-serif font-bold text-3xl text-gold-DEFAULT mb-2">
+        <h2 className="mb-2 font-serif text-3xl font-bold text-gold-DEFAULT">
           Bem-vindo ao Mastermind
         </h2>
-        <p className="text-payday-textMuted mb-6">
+        <p className="mb-6 text-payday-textMuted">
           Editor de apresentações com sistema de pacotes extensível
         </p>
 
-        <div className="space-y-3 mb-6">
+        <div className="mb-6 space-y-3">
+          {hasDraft ? (
+            <button
+              type="button"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-gold-DEFAULT to-gold-dark px-4 py-2.5 text-sm font-semibold text-payday-bg transition hover:brightness-110"
+              onClick={close}
+            >
+              <History className="h-5 w-5" /> Continuar rascunho ({slideCount} slides
+              {savedAt ? ` · ${new Date(savedAt).toLocaleString('pt-BR')}` : ''})
+            </button>
+          ) : null}
           <button
-            className="w-full justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-gold-DEFAULT to-gold-dark text-payday-bg font-semibold text-sm border-0 hover:opacity-90 transition"
+            type="button"
+            className={
+              hasDraft
+                ? 'flex w-full items-center justify-center gap-2 rounded-lg border border-payday-border bg-payday-surface px-4 py-2.5 text-sm text-payday-text transition hover:bg-payday-panel'
+                : 'flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-gold-DEFAULT to-gold-dark px-4 py-2.5 text-sm font-semibold text-payday-bg transition hover:brightness-110'
+            }
             onClick={() => {
-              closeWelcome();
+              if (hasDraft) newDeck();
+              close();
             }}
           >
-            <FileText className="w-5 h-5" /> Nova apresentação
+            <FileText className="h-5 w-5" /> Nova apresentação
           </button>
           <button
-            className="w-full justify-center gap-2 px-4 py-2.5 rounded-lg bg-payday-surface border border-payday-border text-payday-text text-sm hover:bg-payday-panel transition"
-            onClick={() => {
-              closeWelcome();
-            }}
+            type="button"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-payday-border bg-payday-surface px-4 py-2.5 text-sm text-payday-text transition hover:bg-payday-panel"
+            onClick={() => fileRef.current?.click()}
           >
-            <FolderOpen className="w-5 h-5" /> Abrir arquivo
+            <FolderOpen className="h-5 w-5" /> Abrir arquivo .html
           </button>
         </div>
 
-        <label className="flex items-center justify-center gap-3 mx-auto cursor-pointer text-sm text-payday-textMuted">
+        <label className="mx-auto flex cursor-pointer items-center justify-center gap-3 text-sm text-payday-textMuted">
           <input
             type="checkbox"
             className="accent-gold-DEFAULT"
-            defaultChecked={false}
-            onChange={() => {
-              closeWelcome();
-            }}
+            checked={remember}
+            onChange={(event) => setRemember(event.target.checked)}
           />
           <span>Não mostrar novamente</span>
         </label>
 
         <button
-          className="absolute top-4 right-4 rounded p-1.5 text-payday-textMuted hover:bg-payday-surface hover:text-gold-DEFAULT transition"
-          onClick={closeWelcome}
+          type="button"
+          className="absolute right-4 top-4 rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
+          onClick={close}
           aria-label="Fechar"
         >
-          <X className="w-4 h-4" />
+          <X className="h-4 w-4" />
         </button>
       </div>
     </div>

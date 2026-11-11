@@ -5,6 +5,8 @@ export type InsertableElement = 'text' | 'image' | 'rect' | 'ellipse' | 'line';
 export interface InsertElementOptions {
   /** Data URL ou URL da imagem (obrigatório para `image`). */
   src?: string;
+  /** Largura inicial da imagem em px (padrão 720). */
+  width?: number;
 }
 
 export interface InsertElementResult {
@@ -49,30 +51,34 @@ export function insertElement(
     const img = doc.createElement('img');
     img.setAttribute('src', options.src);
     img.setAttribute('alt', 'Imagem inserida');
+    img.setAttribute('class', 'ed-obj');
     img.setAttribute(
       'style',
-      `position:absolute;left:${left}px;top:${top}px;width:720px;height:auto`
+      `position:absolute;left:${left}px;top:${top}px;width:${Math.round(options.width ?? 720)}px;height:auto;z-index:3;object-fit:contain`
     );
     element = img;
   } else {
     const div = doc.createElement('div');
     if (kind === 'text') {
+      div.setAttribute('class', 'ed-obj ed-text');
       div.textContent = 'Digite seu texto';
       div.setAttribute(
         'style',
-        `position:absolute;left:${left}px;top:${top}px;width:640px;` +
+        `position:absolute;left:${left}px;top:${top}px;width:640px;z-index:3;` +
           'font-family:Georgia, serif;font-size:36px;line-height:1.25;color:#F3E6E2'
       );
     } else if (kind === 'rect' || kind === 'ellipse') {
+      div.setAttribute('class', 'ed-obj ed-shape');
       div.setAttribute(
         'style',
-        `position:absolute;left:${left}px;top:${top}px;width:600px;height:320px;` +
+        `position:absolute;left:${left}px;top:${top}px;width:600px;height:320px;z-index:3;` +
           `background:#F7D98B;border-radius:${kind === 'ellipse' ? '50%' : '4px'}`
       );
     } else {
+      div.setAttribute('class', 'ed-obj ed-shape');
       div.setAttribute(
         'style',
-        `position:absolute;left:${left}px;top:${top + 150}px;width:600px;height:4px;` +
+        `position:absolute;left:${left}px;top:${top + 150}px;width:600px;height:4px;z-index:3;` +
           'background:#F7D98B;border-radius:2px'
       );
     }
@@ -82,7 +88,7 @@ export function insertElement(
   section.appendChild(element);
   state.updateSlideHTML(index, section.outerHTML);
   const path = [index, section.children.length - 1];
-  state.requestSelection(path);
+  state.requestSelection(path, kind === 'text');
 
   return { label: LABELS[kind], path };
 }

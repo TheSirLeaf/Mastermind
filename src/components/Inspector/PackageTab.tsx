@@ -1,6 +1,7 @@
 // components/Inspector/PackageTab.tsx
 import { FormGenerator } from '@components/Inspector/forms/FormGenerator';
 import { usePackageRegistry } from '@hooks/usePackageRegistry';
+import { registry } from '@packages/core/PackageRegistry';
 import type { SelectionInfo } from '@packages/core/types';
 
 import { mutateSelectedElement, readSelectedElement } from './elementSelection';
@@ -75,8 +76,19 @@ function getElementSpec(element: Element | null): Record<string, unknown> {
   }
 }
 
+/**
+ * Grava o novo `data-spec` e redesenha o conteúdo do elemento com o `render`
+ * do pacote — sem isso o formulário mudava só o atributo e o slide não reagia.
+ */
 function updatePackageSpec(selection: SelectionInfo, newSpec: Record<string, unknown>): void {
   mutateSelectedElement(selection, (element) => {
     element.setAttribute('data-spec', JSON.stringify(newSpec));
+    const id = element.getAttribute('data-pkg');
+    if (!id || !registry.has(id)) return;
+    try {
+      element.innerHTML = registry.toHTML(id, newSpec);
+    } catch {
+      // Spec inválida no meio da edição: mantém o último desenho válido.
+    }
   });
 }

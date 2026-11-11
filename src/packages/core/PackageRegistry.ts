@@ -1,4 +1,4 @@
-import type { ComponentType, ReactElement } from 'react';
+import { createElement, type ComponentType, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import { H } from './helper';
@@ -56,6 +56,16 @@ export class PackageRegistry {
     return this.builtin.has(id);
   }
 
+  /** Remove um pacote importado. Built-ins não podem ser removidos. */
+  unregister(id: string): boolean {
+    if (this.builtin.has(id) || !this.defs.has(id)) return false;
+    this.defs.delete(id);
+    this.components.delete(id);
+    const at = this.order.indexOf(id);
+    if (at >= 0) this.order.splice(at, 1);
+    return true;
+  }
+
   get(id: string): PackageDef | undefined {
     return this.defs.get(id);
   }
@@ -76,7 +86,13 @@ export class PackageRegistry {
     if (!def) return undefined;
     let component = this.components.get(id);
     if (!component) {
-      component = ({ spec }: { spec: PackageSpec }) => def.render(spec, H) as ReactElement;
+      component = ({ spec }: { spec: PackageSpec }) => {
+        const out: unknown = def.render(spec, H);
+        if (typeof out === 'string') {
+          return createElement('div', { dangerouslySetInnerHTML: { __html: out } });
+        }
+        return out as ReactElement;
+      };
       this.components.set(id, component);
     }
     return component;
@@ -86,7 +102,10 @@ export class PackageRegistry {
   toHTML(id: string, spec: PackageSpec, h: HelperAPI = H): string {
     const def = this.defs.get(id);
     if (!def) throw new Error(`Pacote desconhecido: ${id}`);
-    return renderToStaticMarkup(def.render(spec, h) as ReactElement);
+    const out: unknown = def.render(spec, h);
+    // Pacotes do editor original (`.dialcron-pkg.json`) devolvem uma string HTML.
+    if (typeof out === 'string') return out;
+    return renderToStaticMarkup(out as ReactElement);
   }
 
   /** CSS de todos os pacotes, na ordem de registro. */

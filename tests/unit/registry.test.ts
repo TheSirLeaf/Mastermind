@@ -85,4 +85,18 @@ describe('PackageRegistry', () => {
     );
     expect(result.skipped[0]?.reason).toBeTruthy();
   });
+
+  it('remove pacotes importados, mas não os built-ins', () => {
+    const registry = new PackageRegistry();
+    registry.register(makePackage('base'));
+    registry.register(makePackage('extra'), { replace: true });
+
+    expect(registry.unregister('base')).toBe(false);
+    expect(registry.has('base')).toBe(true);
+
+    expect(registry.unregister('extra')).toBe(true);
+    expect(registry.has('extra')).toBe(false);
+    expect(registry.list().map((def) => def.id)).toEqual(['base']);
+    expect(registry.unregister('extra')).toBe(false);
+  });
 });

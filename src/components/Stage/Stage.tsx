@@ -6,8 +6,12 @@ import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 import { useRef, useEffect, useState } from 'react';
 
+import { setActiveBridge } from '../../editor/bridgeRef';
+import { handleDroppedFile } from '../../editor/actions';
+import { handleBridgeKey } from '../../editor/shortcuts';
+
 export function Stage() {
-  const { deck, currentIndex, pendingSelection } = useDeckStore();
+  const { deck, currentIndex, pendingSelection, pendingEdit } = useDeckStore();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const bridgeRef = useRef<IframeBridge | null>(null);
   const lastSlidesRef = useRef<string[]>([]);
@@ -27,8 +31,17 @@ export function Stage() {
       onSelect: (value) => useDeckStore.getState().setSelection(value),
       onEdit: (path, html) => useDeckStore.getState().updateElementHTML(path, html),
       onSlideChange: (index) => useDeckStore.getState().selectSlide(index),
+      // O iframe é a fonte da verdade em mover/redimensionar/digitar: registra o
+      // HTML limpo no store e marca como já aplicado para não ecoar `set-slide`.
+      onSlideHTML: (index, html, key) => {
+        lastSlidesRef.current[index] = html;
+        useDeckStore.getState().updateSlideHTML(index, html, key || undefined);
+      },
+      onKey: (key) => handleBridgeKey(key),
+      onDropFile: (file) => handleDroppedFile(file),
     });
     bridgeRef.current = bridge;
+    setActiveBridge(bridge);
 
     const initialDeck = useDeckStore.getState().deck;
     lastSlidesRef.current = initialDeck.slides.map((slide) => slide.html);
@@ -42,6 +55,7 @@ export function Stage() {
     return () => {
       bridge.destroy();
       bridgeRef.current = null;
+      setActiveBridge(null);
       setBooted(false);
     };
   }, []);
@@ -96,9 +110,9 @@ export function Stage() {
   // fica após o efeito do deck para que o `set-slide` já tenha sido enviado.
   useEffect(() => {
     if (!booted || !pendingSelection) return;
-    bridgeRef.current?.select(pendingSelection);
+    bridgeRef.current?.select(pendingSelection, pendingEdit);
     useDeckStore.getState().requestSelection(null);
-  }, [pendingSelection, booted]);
+  }, [pendingSelection, pendingEdit, booted]);
 
   return (
     <iframe

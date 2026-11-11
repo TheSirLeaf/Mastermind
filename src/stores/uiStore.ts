@@ -2,16 +2,20 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 
+export type InspectorTab = 'style' | 'content' | 'package' | 'animation' | 'slide' | 'packages';
+
 interface UIState {
   // Panels
   leftPanelWidth: number;
   rightPanelWidth: number;
-  inspectorActiveTab: 'style' | 'content' | 'package' | 'animation' | 'packages';
+  inspectorActiveTab: InspectorTab;
   animationPreviewNonce: number;
 
   // Modals
   isPackageManagerOpen: boolean;
   isWelcomeOpen: boolean;
+  /** Há um rascunho salvo neste navegador (carregado no boot). */
+  hasDraft: boolean;
   isExportModalOpen: boolean;
 
   // Preview mode
@@ -25,18 +29,37 @@ interface UIState {
   initialize: () => void;
   setLeftPanelWidth: (width: number) => void;
   setRightPanelWidth: (width: number) => void;
-  setInspectorTab: (tab: 'style' | 'content' | 'package' | 'animation' | 'packages') => void;
+  setInspectorTab: (tab: InspectorTab) => void;
   replayAnimations: () => void;
   openPackageManager: () => void;
   closePackageManager: () => void;
   openWelcome: () => void;
-  closeWelcome: () => void;
+  setHasDraft: (value: boolean) => void;
+  closeWelcome: (remember?: boolean) => void;
   openExportModal: () => void;
   closeExportModal: () => void;
   setPreviewMode: (enabled: boolean) => void;
   setPresenting: (enabled: boolean) => void;
   showToast: (message: string, type?: 'info' | 'success' | 'error') => void;
   hideToast: () => void;
+}
+
+const WELCOME_KEY = 'mastermind:welcome';
+
+function readWelcomePref(): boolean {
+  try {
+    return window.localStorage.getItem(WELCOME_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+function writeWelcomePref(show: boolean): void {
+  try {
+    window.localStorage.setItem(WELCOME_KEY, show ? 'on' : 'off');
+  } catch {
+    // Sem localStorage: o aviso volta na próxima visita.
+  }
 }
 
 export const useUIStore = create<UIState>()(
@@ -47,7 +70,8 @@ export const useUIStore = create<UIState>()(
     animationPreviewNonce: 0,
 
     isPackageManagerOpen: false,
-    isWelcomeOpen: true,
+    isWelcomeOpen: readWelcomePref(),
+    hasDraft: false,
     isExportModalOpen: false,
 
     isPreviewMode: false,
@@ -70,7 +94,11 @@ export const useUIStore = create<UIState>()(
     closePackageManager: () => set({ isPackageManagerOpen: false }),
 
     openWelcome: () => set({ isWelcomeOpen: true }),
-    closeWelcome: () => set({ isWelcomeOpen: false }),
+    setHasDraft: (value) => set({ hasDraft: value }),
+    closeWelcome: (remember = false) => {
+      if (remember) writeWelcomePref(false);
+      set({ isWelcomeOpen: false });
+    },
 
     openExportModal: () => set({ isExportModalOpen: true }),
     closeExportModal: () => set({ isExportModalOpen: false }),
