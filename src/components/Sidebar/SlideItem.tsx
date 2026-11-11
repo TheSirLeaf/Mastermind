@@ -50,7 +50,7 @@ export function SlideItem({
       style={style}
       className={clsx(
         'flex w-full items-start gap-2 rounded-md px-2 py-2 text-left transition',
-        isActive ? 'bg-[#F7D98B]/15 text-[#F3E6E2]' : 'text-[#F3E6E2]/60 hover:bg-white/5'
+        isActive ? 'bg-[#F7D98B]/15 text-[#F3E6E2]' : 'text-[#F3E6E2]/60'
       )}
       onClick={onSelect}
       {...attributes}
@@ -60,9 +60,9 @@ export function SlideItem({
         {String(index + 1).padStart(2, '0')}
       </span>
       <span className="line-clamp-2 text-xs leading-snug flex-1">{getSlideTitle(slide.html)}</span>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 opacity-100">
         <button
-          className="rounded p-1 text-[#F3E6E2]/60 hover:bg-white/10 hover:text-[#F7D98B] transition"
+          className="rounded p-1 text-[#F3E6E2]/60 transition"
           onClick={(e) => {
             e.stopPropagation();
             onDuplicate();
@@ -72,7 +72,7 @@ export function SlideItem({
           <Copy className="w-3.5 h-3.5" />
         </button>
         <button
-          className="rounded p-1 text-[#F3E6E2]/60 hover:bg-white/10 hover:text-[#C77C8A] transition"
+          className="rounded p-1 text-[#F3E6E2]/60 transition"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
