@@ -82,32 +82,35 @@ export function ChartRenderer({ spec, h }: ChartRendererProps): JSX.Element {
 
   if (spec.kind === 'donut') {
     const total = values.reduce((sum, value) => sum + value, 0) || 1;
-    let offset = 0;
     const radius = 120;
     const circumference = 2 * Math.PI * radius;
+    let offset = 0;
+    // O offset precisa ser o início acumulado do segmento, não o fim dele.
+    // Caso contrário cada arco começa deslocado pelo próprio comprimento.
+    const segments = rows.map((row, index) => {
+      const value = values[index] ?? 0;
+      const dash = (value / total) * circumference;
+      const segment = { row, dash, offset };
+      offset += dash;
+      return segment;
+    });
     return (
       <div className="pk-chart" style={{ width: `${spec.w}px`, maxWidth: '100%' }}>
         {title}
         <svg className="pk-svg" viewBox="0 0 360 300" role="img">
           <g transform="translate(180 150) rotate(-90)">
-            {rows.map((row, index) => {
-              const value = values[index] ?? 0;
-              const frac = value / total;
-              const dash = frac * circumference;
-              offset += dash;
-              return (
-                <circle
-                  key={index}
-                  r={radius}
-                  fill="none"
-                  stroke={row.hl ? spec.hlColor : spec.color}
-                  strokeWidth={38}
-                  strokeDasharray={`${dash} ${circumference - dash}`}
-                  strokeDashoffset={-offset}
-                  opacity={row.hl ? 1 : 0.75}
-                />
-              );
-            })}
+            {segments.map(({ row, dash, offset }, index) => (
+              <circle
+                key={index}
+                r={radius}
+                fill="none"
+                stroke={row.hl ? spec.hlColor : spec.color}
+                strokeWidth={38}
+                strokeDasharray={`${dash} ${circumference - dash}`}
+                strokeDashoffset={-offset}
+                opacity={row.hl ? 1 : 0.75}
+              />
+            ))}
           </g>
           <text x="180" y="150" textAnchor="middle" className="pk-cv" style={{ fontSize: 32 }}>
             {h.fmt(total, spec.decimals)}
