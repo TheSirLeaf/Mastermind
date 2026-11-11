@@ -68,7 +68,7 @@ describe('modelos de slide', () => {
     expect(html).toContain('cover');
 
     const painted = withSlideBackground(html, '#112233');
-    expect(slideBackground(painted)).toBe('#112233');
+    expect(slideBackground(painted)).toBe('rgb(17, 34, 51)');
     expect(slideBackground(withSlideBackground(painted, null))).toBe('');
   });
 });
