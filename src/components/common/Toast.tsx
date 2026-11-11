@@ -5,9 +5,10 @@ import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 interface ToastProps {
   message: string;
   type: 'info' | 'success' | 'error';
+  onDismiss?: () => void;
 }
 
-export function Toast({ message, type }: ToastProps) {
+export function Toast({ message, type, onDismiss }: ToastProps) {
   const icons = {
     info: <Info className="w-4 h-4" />,
     success: <CheckCircle className="w-4 h-4" />,
@@ -32,7 +33,7 @@ export function Toast({ message, type }: ToastProps) {
         <button
           className="ml-2 btn ib w-6 h-6 p-0 opacity-60 hover:opacity-100"
           onClick={() => {
-            /* dismiss handled by parent */
+            onDismiss?.();
           }}
         >
           <X className="w-3.5 h-3.5" />

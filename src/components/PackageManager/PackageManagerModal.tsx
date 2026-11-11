@@ -1,5 +1,7 @@
 // components/PackageManager/PackageManagerModal.tsx
 import { usePackageRegistry } from '@hooks/usePackageRegistry';
+import { ChartPackage } from '@packages/chart';
+import { CodePackage } from '@packages/code';
 import { useUIStore } from '@stores/uiStore';
 import { clsx } from 'clsx';
 import { X, Download, Upload, Trash2 } from 'lucide-react';
@@ -102,7 +104,7 @@ function PackageIcon(props: SVGIconProps) {
 
 export function PackageManagerModal() {
   const { isPackageManagerOpen, closePackageManager, showToast } = useUIStore();
-  const { listPackages, getPackageDef, importPackage, exportPackages } = usePackageRegistry();
+  const { listPackages, getPackageDef, importPackage, exportPackages, registerPackage } = usePackageRegistry();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -303,7 +305,10 @@ export function PackageManagerModal() {
           <div className="flex gap-3 flex-wrap">
             <button
               className="p-3 rounded-lg border border-white/10 flex-1 min-w-[150px] cursor-pointer hover:bg-white/5 transition"
-              onClick={() => console.log('Add code')}
+              onClick={() => {
+                registerPackage(CodePackage);
+                showToast('Pacote Code adicionado', 'success');
+              }}
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
@@ -327,7 +332,10 @@ export function PackageManagerModal() {
             </button>
             <button
               className="p-3 rounded-lg border border-white/10 flex-1 min-w-[150px] cursor-pointer hover:bg-white/5 transition"
-              onClick={() => console.log('Add chart')}
+              onClick={() => {
+                registerPackage(ChartPackage);
+                showToast('Pacote Chart adicionado', 'success');
+              }}
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
