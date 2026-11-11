@@ -272,7 +272,7 @@ export const SimPackage: PackageDef<SimSpec> = {
     {
       name: 'Agenda · salvar com rollback',
       desc: 'Reproduz o slide 11: valida, grava as três tabelas, faz commit e simula a falha.',
-      spec: {},
+      spec: { ...simDefaults },
     },
     {
       name: 'Cadastro · validação',
