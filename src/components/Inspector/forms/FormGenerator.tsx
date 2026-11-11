@@ -96,8 +96,31 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
   const set = useCallback((next: unknown) => onChange(next), [onChange]);
 
   switch (type) {
+    case 'code': {
+      // Contrato do monólito: textarea monoespaçada, rows, sem corretor e
+      // Tab insere 4 espaços na posição do cursor.
+      return (
+        <textarea
+          className="w-full rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-cream outline-none focus:border-gold/40 transition font-mono"
+          rows={rows ?? 4}
+          spellCheck={false}
+          placeholder={placeholder ?? undefined}
+          value={String(value ?? '')}
+          onChange={(event) => set(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key !== 'Tab') return;
+            event.preventDefault();
+            const el = event.currentTarget;
+            const start = el.selectionStart ?? 0;
+            const end = el.selectionEnd ?? 0;
+            el.value = el.value.slice(0, start) + '    ' + el.value.slice(end);
+            el.selectionStart = el.selectionEnd = start + 4;
+            set(el.value);
+          }}
+        />
+      );
+    }
     case 'text':
-    case 'code':
     case 'color':
     default: {
       return (
