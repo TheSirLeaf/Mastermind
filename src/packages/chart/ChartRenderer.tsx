@@ -82,7 +82,6 @@ export function ChartRenderer({ spec, h }: ChartRendererProps): JSX.Element {
 
   if (spec.kind === 'donut') {
     const total = values.reduce((sum, value) => sum + value, 0) || 1;
-    let offset = 0;
     const radius = 120;
     const circumference = 2 * Math.PI * radius;
     return (
@@ -94,7 +93,6 @@ export function ChartRenderer({ spec, h }: ChartRendererProps): JSX.Element {
               const value = values[index] ?? 0;
               const frac = value / total;
               const dash = frac * circumference;
-              offset += dash;
               return (
                 <circle
                   key={index}
@@ -104,7 +102,7 @@ export function ChartRenderer({ spec, h }: ChartRendererProps): JSX.Element {
                   stroke={row.hl ? spec.hlColor : spec.color}
                   strokeWidth={38}
                   strokeDasharray={`${dash} ${circumference - dash}`}
-                  strokeDashoffset={-offset}
+                  strokeDashoffset={-dash}
                   opacity={row.hl ? 1 : 0.75}
                 />
               );
@@ -166,7 +164,7 @@ export function ChartRenderer({ spec, h }: ChartRendererProps): JSX.Element {
 
   const pad = 60;
   const barWidth = 60;
-  const gap = (W - pad * 2 - rows.length * barWidth) / Math.max(1, rows.length);
+  const gap = (W - pad * 2 - rows.length * barWidth) / Math.max(1, rows.length + 1);
   return (
     <div data-testid="pk-chart-container" className="pk-chart" style={{ width: `${spec.w}px`, maxWidth: '100%' }}>
       {title}
