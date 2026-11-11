@@ -1,6 +1,6 @@
 import { createElement } from 'react';
 
-import type { HelperAPI, PackageDef, Preset, RuntimeAPI } from '../core/types';
+import type { HelperAPI, PackageDef, Preset } from '../core/types';
 
 import { chartCss } from './chart.css';
 import { ChartRenderer, type ChartSpec } from './ChartRenderer';
@@ -96,5 +96,7 @@ export const ChartPackage: PackageDef<ChartSpec> = {
   css: chartCss,
   render: (spec, h: HelperAPI) => createElement(ChartRenderer, { spec, h }),
   duration: (spec) => (spec.animate ? spec.delay * 1000 + 900 : 0),
-  runtime: (root: HTMLElement, spec: ChartSpec, api: RuntimeAPI) => chartRuntime(root, spec, api),
+  // Referência direta (não wrapper): o runtime é serializado via String() no
+  // export e precisa reviver autossuficiente no host do HTML standalone.
+  runtime: chartRuntime,
 };

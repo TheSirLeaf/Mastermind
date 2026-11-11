@@ -1,6 +1,6 @@
 import { createElement } from 'react';
 
-import type { HelperAPI, PackageDef, Preset, RuntimeAPI } from '../core/types';
+import type { HelperAPI, PackageDef, Preset } from '../core/types';
 
 import { codeCss } from './code.css';
 import { CodeRenderer, type CodeSpec } from './CodeRenderer';
@@ -78,5 +78,7 @@ export const CodePackage: PackageDef<CodeSpec> = {
   render: (spec, h: HelperAPI) => createElement(CodeRenderer, { spec, h }),
   duration: (spec) =>
     spec.typing ? spec.delay + (spec.code.length / Math.max(1, spec.cps)) * 1000 : 0,
-  runtime: (root: HTMLElement, spec: CodeSpec, api: RuntimeAPI) => codeRuntime(root, spec, api),
+  // Referência direta (não wrapper): o runtime é serializado via String() no
+  // export e precisa reviver autossuficiente no host do HTML standalone.
+  runtime: codeRuntime,
 };

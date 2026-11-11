@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { CodePackage } from '../../src/packages/code/CodePackage';
 import type { CodeSpec } from '../../src/packages/code/CodeRenderer';
 import { codeRuntime } from '../../src/packages/code/CodeRuntime';
+import { buildRegistryPayload } from '../../src/packages/core/export';
+import { PackageRegistry } from '../../src/packages/core/PackageRegistry';
 import type { RuntimeAPI } from '../../src/packages/core/types';
 
 const defaults: CodeSpec = {
@@ -110,6 +113,42 @@ describe('code runtime', () => {
     await ctrl!.play();
 
     expect(pre.innerHTML).toBe(original);
+    ctrl!.final();
+    expect(pre.innerHTML).toBe(original);
+  });
+});
+
+describe('code package — contrato de export do runtime', () => {
+  it('serializa um runtime autossuficiente: revive fora do bundle e digita', async () => {
+    const registry = new PackageRegistry();
+    registry.register(CodePackage);
+    const payload = JSON.parse(buildRegistryPayload(registry, ['code'])) as {
+      code: { def: { runtime: { $fn: string } } };
+    };
+    const source = payload.code.def.runtime.$fn;
+    expect(typeof source).toBe('string');
+
+    // O host do HTML standalone revive o fonte com new Function, sem acesso aos
+    // módulos do bundle — o runtime precisa ser autossuficiente.
+    const revived = new Function(`return (${source});`)() as unknown as typeof codeRuntime;
+
+    const api = makeApi();
+    const root = rootWith(['int x = 1;', 'int y = 2;']);
+    const pre = root.querySelector('pre.pk-pre')!;
+    const original = pre.innerHTML;
+
+    let error: unknown = null;
+    let ctrl: ReturnType<typeof codeRuntime> = null;
+    try {
+      ctrl = revived(root, defaults, api);
+    } catch (err) {
+      error = err;
+    }
+    expect(error, `runtime revive lançou: ${String(error)}`).toBeNull();
+    expect(ctrl).not.toBeNull();
+
+    await ctrl!.play();
+    expect(pre.textContent).toBe('int x = 1;int y = 2;');
     ctrl!.final();
     expect(pre.innerHTML).toBe(original);
   });
