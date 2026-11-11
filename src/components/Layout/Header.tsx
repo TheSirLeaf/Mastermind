@@ -62,14 +62,14 @@ export function Header() {
   return (
     <header
       id="top"
-      className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-3.5 h-13 bg-[#10060B] border-b border-white/10"
+      className="flex h-[52px] shrink-0 items-center gap-2 overflow-hidden border-b border-white/10 bg-[#10060B] px-3.5"
     >
-      <div className="brand flex items-center gap-1.5">
+      <div className="brand flex shrink-0 items-center gap-1.5">
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#F7D98B]" />
         <span className="text-sm font-semibold tracking-[0.2em] text-[#F3E6E2]/80">MASTERMIND</span>
       </div>
 
-      <div className="grp flex items-center gap-1.5 pr-2.5 border-r border-white/10">
+      <div className="grp flex shrink-0 items-center gap-1.5 border-r border-white/10 pr-2.5">
         <button
           className="rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
           title="Novo (Ctrl+N)"
@@ -99,7 +99,7 @@ export function Header() {
         </button>
       </div>
 
-      <div className="grp flex items-center gap-1.5 pr-2.5 border-r border-white/10">
+      <div className="grp flex shrink-0 items-center gap-1.5 border-r border-white/10 pr-2.5">
         <button
           className={clsx(
             'rounded p-1.5 transition hover:bg-white/10 hover:text-[#F7D98B]',
@@ -126,18 +126,20 @@ export function Header() {
         </button>
       </div>
 
-      <div className="grp flex items-center gap-1.5 pr-2.5 border-r border-white/10">
+      <div className="grp flex shrink-0 items-center gap-1.5 border-r border-white/10 pr-2.5">
         <button
-          className="rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
+          className="inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
           title="Inserir caixa de texto"
         >
-          <Type className="w-4 h-4" /> Texto
+          <Type className="w-4 h-4" />
+          <span className="hidden xl:inline">Texto</span>
         </button>
         <button
-          className="rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
+          className="inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
           title="Inserir imagem"
         >
-          <Image className="w-4 h-4" /> Imagem
+          <Image className="w-4 h-4" />
+          <span className="hidden xl:inline">Imagem</span>
         </button>
         <button
           className="rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
@@ -159,36 +161,43 @@ export function Header() {
         </button>
       </div>
 
-      <div className="grp nb flex items-center gap-1.5">
+      <div className="grp nb flex shrink-0 items-center gap-1.5">
         <button
-          className="rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
+          className="inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
           title="Inserir elementos de pacotes"
           onClick={openPackageManager}
         >
-          <Package className="w-4 h-4" /> Pacotes <ChevronDown className="w-3.5 h-3.5" />
+          <Package className="w-4 h-4" />
+          <span className="hidden xl:inline">Pacotes</span>
+          <ChevronDown className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      <div className="sp flex-1" />
+      <div className="sp min-w-2 flex-1" />
 
-      <span id="saveState" className="text-xs text-[#F3E6E2]/35 whitespace-nowrap pr-2">
+      <span
+        id="saveState"
+        className="min-w-0 truncate pr-2 text-xs text-[#F3E6E2]/35"
+        title={`${deck.title} • ${deck.slides.length} slide${deck.slides.length !== 1 ? 's' : ''}`}
+      >
         {deck.title} • {deck.slides.length} slide{deck.slides.length !== 1 ? 's' : ''}
       </span>
 
-      <div className="grp tools2 flex items-center gap-1.5">
+      <div className="grp tools2 flex shrink-0 items-center gap-1.5">
         <button
           className={clsx(
-            'rounded p-1.5 transition hover:bg-white/10 hover:text-[#F7D98B]',
+            'inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 transition hover:bg-white/10 hover:text-[#F7D98B]',
             isPreviewMode && 'text-[#C77C8A]'
           )}
           title="Visualizar (P)"
           onClick={handlePreview}
         >
-          <RotateCcw className="w-4 h-4" /> Visualizar
+          <RotateCcw className="w-4 h-4" />
+          <span className="hidden xl:inline">Visualizar</span>
         </button>
         <button
           className={clsx(
-            'rounded px-3 py-1.5 text-xs font-medium transition border-0',
+            'inline-flex items-center gap-1 whitespace-nowrap rounded border-0 px-3 py-1.5 text-xs font-medium transition',
             isPresenting
               ? 'bg-[#C77C8A] text-[#2A0E1A]'
               : 'bg-gradient-to-r from-[#F7D98B] to-[#D6A84F] text-[#2A0E1A]'
