@@ -1,4 +1,8 @@
 // components/Layout/Header.tsx
+import { createDefaultDeck } from '@packages/core/deck';
+import { exportPresentationFile } from '@packages/core/export';
+import { parseDeckHTML } from '@packages/core/importDeck';
+import { registry } from '@packages/core/PackageRegistry';
 import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 import { clsx } from 'clsx';
@@ -19,6 +23,9 @@ import {
   Upload,
   RotateCcw,
 } from 'lucide-react';
+import { useRef, useState, type ChangeEvent } from 'react';
+
+import { insertElement, type InsertableElement } from '../../editor/insertElement';
 
 export function Header() {
   const { canUndo, canRedo, undo, redo, deck } = useDeckStore();
@@ -28,44 +35,133 @@ export function Header() {
     isPresenting,
     setPresenting,
     openPackageManager,
-    openExportModal,
     showToast,
   } = useUIStore();
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const deckInputRef = useRef<HTMLInputElement>(null);
+  const [exporting, setExporting] = useState(false);
 
   const handleSave = () => {
     showToast('Apresentação salva', 'success');
   };
 
-  const handleNewSlide = () => {
-    useDeckStore.getState().addSlide();
+  const handleNewPresentation = () => {
+    const confirmed = window.confirm(
+      'Criar uma nova apresentação? O deck atual continuará salvo até a próxima alteração.'
+    );
+    if (!confirmed) return;
+    useDeckStore.getState().setDeck(createDefaultDeck());
+    showToast('Nova apresentação criada', 'success');
+  };
+
+  const handleOpenClick = () => deckInputRef.current?.click();
+
+  const handleDeckFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const html = await file.text();
+      const imported = parseDeckHTML(html, { title: file.name.replace(/\.html?$/i, '') });
+      useDeckStore.getState().setDeck(imported);
+      showToast(`“${imported.title}” aberta (${imported.slides.length} slides)`, 'success');
+    } catch {
+      showToast('Não foi possível abrir esse HTML como apresentação.', 'error');
+    }
   };
 
   const handlePlay = () => {
     if (isPresenting) {
       setPresenting(false);
-    } else {
-      setPresenting(true);
+      return;
     }
+    setPreviewMode(false);
+    setPresenting(true);
   };
 
   const handlePreview = () => {
-    setPreviewMode(!isPreviewMode);
+    if (isPreviewMode) {
+      setPreviewMode(false);
+      return;
+    }
+    setPresenting(false);
+    setPreviewMode(true);
   };
 
-  const handleExport = () => {
-    openExportModal();
-    showToast('Exportando HTML...', 'info');
-    // TODO: Implement export
-    setTimeout(() => showToast('Export concluído', 'success'), 1000);
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const filename = await exportPresentationFile({ deck, registry });
+      showToast(`Exportado: ${filename}`, 'success');
+    } catch {
+      showToast('Não foi possível exportar a apresentação.', 'error');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleInsert = (kind: InsertableElement) => {
+    if (kind === 'image') {
+      imageInputRef.current?.click();
+      return;
+    }
+    const result = insertElement(kind);
+    if (!result) {
+      showToast('Não foi possível inserir o elemento.', 'error');
+      return;
+    }
+    showToast(`${result.label} inserido no slide`, 'success');
+  };
+
+  const handleImageFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Selecione um arquivo de imagem.', 'error');
+      return;
+    }
+    const src = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ''));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    }).catch(() => '');
+    if (!src) {
+      showToast('Não foi possível ler a imagem.', 'error');
+      return;
+    }
+    const result = insertElement('image', { src });
+    if (result) showToast('Imagem inserida no slide', 'success');
   };
 
   return (
     <header
       id="top"
-      className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-3.5 h-13 bg-payday-bg border-b border-payday-border"
+      className="flex h-[52px] shrink-0 items-center gap-2 overflow-hidden border-b border-payday-border bg-payday-bg px-3.5"
     >
-      <div className="brand flex items-center gap-1.5">
-        <span className="inline-block h-2.5 w-2.5 rounded-full bg-gold-DEFAULT" />
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleImageFile}
+        aria-hidden="true"
+        tabIndex={-1}
+      />
+      <input
+        ref={deckInputRef}
+        type="file"
+        accept=".html,text/html"
+        className="hidden"
+        onChange={handleDeckFile}
+        aria-hidden="true"
+        tabIndex={-1}
+      />
+
+      <div className="brand flex shrink-0 items-center gap-1.5">
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#F7D98B]" />
         <span className="text-sm font-semibold tracking-[0.2em] text-payday-textMuted">
           MASTERMIND
         </span>
@@ -74,14 +170,15 @@ export function Header() {
       <div className="grp flex shrink-0 items-center gap-1.5 border-r border-payday-border pr-2.5">
         <button
           className="rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
-          title="Novo (Ctrl+N)"
-          onClick={handleNewSlide}
+          title="Novo — nova apresentação"
+          onClick={handleNewPresentation}
         >
           <FileText className="w-4 h-4" />
         </button>
         <button
           className="rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
-          title="Abrir… (Ctrl+O)"
+          title="Abrir apresentação (HTML)"
+          onClick={handleOpenClick}
         >
           <Upload className="w-4 h-4" />
         </button>
@@ -93,9 +190,13 @@ export function Header() {
           <Save className="w-4 h-4" />
         </button>
         <button
-          className="rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
+          className={clsx(
+            'rounded p-1.5 transition hover:bg-white/10 hover:text-[#F7D98B]',
+            exporting ? 'text-gold-DEFAULT' : 'text-payday-textMuted'
+          )}
           title="Exportar HTML"
-          onClick={handleExport}
+          onClick={() => void handleExport()}
+          disabled={exporting}
         >
           <Download className="w-4 h-4" />
         </button>
@@ -104,7 +205,7 @@ export function Header() {
       <div className="grp flex shrink-0 items-center gap-1.5 border-r border-payday-border pr-2.5">
         <button
           className={clsx(
-            'rounded p-1.5 transition hover:bg-payday-surface hover:text-gold-DEFAULT',
+            'rounded p-1.5 transition hover:bg-white/10 hover:text-[#F7D98B]',
             canUndo ? 'text-payday-textMuted' : 'text-payday-textDim pointer-events-none'
           )}
           title="Desfazer (Ctrl+Z)"
@@ -116,7 +217,7 @@ export function Header() {
         </button>
         <button
           className={clsx(
-            'rounded p-1.5 transition hover:bg-payday-surface hover:text-gold-DEFAULT',
+            'rounded p-1.5 transition hover:bg-white/10 hover:text-[#F7D98B]',
             canRedo ? 'text-payday-textMuted' : 'text-payday-textDim pointer-events-none'
           )}
           title="Refazer (Ctrl+Y)"
@@ -132,6 +233,7 @@ export function Header() {
         <button
           className="inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
           title="Inserir caixa de texto"
+          onClick={() => handleInsert('text')}
         >
           <Type className="w-4 h-4" />
           <span className="hidden xl:inline">Texto</span>
@@ -139,6 +241,7 @@ export function Header() {
         <button
           className="inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
           title="Inserir imagem"
+          onClick={() => handleInsert('image')}
         >
           <Image className="w-4 h-4" />
           <span className="hidden xl:inline">Imagem</span>
@@ -146,18 +249,21 @@ export function Header() {
         <button
           className="rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
           title="Retângulo"
+          onClick={() => handleInsert('rect')}
         >
           <Square className="w-4 h-4" />
         </button>
         <button
           className="rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
           title="Elipse"
+          onClick={() => handleInsert('ellipse')}
         >
           <Circle className="w-4 h-4" />
         </button>
         <button
           className="rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
           title="Linha"
+          onClick={() => handleInsert('line')}
         >
           <Minus className="w-4 h-4" />
         </button>
@@ -188,10 +294,10 @@ export function Header() {
       <div className="grp tools2 flex shrink-0 items-center gap-1.5">
         <button
           className={clsx(
-            'inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 transition hover:bg-payday-surface hover:text-gold-DEFAULT',
-            isPreviewMode && 'text-[#C77C8A]'
+            'inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 transition hover:bg-white/10 hover:text-[#F7D98B]',
+            isPreviewMode && 'text-gold-DEFAULT'
           )}
-          title="Visualizar (P)"
+          title="Visualizar"
           onClick={handlePreview}
         >
           <RotateCcw className="w-4 h-4" />
@@ -201,7 +307,7 @@ export function Header() {
           className={clsx(
             'inline-flex items-center gap-1 whitespace-nowrap rounded border-0 px-3 py-1.5 text-xs font-medium transition',
             isPresenting
-              ? 'bg-[#C77C8A] text-[#2A0E1A]'
+              ? 'bg-[#C77C8A] text-payday-bg'
               : 'bg-gradient-to-r from-gold-DEFAULT to-gold-dark text-payday-bg'
           )}
           title="Apresentar (F5)"
