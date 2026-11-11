@@ -78,6 +78,15 @@ export function ContentTab({ selection }: { selection: SelectionInfo }) {
   }
 
   if (TEXT_TAGS.has(tagName)) {
+    if (element.children.length > 0) {
+      return (
+        <Hint>
+          Este elemento contém outros elementos. Editar o texto diretamente apagaria essa estrutura;
+          selecione o texto interno que deseja alterar.
+        </Hint>
+      );
+    }
+
     return (
       <div className="space-y-4">
         <details className="group open">
