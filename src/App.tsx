@@ -9,7 +9,11 @@ import {
 import { registry } from '@packages/core/PackageRegistry';
 import { registerBuiltins } from '@packages/index';
 import { useDeckStore } from '@store/deckStore';
+import { useUIStore } from '@stores/uiStore';
 import { useEffect, useState } from 'react';
+
+import { handleDroppedFile } from './editor/actions';
+import { handleGlobalKey } from './editor/shortcuts';
 
 let initialized = false;
 function initPackagesOnce(): void {
@@ -34,6 +38,31 @@ export default function App() {
 
   useEffect(initPackagesOnce, []);
 
+  // Arrastar e soltar: imagem → insere no slide; .html → abre; .json → importa pacote.
+  useEffect(() => {
+    const onDragOver = (event: DragEvent) => {
+      if (event.dataTransfer?.types.includes('Files')) event.preventDefault();
+    };
+    const onDrop = (event: DragEvent) => {
+      const file = event.dataTransfer?.files[0];
+      if (!file) return;
+      event.preventDefault();
+      handleDroppedFile(file);
+    };
+    window.addEventListener('dragover', onDragOver);
+    window.addEventListener('drop', onDrop);
+    return () => {
+      window.removeEventListener('dragover', onDragOver);
+      window.removeEventListener('drop', onDrop);
+    };
+  }, []);
+
+  // Atalhos globais (fora do iframe do palco).
+  useEffect(() => {
+    window.addEventListener('keydown', handleGlobalKey);
+    return () => window.removeEventListener('keydown', handleGlobalKey);
+  }, []);
+
   // Template + deck salvo.
   useEffect(() => {
     let cancelled = false;
@@ -43,7 +72,10 @@ export default function App() {
         if (cancelled) return;
         setCachedTemplate(template);
         const saved = await loadSavedDeck();
-        if (!cancelled && saved?.slides.length) store.getState().setDeck(saved);
+        if (!cancelled && saved?.slides.length) {
+          store.getState().setDeck(saved);
+          useUIStore.getState().setHasDraft(true);
+        }
         setTemplateReady(true);
         setBooted(true);
       } catch (error) {

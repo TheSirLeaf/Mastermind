@@ -51,6 +51,14 @@ export function Inspector() {
           <circle cx="12" cy="12" r="2.5" />
         </TabButton>
         <TabButton
+          label="Slide"
+          active={inspectorActiveTab === 'slide'}
+          onClick={() => setInspectorTab('slide')}
+        >
+          <rect x="2" y="4" width="20" height="13" rx="2" />
+          <path d="M8 21h8M12 17v4" />
+        </TabButton>
+        <TabButton
           label="Pacotes"
           active={inspectorActiveTab === 'packages'}
           onClick={() => setInspectorTab('packages')}

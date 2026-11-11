@@ -9,6 +9,10 @@ import {
   slideNotes,
   slideTitle,
   DEFAULT_TEXT_HTML,
+  slideTemplateHTML,
+  withSlideBackground,
+  withSlideClass,
+  type SlideTemplateKind,
 } from '../packages/core/deck';
 import { HistoryManager } from '../packages/core/history';
 import type { Deck, SelectionInfo, Slide } from '../packages/core/types';
@@ -19,6 +23,8 @@ export interface DeckState {
   selection: SelectionInfo | null;
   /** Seleção a aplicar no iframe depois de inserir um elemento. */
   pendingSelection: number[] | null;
+  /** Entrar em modo de edição de texto ao aplicar a seleção pendente. */
+  pendingEdit: boolean;
   /** Incrementa a cada restauração de histórico (força re-render). */
   revision: number;
   dirty: boolean;
@@ -40,7 +46,13 @@ export interface DeckState {
   setTitle: (title: string) => void;
   selectSlide: (index: number) => void;
   setSelection: (selection: SelectionInfo | null) => void;
-  requestSelection: (path: number[] | null) => void;
+  requestSelection: (path: number[] | null, edit?: boolean) => void;
+  /** Alterna o tema (`dark`/`light`) do slide. */
+  setSlideTheme: (index: number, theme: 'dark' | 'light') => void;
+  /** Define (ou remove, com `null`) o fundo CSS do slide. */
+  setSlideBackground: (index: number, background: string | null) => void;
+  /** Cria um slide a partir de um modelo, logo depois do slide atual. */
+  addSlideFromTemplate: (kind: SlideTemplateKind) => void;
   undo: () => void;
   redo: () => void;
   markSaved: (at?: number) => void;
@@ -90,6 +102,7 @@ export const useDeckStore = create<DeckState>()((set, get) => {
     currentIndex: 0,
     selection: null,
     pendingSelection: null,
+    pendingEdit: false,
     revision: 0,
     dirty: false,
     savedAt: null,
@@ -113,6 +126,7 @@ export const useDeckStore = create<DeckState>()((set, get) => {
       apply((deck) => {
         const index = at ?? deck.slides.length;
         deck.slides.splice(index, 0, makeSlide(html));
+        deck.slides = renumberFooters(deck.slides);
       });
       const index = at ?? Math.max(0, get().deck.slides.length - 1);
       set({ currentIndex: Math.min(index, get().deck.slides.length - 1), selection: null });
@@ -133,6 +147,7 @@ export const useDeckStore = create<DeckState>()((set, get) => {
       if (!source) return;
       apply((deck) => {
         deck.slides.splice(index + 1, 0, makeSlide(source.html));
+        deck.slides = renumberFooters(deck.slides);
       });
       set({ currentIndex: index + 1, selection: null });
     },
@@ -145,6 +160,7 @@ export const useDeckStore = create<DeckState>()((set, get) => {
       apply((deck) => {
         const [moved] = deck.slides.splice(from, 1);
         if (moved) deck.slides.splice(to, 0, moved);
+        deck.slides = renumberFooters(deck.slides);
       });
       set({ currentIndex: to, selection: null });
     },
@@ -197,10 +213,11 @@ export const useDeckStore = create<DeckState>()((set, get) => {
       apply((deck) => {
         const slide = deck.slides[index];
         if (!slide) return;
-        slide.html = slide.html.replace(
-          /data-notes="[^"]*"/,
-          `data-notes="${notes.replace(/"/g, '&quot;')}"`
-        );
+        const doc = new DOMParser().parseFromString(slide.html, 'text/html');
+        const section = doc.body.firstElementChild;
+        if (!section) return;
+        section.setAttribute('data-notes', notes);
+        slide.html = section.outerHTML;
       }, `notes:${index}`);
     },
 
@@ -218,7 +235,24 @@ export const useDeckStore = create<DeckState>()((set, get) => {
 
     setSelection: (selection) => set({ selection }),
 
-    requestSelection: (path) => set({ pendingSelection: path }),
+    requestSelection: (path, edit = false) => set({ pendingSelection: path, pendingEdit: edit }),
+
+    setSlideTheme: (index, theme) => {
+      const slide = get().deck.slides[index];
+      if (!slide) return;
+      get().updateSlideHTML(index, withSlideClass(slide.html, theme), `theme:${index}`);
+    },
+
+    setSlideBackground: (index, background) => {
+      const slide = get().deck.slides[index];
+      if (!slide) return;
+      get().updateSlideHTML(index, withSlideBackground(slide.html, background), `bg:${index}`);
+    },
+
+    addSlideFromTemplate: (kind) => {
+      const at = get().currentIndex + 1;
+      get().addSlide(slideTemplateHTML(kind), at);
+    },
 
     undo: () => {
       const previous = history.undo(snapshot());

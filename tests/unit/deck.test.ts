@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  SLIDE_TEMPLATE_KINDS,
   createDefaultDeck,
   makeSlide,
   renumberFooters,
+  slideBackground,
   slideNotes,
+  slideTemplateHTML,
+  slideTheme,
   slideTitle,
   withFooter,
+  withSlideBackground,
+  withSlideClass,
 } from '../../src/packages/core/deck';
 
 describe('deck helpers', () => {
@@ -44,5 +50,25 @@ describe('deck helpers', () => {
   it('extrai notes', () => {
     expect(slideNotes('<section data-notes="falar devagar">x</section>')).toBe('falar devagar');
     expect(slideNotes('<section>x</section>')).toBe('');
+  });
+});
+
+describe('modelos de slide', () => {
+  it('cada modelo gera uma <section class="slide"> com {FOOT}', () => {
+    for (const kind of SLIDE_TEMPLATE_KINDS) {
+      const html = slideTemplateHTML(kind);
+      expect(html.startsWith('<section class="slide'), kind).toBe(true);
+      expect(html, kind).toContain('{FOOT}');
+    }
+  });
+
+  it('troca o tema e o fundo preservando as demais classes', () => {
+    const html = withSlideClass(slideTemplateHTML('cover'), 'light');
+    expect(slideTheme(html)).toBe('light');
+    expect(html).toContain('cover');
+
+    const painted = withSlideBackground(html, '#112233');
+    expect(slideBackground(painted)).toBe('rgb(17, 34, 51)');
+    expect(slideBackground(withSlideBackground(painted, null))).toBe('');
   });
 });

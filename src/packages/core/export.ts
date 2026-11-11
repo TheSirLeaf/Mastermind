@@ -117,7 +117,8 @@ export function buildEditorHTML(
   html = fill(html, '{{SLIDES}}', slidesToHTML(deck.slides));
   html = fill(html, '{{PKG_CSS}}', registry.css());
   html = fill(html, '{{PKG_REGISTRY}}', buildRegistryPayload(registry));
-  html = fill(html, '{{PKG_HOST}}', '');
+  // O host expõe `window.__anim`, usado pelo preview para rodar os runtimes dos pacotes.
+  html = fill(html, '{{PKG_HOST}}', PKG_HOST_SRC);
   html = fill(html, '{{NAV}}', EDITOR_BRIDGE_SRC);
 
   if (html.includes('</head>')) {

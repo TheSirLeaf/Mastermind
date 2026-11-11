@@ -1,12 +1,16 @@
 // components/Inspector/ContentTab.tsx
 import type { SelectionInfo } from '@packages/core/types';
-import type { ReactNode } from 'react';
+import { useUIStore } from '@stores/uiStore';
+import { useRef, type ReactNode } from 'react';
+
+import { readImage } from '../../editor/actions';
 
 import { mutateSelectedElement, readSelectedElement } from './elementSelection';
 
 const TEXT_TAGS = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'div']);
 
 export function ContentTab({ selection }: { selection: SelectionInfo }) {
+  const fileRef = useRef<HTMLInputElement>(null);
   const element = readSelectedElement(selection);
   const tagName = selection.tag.toLowerCase();
 
@@ -25,6 +29,33 @@ export function ContentTab({ selection }: { selection: SelectionInfo }) {
             Imagem
           </summary>
           <div className="space-y-3 px-3 pb-3 pt-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              aria-hidden="true"
+              tabIndex={-1}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = '';
+                if (!file) return;
+                readImage(file)
+                  .then((image) =>
+                    mutateSelectedElement(selection, (node) => node.setAttribute('src', image.src))
+                  )
+                  .catch(() =>
+                    useUIStore.getState().showToast('Não foi possível ler a imagem.', 'error')
+                  );
+              }}
+            />
+            <button
+              type="button"
+              className="w-full rounded border border-gold-DEFAULT/40 bg-gold-DEFAULT/10 px-2 py-1.5 text-xs text-gold-DEFAULT transition hover:bg-gold-DEFAULT/20"
+              onClick={() => fileRef.current?.click()}
+            >
+              Trocar imagem…
+            </button>
             <Field label="URL da imagem">
               <input
                 type="url"
