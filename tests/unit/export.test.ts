@@ -119,13 +119,14 @@ describe('export', () => {
     expect(slugifyTitle('!!!')).toBe('apresentacao');
   });
 
-  it('o documento do editor não inclui o host nem a navegação', () => {
+  it('o documento do editor inclui o host (preview de animações), mas não a navegação', () => {
     setCachedTemplate(template);
     const registry = new PackageRegistry();
     registry.register(pkg);
     const html = buildEditorHTML(deck, registry);
-    expect(html).not.toContain('__MM_HOST__');
+    expect(html).toContain('__MM_HOST__');
     expect(html).toContain('__MM_EDITOR__');
+    expect(html).not.toContain('notesText');
   });
 
   it('end-to-end: o host revive o runtime do code e digita no HTML standalone', async () => {
