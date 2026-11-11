@@ -15,14 +15,14 @@ export function Layout() {
     useUIStore();
 
   return (
-    <div className="flex h-full flex-col bg-[#10060B] text-[#F3E6E2]">
+    <div className="flex h-full flex-col bg-payday-bg text-payday-text">
       <Header />
 
       <div className="flex min-h-0 flex-1">
-        <aside
-          id="left"
-          className="flex w-60 shrink-0 flex-col border-r border-white/10 bg-white/[0.02]"
-          style={{ width: leftPanelWidth }}
+          <aside
+            id="left"
+            className="flex w-60 shrink-0 flex-col border-r border-payday-border bg-payday-surface"
+            style={{ width: leftPanelWidth }}
         >
           <Sidebar />
         </aside>
@@ -43,7 +43,7 @@ export function Layout() {
 
         <aside
           id="right"
-          className="flex w-72 shrink-0 flex-col border-l border-white/10 bg-white/[0.02]"
+          className="flex w-72 shrink-0 flex-col border-l border-payday-border bg-payday-surface"
           style={{ width: rightPanelWidth }}
         >
           <Inspector />

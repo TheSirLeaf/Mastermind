@@ -4,22 +4,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        wine: {
-          DEFAULT: '#4A1B2C',
-          deep: '#2A0E1A',
+        payday: {
+          bg: '#0a0a0a',
+          surface: '#141414',
+          panel: '#1e1e1e',
+          border: '#2a2a2a',
+          text: '#ffffff',
+          textMuted: '#b0b0b0',
+          textDim: '#808080',
         },
-        rose: {
-          DEFAULT: '#8E3B52',
-          light: '#C77C8A',
-        },
-        blush: '#F5E8E5',
-        cream: '#FFF8F5',
         gold: {
           DEFAULT: '#F7D98B',
           dark: '#D6A84F',
         },
-        ink: '#3B3032',
-        muted: '#B99FA0',
         success: '#72A68A',
         danger: '#C95C62',
       },

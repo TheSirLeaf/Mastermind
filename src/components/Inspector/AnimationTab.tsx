@@ -120,13 +120,13 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded border border-[#F7D98B]/20 bg-[#F7D98B]/5 p-3">
+      <div className="rounded border border-gold-DEFAULT/20 bg-gold-DEFAULT/5 p-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-[10px] uppercase tracking-widest text-[#F7D98B]/70">
+            <div className="text-[10px] uppercase tracking-widest text-gold-DEFAULT/70">
               Animação de entrada
             </div>
-            <div className="mt-1 text-xs text-[#F3E6E2]/55">
+            <div className="mt-1 text-xs text-payday-textMuted/55">
               {enabled
                 ? `${Math.round(animationDuration(draft) / 100) / 10}s no total · ${KIND_LABELS[draft.kind]}`
                 : 'Elemento sem animação de entrada'}
@@ -134,7 +134,7 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
           </div>
           <button
             type="button"
-            className="shrink-0 rounded border border-[#F7D98B]/30 px-2 py-1 text-[10px] font-medium text-[#F7D98B] hover:bg-[#F7D98B]/10"
+            className="shrink-0 rounded border border-gold-DEFAULT/30 px-2 py-1 text-[10px] font-medium text-gold-DEFAULT hover:bg-gold-DEFAULT/10"
             onClick={() => (enabled ? apply(null) : apply(draft))}
           >
             {enabled ? 'Remover' : 'Animar'}
@@ -148,12 +148,12 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
             <button
               key={preset.id}
               type="button"
-              className="rounded border border-white/10 bg-black/15 px-2 py-2 text-left transition hover:border-[#F7D98B]/40 hover:bg-[#F7D98B]/5"
+              className="rounded border border-payday-border bg-payday-surface px-2 py-2 text-left transition hover:border-gold-DEFAULT/40 hover:bg-gold-DEFAULT/5"
               onClick={() => applyPreset(preset.animation)}
               title={preset.description}
             >
-              <span className="block text-xs font-medium text-[#F3E6E2]">{preset.label}</span>
-              <span className="mt-0.5 block text-[10px] leading-snug text-[#F3E6E2]/45">
+              <span className="block text-xs font-medium text-payday-text">{preset.label}</span>
+              <span className="mt-0.5 block text-[10px] leading-snug text-payday-textMuted/45">
                 {preset.description}
               </span>
             </button>
@@ -260,7 +260,7 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
         </button>
         <button
           type="button"
-          className="rounded border border-white/10 px-2.5 py-1.5 text-[11px] text-[#F3E6E2]/65 hover:border-white/25 hover:text-[#F3E6E2] disabled:opacity-35"
+          className="rounded border border-white/10 px-2.5 py-1.5 text-[11px] text-payday-textMuted/65 hover:border-white/25 hover:text-payday-text disabled:opacity-35"
           onClick={copyToSiblings}
           disabled={!enabled}
         >
@@ -268,7 +268,7 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
         </button>
       </div>
 
-      <p className="text-[10px] leading-relaxed text-[#F3E6E2]/35">
+      <p className="text-[10px] leading-relaxed text-payday-textDim/35">
         A animação fica gravada no HTML do slide e vale no editor, no export e no PDF. Com “reduzir
         movimento” ativo no sistema, o conteúdo aparece direto.
       </p>
@@ -277,14 +277,14 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
 }
 
 const inputClass =
-  'w-full rounded border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-[#F3E6E2] outline-none focus:border-[#F7D98B]/40';
+  'w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-xs text-payday-text outline-none focus:border-gold-DEFAULT/40';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <details className="group open" open>
-      <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-[#F3E6E2]/60">
+      <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-payday-textDim/50">
         <svg
-          className="h-4 w-4 text-[#F7D98B]"
+          className="h-4 w-4 text-gold-DEFAULT"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -302,7 +302,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[10px] uppercase tracking-wider text-[#F3E6E2]/50">{label}</label>
+      <label className="text-[10px] uppercase tracking-wider text-payday-textDim/50">{label}</label>
       {children}
     </div>
   );
@@ -310,7 +310,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 function Hint({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded border border-white/10 p-3 text-[11px] leading-relaxed text-[#F3E6E2]/60">
+    <div className="rounded border border-white/10 p-3 text-[11px] leading-relaxed text-payday-textDim/60">
       {children}
     </div>
   );

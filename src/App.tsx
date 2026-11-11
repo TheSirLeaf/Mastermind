@@ -68,10 +68,10 @@ export default function App() {
 
   if (!templateReady) {
     return (
-      <div className="flex h-full items-center justify-center bg-[#10060B]">
+      <div className="flex h-full items-center justify-center bg-payday-bg">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#F7D98B] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[#F3E6E2]/60">Carregando Mastermind...</p>
+          <div className="w-12 h-12 border-4 border-gold-DEFAULT border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-payday-textMuted">Carregando Mastermind...</p>
         </div>
       </div>
     );

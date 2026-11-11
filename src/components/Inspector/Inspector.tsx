@@ -12,7 +12,7 @@ export function Inspector() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div id="tabs" className="flex flex-none border-b border-white/10 bg-white/[0.02]">
+      <div id="tabs" className="flex flex-none border-b border-payday-border bg-payday-surface">
         <TabButton
           label="Estilo"
           active={inspectorActiveTab === 'style'}
@@ -87,8 +87,8 @@ function TabButton({
       className={clsx(
         'flex flex-1 flex-col items-center justify-center gap-1 border-b-2 px-1 py-2 text-[10px] transition-colors',
         active
-          ? 'border-[#F7D98B] bg-[#F7D98B]/10 text-[#F7D98B]'
-          : 'border-transparent text-[#F3E6E2]/55 hover:border-[#F7D98B]/35 hover:bg-white/[0.06] hover:text-[#F3E6E2]'
+          ? 'border-gold-DEFAULT bg-gold-DEFAULT/10 text-gold-DEFAULT'
+          : 'border-transparent text-payday-textMuted hover:border-gold-DEFAULT/35 hover:bg-payday-panel hover:text-payday-text'
       )}
     >
       <svg

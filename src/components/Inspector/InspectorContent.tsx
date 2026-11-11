@@ -28,8 +28,8 @@ export function InspectorContent({ activeTab, selection }: InspectorContentProps
     <div className="space-y-4 p-4">
       <div className="rounded-md border border-[#F7D98B]/20 bg-[#F7D98B]/5 p-3">
         <div className="text-[10px] uppercase tracking-widest text-[#F7D98B]/70">Selecionado</div>
-        <div className="mt-1 font-medium text-[#F3E6E2]">{selection.label}</div>
-        <div className="mt-1 font-mono text-[10px] text-[#F3E6E2]/35">
+        <div className="mt-1 font-medium text-payday-text">{selection.label}</div>
+        <div className="mt-1 font-mono text-[10px] text-payday-textDim/50">
           {'<' + selection.tag + '>'} · {selection.path.join('.')}
         </div>
       </div>

@@ -10,7 +10,7 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
 
   if (!element) {
     return (
-      <div className="rounded border border-white/10 p-3 text-[11px] text-[#F3E6E2]/60">
+      <div className="rounded border border-payday-border p-3 text-[11px] text-payday-textDim/50">
         Elemento não encontrado no slide atual.
       </div>
     );
@@ -39,7 +39,7 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
   return (
     <div className="space-y-4">
       <details className="group open" open>
-        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-[#F3E6E2]/60">
+        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-payday-textDim/50">
           <Icon path="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3-3M2 12h20M12 2v20" />
           Posição e tamanho
         </summary>
@@ -84,7 +84,7 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
       </details>
 
       <details className="group open" open>
-        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-[#F3E6E2]/60">
+        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-payday-textDim/50">
           <Icon path="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
           Visibilidade
         </summary>
@@ -103,7 +103,7 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
       </details>
 
       <details className="group open" open>
-        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-[#F3E6E2]/60">
+        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-payday-textDim/50">
           <Icon path="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" />
           Tipografia
         </summary>
@@ -111,8 +111,8 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
           <Field label="Cor">
             <input
               type="color"
-              className="h-9 w-full cursor-pointer rounded border border-white/10 bg-black/20"
-              value={toHex(current.color) ?? '#f3e6e2'}
+              className="h-9 w-full cursor-pointer rounded border border-payday-border bg-payday-surface"
+              value={toHex(current.color) ?? '#ffffff'}
               onChange={(event) => setStyle('color', event.target.value)}
             />
           </Field>
@@ -198,7 +198,7 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
         </div>
       </details>
 
-      <div className="rounded border border-white/10 p-3 text-[11px] leading-relaxed text-[#F3E6E2]/40">
+      <div className="rounded border border-payday-border p-3 text-[11px] leading-relaxed text-payday-textDim/50">
         Estilos inline são persistidos no HTML do slide e entram no undo/redo.
       </div>
     </div>
@@ -206,12 +206,12 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
 }
 
 const inputClass =
-  'w-full rounded border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-[#F3E6E2] outline-none focus:border-[#F7D98B]/40';
+  'w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-xs text-payday-text outline-none focus:border-gold-DEFAULT/40';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[10px] uppercase tracking-wider text-[#F3E6E2]/50">{label}</label>
+      <label className="text-[10px] uppercase tracking-wider text-payday-textDim/50">{label}</label>
       {children}
     </div>
   );
@@ -227,10 +227,10 @@ function Toggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm text-[#F3E6E2]">
+    <label className="flex cursor-pointer items-center gap-2 text-sm text-payday-text">
       <input
         type="checkbox"
-        className="accent-[#F7D98B]"
+        className="accent-gold-DEFAULT"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
       />
@@ -242,7 +242,7 @@ function Toggle({
 function Icon({ path }: { path: string }) {
   return (
     <svg
-      className="h-4 w-4 text-[#F7D98B]"
+      className="h-4 w-4 text-gold-DEFAULT"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -272,8 +272,8 @@ function FormatButton({
       onClick={onClick}
       className={`h-8 w-8 rounded border text-xs font-semibold transition ${
         active
-          ? 'border-[#F7D98B]/60 bg-[#F7D98B]/15 text-[#F7D98B]'
-          : 'border-white/10 text-[#F3E6E2]/60 hover:border-white/25 hover:text-[#F3E6E2]'
+          ? 'border-gold-DEFAULT/60 bg-gold-DEFAULT/15 text-gold-DEFAULT'
+          : 'border-payday-border text-payday-textMuted hover:border-white/25 hover:text-payday-text'
       }`}
     >
       {children}
