@@ -329,7 +329,7 @@ export const EDITOR_BRIDGE_SRC = `(function(){
     if (!data || data.__mm !== 'editor') return;
     if (data.type === 'goto') {
       var slides = [].slice.call(deck.querySelectorAll('.slide'));
-      slides.forEach(function (s, i) { s.classList.toggle('active', i === data.index); });
+      slides.forEach(function (s, i) { s.classList.remove('mm-static'); s.classList.toggle('active', i === data.index); });
       select(null);
       var active = slides[data.index];
       if (active) {
@@ -350,6 +350,34 @@ export const EDITOR_BRIDGE_SRC = `(function(){
       old.replaceWith(next);
       if (wasActive) next.classList.add('active');
       if (selected && selected === old) select(null);
+    } else if (data.type === 'patch-element') {
+      var target = elAt(data.path);
+      if (!target) return;
+      var attrs = data.attrs || {};
+      Object.keys(attrs).forEach(function (name) {
+        if (attrs[name] === null) target.removeAttribute(name);
+        else target.setAttribute(name, String(attrs[name]));
+      });
+      var classes = data.classes || {};
+      (classes.remove || []).forEach(function (name) { target.classList.remove(name); });
+      (classes.add || []).forEach(function (name) { target.classList.add(name); });
+      var styles = data.style || {};
+      Object.keys(styles).forEach(function (name) {
+        if (styles[name] === null) target.style.removeProperty(name);
+        else target.style.setProperty(name, String(styles[name]));
+      });
+      select(target);
+    } else if (data.type === 'preview-anim') {
+      var live = activeSlide();
+      if (!live) return;
+      live.classList.remove('mm-static');
+      live.classList.remove('active');
+      void live.offsetWidth;
+      live.classList.add('active');
+      if (selected) drawSelection(selected);
+    } else if (data.type === 'stop-preview') {
+      var still = activeSlide();
+      if (still) still.classList.add('mm-static');
     } else if (data.type === 'fit') {
       fit();
       if (selected) drawSelection(selected);

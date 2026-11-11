@@ -1,4 +1,5 @@
 export * from './types';
+export * from './animation';
 export * from './helper';
 export * from './serialization';
 export * from './PackageRegistry';
