@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { ChartPackage } from '../../src/packages/chart/ChartPackage';
 import type { ChartSpec } from '../../src/packages/chart/ChartRenderer';
 import { chartRuntime } from '../../src/packages/chart/ChartRuntime';
+import { buildRegistryPayload } from '../../src/packages/core/export';
+import { PackageRegistry } from '../../src/packages/core/PackageRegistry';
 import type { RuntimeAPI } from '../../src/packages/core/types';
 
 const defaults: ChartSpec = {
@@ -104,5 +107,40 @@ describe('chart runtime', () => {
       rafSpy.mockRestore();
       perfSpy.mockRestore();
     }
+  });
+});
+
+describe('chart package — contrato de export do runtime', () => {
+  it('serializa um runtime autossuficiente: revive fora do bundle e anima', async () => {
+    const registry = new PackageRegistry();
+    registry.register(ChartPackage);
+    const payload = JSON.parse(buildRegistryPayload(registry, ['chart'])) as {
+      chart: { def: { runtime: { $fn: string } } };
+    };
+    const source = payload.chart.def.runtime.$fn;
+    expect(typeof source).toBe('string');
+
+    // O host do HTML standalone revive o fonte com new Function, sem acesso aos
+    // módulos do bundle — o runtime precisa ser autossuficiente.
+    const revived = new Function(`return (${source});`)() as unknown as typeof chartRuntime;
+
+    const api = makeApi();
+    const root = rootWithBars();
+    const bar0 = root.querySelectorAll('.pk-b')[0]! as SVGElement;
+
+    let error: unknown = null;
+    let ctrl: ReturnType<typeof chartRuntime> = null;
+    try {
+      ctrl = revived(root, defaults, api);
+    } catch (err) {
+      error = err;
+    }
+    expect(error, `runtime revive lançou: ${String(error)}`).toBeNull();
+    expect(ctrl).not.toBeNull();
+
+    await ctrl!.play();
+    expect(bar0.style.transform).toBe('scaleY(1)');
+    ctrl!.final();
+    expect(bar0.getAttribute('height')).toBe('40');
   });
 });

@@ -1,14 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { CodePackage } from '../../src/packages/code/CodePackage';
 import {
   buildEditorHTML,
   buildPresentationHTML,
   buildRegistryPayload,
   collectPackageIds,
+  packageElementHTML,
   setCachedTemplate,
   slugifyTitle,
 } from '../../src/packages/core/export';
 import { PackageRegistry } from '../../src/packages/core/PackageRegistry';
+import { PKG_HOST_SRC } from '../../src/packages/core/pkgHost';
 import type { Deck, PackageDef } from '../../src/packages/core/types';
 
 const template = `<!doctype html><html><head><title>{{TITLE}}</title><style id="pkg-css">{{PKG_CSS}}</style></head>
@@ -108,5 +111,66 @@ describe('export', () => {
     const html = buildEditorHTML(deck, registry);
     expect(html).not.toContain('__MM_HOST__');
     expect(html).toContain('__MM_EDITOR__');
+  });
+
+  it('end-to-end: o host revive o runtime do code e digita no HTML standalone', async () => {
+    const registry = new PackageRegistry();
+    registry.register(CodePackage);
+    const spec = {
+      ...CodePackage.defaults,
+      typing: true,
+      delay: 0,
+      cps: 1, // lento: permite observar o meio da digitação
+      caret: false,
+      lineGlow: false,
+    };
+    const inner =
+      '<pre class="pk-pre"><span class="pk-ln">linha um</span><span class="pk-ln">linha dois</span></pre>';
+    const codeDeck: Deck = {
+      title: 'Standalone',
+      slides: [
+        {
+          id: 'code',
+          html: `<section class="slide dark">${packageElementHTML('code', spec, inner)}</section>`,
+        },
+      ],
+    };
+
+    const exported = buildPresentationHTML({ template, deck: codeDeck, registry });
+    expect(exported).toContain('"$fn"');
+    expect(exported).toContain('__MM_HOST__');
+
+    // Monta o documento exportado no jsdom e executa o host real (o mesmo
+    // script embutido que roda ao abrir o arquivo standalone).
+    const doc = new DOMParser().parseFromString(exported, 'text/html');
+    document.head.innerHTML = doc.head.innerHTML;
+    document.body.innerHTML = doc.body.innerHTML;
+    const w = window as unknown as Record<string, unknown>;
+    delete w.__MM_HOST__;
+    delete w.__anim;
+    (0, eval)(PKG_HOST_SRC);
+
+    const animate = w.__anim as (slide: Element) => void;
+    expect(animate).toBeTypeOf('function');
+    const slide = document.querySelector('section.slide');
+    expect(slide).not.toBeNull();
+    animate(slide!);
+
+    await vi.waitFor(
+      () => {
+        const firstLine = document.querySelector('span.pk-ln');
+        expect(firstLine?.textContent ?? '', 'a digitação deveria ter começado').not.toBe(
+          'linha um'
+        );
+      },
+      { timeout: 3000 }
+    );
+
+    // Encerra a animação (para os timers do host) e devolve o documento limpo.
+    animate(document.createElement('section'));
+    document.body.innerHTML = '';
+    document.head.innerHTML = '';
+    delete w.__MM_HOST__;
+    delete w.__anim;
   });
 });
