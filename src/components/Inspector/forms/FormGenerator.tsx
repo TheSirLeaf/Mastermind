@@ -101,7 +101,7 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
       // Tab insere 4 espaços na posição do cursor.
       return (
         <textarea
-          className="w-full rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-cream outline-none focus:border-gold/40 transition font-mono"
+          className="w-full rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-cream outline-none focus:border-gold/40 transition font-mono min-h-[320px] resize-y"
           rows={rows ?? 4}
           spellCheck={false}
           placeholder={placeholder ?? undefined}

@@ -1,9 +1,13 @@
+import { render } from '@testing-library/react';
+import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { CodePackage } from '../../src/packages/code/CodePackage';
+import { CodeRenderer } from '../../src/packages/code/CodeRenderer';
 import type { CodeSpec } from '../../src/packages/code/CodeRenderer';
 import { codeRuntime } from '../../src/packages/code/CodeRuntime';
 import { buildRegistryPayload } from '../../src/packages/core/export';
+import { H } from '../../src/packages/core/helper';
 import { PackageRegistry } from '../../src/packages/core/PackageRegistry';
 import type { RuntimeAPI } from '../../src/packages/core/types';
 
@@ -151,5 +155,96 @@ describe('code package — contrato de export do runtime', () => {
     expect(pre.textContent).toBe('int x = 1;int y = 2;');
     ctrl!.final();
     expect(pre.innerHTML).toBe(original);
+  });
+});
+
+describe('code package — 5 campos únicos editáveis', () => {
+  const form = CodePackage.form;
+
+  it('possui campo "Nome do arquivo" (file) no grupo Conteúdo', () => {
+    const contentGroup = form.find((g) => g.group === 'Conteúdo');
+    expect(contentGroup).toBeDefined();
+    const fileField = contentGroup?.fields.find((f) => f.k === 'file');
+    expect(fileField).toBeDefined();
+    expect(fileField?.label).toBe('Nome do arquivo');
+    expect(fileField?.type).toBe('text');
+  });
+
+  it('possui campo "Etiqueta" (tag) no grupo Conteúdo', () => {
+    const contentGroup = form.find((g) => g.group === 'Conteúdo');
+    const tagField = contentGroup?.fields
+      .flatMap((f) => (f.type === 'row' ? f.fields : [f]))
+      .find((f) => f?.k === 'tag');
+    expect(tagField).toBeDefined();
+    expect(tagField?.label).toBe('Etiqueta');
+    expect(tagField?.type).toBe('text');
+  });
+
+  it('possui campo "Linguagem" (lang) no grupo Conteúdo', () => {
+    const contentGroup = form.find((g) => g.group === 'Conteúdo');
+    const langField = contentGroup?.fields
+      .flatMap((f) => (f.type === 'row' ? f.fields : [f]))
+      .find((f) => f?.k === 'lang');
+    expect(langField).toBeDefined();
+    expect(langField?.label).toBe('Linguagem');
+    expect(langField?.type).toBe('select');
+    expect(langField?.options).toContainEqual(['csharp', 'C#']);
+    expect(langField?.options).toContainEqual(['yaml', 'YAML']);
+    expect(langField?.options).toContainEqual(['sql', 'SQL']);
+  });
+
+  it('possui campo "Código" (code) no grupo Conteúdo', () => {
+    const contentGroup = form.find((g) => g.group === 'Conteúdo');
+    const codeField = contentGroup?.fields.find((f) => f.k === 'code');
+    expect(codeField).toBeDefined();
+    expect(codeField?.label).toBe('Código');
+    expect(codeField?.type).toBe('code');
+    expect(codeField?.rows).toBeGreaterThanOrEqual(12);
+  });
+
+  it('possui campo "Rodapé" (note) no grupo Aparência', () => {
+    const appearanceGroup = form.find((g) => g.group === 'Aparência');
+    expect(appearanceGroup).toBeDefined();
+    const noteField = appearanceGroup?.fields.find((f) => f.k === 'note');
+    expect(noteField).toBeDefined();
+    expect(noteField?.label).toBe('Rodapé (opcional)');
+    expect(noteField?.type).toBe('text');
+  });
+
+  it('defaults contém todos os 5 campos únicos', () => {
+    expect(defaults.file).toBeDefined();
+    expect(defaults.tag).toBeDefined();
+    expect(defaults.lang).toBeDefined();
+    expect(defaults.code).toBeDefined();
+    expect(defaults.note).toBeDefined();
+  });
+
+  it('presets contêm os campos obrigatórios (file, tag, lang, code)', () => {
+    for (const preset of CodePackage.presets ?? []) {
+      expect(preset.spec.file).toBeDefined();
+      expect(preset.spec.tag).toBeDefined();
+      expect(preset.spec.lang).toBeDefined();
+      expect(preset.spec.code).toBeDefined();
+    }
+  });
+
+  it('CodeRenderer renderiza file, tag, code e note corretamente', () => {
+    const spec: CodeSpec = {
+      ...defaults,
+      file: 'MeuArquivo.cs',
+      tag: 'C#',
+      lang: 'csharp',
+      code: 'Console.WriteLine("Olá");',
+      note: 'Rodapé de exemplo',
+      titlebar: true,
+      typing: false,
+    };
+
+    const { container } = render(React.createElement(CodeRenderer, { spec, h: H }));
+
+    expect(container.querySelector('.pk-file')?.textContent).toBe('MeuArquivo.cs');
+    expect(container.querySelector('.pk-tag')?.textContent).toBe('C#');
+    expect(container.querySelector('.pk-note')?.textContent).toBe('Rodapé de exemplo');
+    expect(container.querySelector('.pk-pre')?.textContent).toContain('Console.WriteLine');
   });
 });

@@ -52,13 +52,17 @@ export function ChartRenderer({ spec, h }: ChartRendererProps): JSX.Element {
 
   if (spec.kind === 'hbar') {
     return (
-      <div className="pk-chart" style={{ width: `${spec.w}px`, maxWidth: '100%' }}>
+      <div
+        data-testid="pk-chart-container"
+        className="pk-chart"
+        style={{ width: `${spec.w}px`, maxWidth: '100%' }}
+      >
         {title}
         {rows.map((row, index) => {
           const value = values[index] ?? 0;
           const pct = maxValue > 0 ? (value / maxValue) * 100 : 0;
           return (
-            <div className="pk-hr" key={index}>
+            <div data-testid={`pk-hbar-${index}`} className="pk-hr" key={index}>
               <div className="pk-hn">{row.label}</div>
               <div className="pk-ht">
                 <i
@@ -95,13 +99,18 @@ export function ChartRenderer({ spec, h }: ChartRendererProps): JSX.Element {
       return segment;
     });
     return (
-      <div className="pk-chart" style={{ width: `${spec.w}px`, maxWidth: '100%' }}>
+      <div
+        data-testid="pk-chart-container"
+        className="pk-chart"
+        style={{ width: `${spec.w}px`, maxWidth: '100%' }}
+      >
         {title}
-        <svg className="pk-svg" viewBox="0 0 360 300" role="img">
+        <svg data-testid="pk-donut" className="pk-svg" viewBox="0 0 360 300" role="img">
           <g transform="translate(180 150) rotate(-90)">
             {segments.map(({ row, dash, offset }, index) => (
               <circle
                 key={index}
+                data-testid={`pk-hl-${index}`}
                 r={radius}
                 fill="none"
                 stroke={row.hl ? spec.hlColor : spec.color}
@@ -130,9 +139,13 @@ export function ChartRenderer({ spec, h }: ChartRendererProps): JSX.Element {
       .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
       .join(' ');
     return (
-      <div className="pk-chart" style={{ width: `${spec.w}px`, maxWidth: '100%' }}>
+      <div
+        data-testid="pk-chart-container"
+        className="pk-chart"
+        style={{ width: `${spec.w}px`, maxWidth: '100%' }}
+      >
         {title}
-        <svg className="pk-svg" viewBox={`0 0 ${W} ${H}`} role="img">
+        <svg data-testid="pk-line" className="pk-svg" viewBox={`0 0 ${W} ${H}`} role="img">
           {spec.grid
             ? [0.25, 0.5, 0.75].map((f) => (
                 <line
@@ -170,7 +183,11 @@ export function ChartRenderer({ spec, h }: ChartRendererProps): JSX.Element {
   const barWidth = 60;
   const gap = (W - pad * 2 - rows.length * barWidth) / Math.max(1, rows.length);
   return (
-    <div className="pk-chart" style={{ width: `${spec.w}px`, maxWidth: '100%' }}>
+    <div
+      data-testid="pk-chart-container"
+      className="pk-chart"
+      style={{ width: `${spec.w}px`, maxWidth: '100%' }}
+    >
       {title}
       <svg className="pk-svg" viewBox={`0 0 ${W} ${H}`} role="img">
         <line className="pk-base" x1={pad} x2={W - pad} y1={H - 70} y2={H - 70} />

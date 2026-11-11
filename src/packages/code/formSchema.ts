@@ -6,11 +6,23 @@ export const codeForm: FormSchema = [
     icon: 'code',
     open: true,
     fields: [
-      { k: 'file', label: 'Nome do arquivo', type: 'text', placeholder: 'Controls/AgendaUC.cs' },
+      {
+        k: 'file',
+        label: 'Nome do arquivo',
+        type: 'text',
+        placeholder: 'Controls/AgendaUC.cs',
+        help: 'Nome exibido na barra de título da janela de código',
+      },
       {
         type: 'row',
         fields: [
-          { k: 'tag', label: 'Etiqueta', type: 'text', placeholder: 'C#' },
+          {
+            k: 'tag',
+            label: 'Etiqueta',
+            type: 'text',
+            placeholder: 'C#',
+            help: 'Etiqueta exibida ao lado do nome do arquivo',
+          },
           {
             k: 'lang',
             label: 'Linguagem',
@@ -24,10 +36,17 @@ export const codeForm: FormSchema = [
               ['py', 'Python'],
               ['text', 'Texto puro'],
             ],
+            help: 'Define a coloração de sintaxe do código',
           },
         ],
       },
-      { k: 'code', label: 'Código', type: 'code', rows: 12 },
+      {
+        k: 'code',
+        label: 'Código',
+        type: 'code',
+        rows: 20,
+        help: 'Cole ou digite o código-fonte. Pressione Tab para inserir espaços.',
+      },
     ],
   },
   {
