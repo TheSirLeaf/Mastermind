@@ -2,33 +2,37 @@
 
 ## Feito
 
-- Refatorou `code` pacote para a estrutura do contrato (seção 7 do AGENTS_CONTRACT.md):
-  `CodePackage.ts`, `CodeRenderer.tsx`, `CodeRuntime.ts`, `formSchema.ts`, `code.css.ts`, `index.ts`, `Code.stories.tsx`.
-- Refatorou `chart` pacote para a mesma estrutura:
-  `ChartPackage.ts`, `ChartRenderer.tsx`, `ChartRuntime.ts`, `formSchema.ts`, `chart.css.ts`, `index.ts`, `Chart.stories.tsx`.
-- Removeu os arquivos monolíticos `CodePackage.tsx` e `ChartPackage.tsx`.
-- Atualizou `src/packages/index.ts` (mantém exports `CodePackage`, `ChartPackage`, `registerBuiltins`).
-- Criou `FormGenerator` em `src/components/Inspector/forms/FormGenerator.tsx` (JSON Schema → React Hook Form + Zod; tipos text/textarea/code/number/range/color/select/toggle/seg/check/list/row/info/buttons; showIf condicional).
-- Testes unit: `tests/unit/code.test.ts` (5) e `tests/unit/chart.test.ts` (4) cobrindo runtime (play/final/null-casos/reduced/alive/countUp).
-- `npm run typecheck`, `npm run lint`, `npm run test` (39 testes) e `npm run build` passam.
+- Commit `92f0445` feat(packages): refatora code e chart para estrutura de contrato.
+- Push `agent-b/packages` → origin; PR #2 aberto (main).
+- Rebase em `origin/agent-a/core` (PR #1) aplicado limpo, sem conflitos.
+  - `tests/unit/export.test.ts` veio com 7 testes (era 4); `src/packages/index.ts` sem conflito.
+  - Testes totais subiram 39 → 61 (vieram importDeck, store, pkgHost do core do Agent A).
+- `npm run typecheck`, `npm run lint`, `npm run test` (61 testes) e `npm run build` verdes após o rebase.
+- `pkgHost.test.ts` (Agent A) já testa `PKG_HOST_SRC`: runtime serializado como `{ $fn }`, play/final, pacotes sem runtime não quebram.
 
-## Em Andamento
+## Pacotes (contrato seção 7)
 
-- (nada)
+- `src/packages/code/`: CodePackage.ts, CodeRenderer.tsx, CodeRuntime.ts, formSchema.ts, code.css.ts, index.ts, Code.stories.tsx
+- `src/packages/chart/`: ChartPackage.ts, ChartRenderer.tsx, ChartRuntime.ts, formSchema.ts, chart.css.ts, index.ts, Chart.stories.tsx
+- Removidos CodePackage.tsx / ChartPackage.tsx monolíticos.
+- Paridade com o monolito confirmada: presets completos (3 code, 4 chart), duration, linhas destacadas (hl/pk-hl), CSS prefixado (.pk-code/.pk-chart), count-up. `adopt` não existia nos originais (opcional).
 
-## Próximo (Próximas 2-3 sessões)
+## FormGenerator
 
-- Aguardar integração do FormGenerator no Inspector pelo Agent C.
-- Avaliar pacotes futuros (tabela, imagem, etc.) se solicitado.
-- Ajustar stories se o Agent C mover o glob do Storybook para `src/packages/**`.
+- Única implementação: `src/components/Inspector/forms/FormGenerator.tsx` (referência apenas em comentário de App.tsx).
+- Agent C não deve manter cópia; integrar este componente no Inspector.
 
 ## Bloqueios / Dependências
 
-- O glob do Storybook (`.storybook/main.ts`) aponta para `../stories/`; as stories dos pacotes ficam em `src/packages/<nome>/<Nome>.stories.tsx` conforme o contrato (seção 7). Precisa do Agent C incluir esse caminho no glob para aparecer no Storybook.
-- O `vitest.config.ts` coverage.include usa `src/packages/*/Runtime.ts` (nome literal), enquanto o contrato nomeia o arquivo `<Nome>Runtime.ts` (ex.: `CodeRuntime.ts`); cobertura dos runtimes não é reportada automaticamente. Ajuste de config é responsabilidade do Agent A (build/CI).
+- Glob do Storybook (`.storybook/main.ts`) aponta para `../stories/`; stories dos pacotes estão em `src/packages/<nome>/<Nome>.stories.tsx`. Precisa do Agent C incluir esse caminho no glob.
+- `vitest.config.ts` coverage.include usa `src/packages/*/Runtime.ts` (nome literal); contrato nomeia `<Nome>Runtime.ts` (ex.: `CodeRuntime.ts`). Cobertura dos runtimes não reportada automaticamente. Ajuste de config é do Agent A.
 
 ## Decisões Tomadas
 
-- `CodeSpec`/`ChartSpec` estendem `PackageSpec` para satisfazer o índice `[key: string]: unknown`.
-- `PackageDef.render` usa `React.createElement(CodeRenderer, { spec, h })` porque `CodePackage.ts` é `.ts` (sem JSX) conforme contrato.
-- Mantido `packages/index.ts` protegido; apenas atualizados caminhos de importação.
+- CodeSpec/ChartSpec estendem PackageSpec (índice [key: string]: unknown).
+- PackageDef.render usa createElement (arquivos .ts sem JSX).
+- packages/index.ts protegido: apenas caminhos de importação atualizados.
+
+## PR #2 — Checks
+
+- typecheck ✅ | lint ✅ | test ✅ (61) | build ✅ | .sync/agent-b.md ✅

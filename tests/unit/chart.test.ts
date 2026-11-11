@@ -7,7 +7,10 @@ import type { RuntimeAPI } from '../../src/packages/core/types';
 const defaults: ChartSpec = {
   kind: 'bar',
   title: '',
-  rows: [{ label: 'a', val: '5' }, { label: 'b', val: '8' }],
+  rows: [
+    { label: 'a', val: '5' },
+    { label: 'b', val: '8' },
+  ],
   color: '#C77C8A',
   hlColor: '#F7D98B',
   max: '',

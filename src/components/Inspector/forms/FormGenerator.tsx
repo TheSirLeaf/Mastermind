@@ -130,7 +130,9 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
           max={max ?? undefined}
           step={step ?? undefined}
           value={value == null ? '' : String(value)}
-          onChange={(event) => set(event.target.value === '' ? undefined : Number(event.target.value))}
+          onChange={(event) =>
+            set(event.target.value === '' ? undefined : Number(event.target.value))
+          }
         />
       );
     }
@@ -139,8 +141,14 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
       return (
         <div className="flex flex-col gap-1">
           <div className="flex justify-between text-[10px] text-cream/40">
-            <span>{String(min ?? 0)}{unit ?? ''}</span>
-            <span>{String(max ?? 100)}{unit ?? ''}</span>
+            <span>
+              {String(min ?? 0)}
+              {unit ?? ''}
+            </span>
+            <span>
+              {String(max ?? 100)}
+              {unit ?? ''}
+            </span>
           </div>
           <input
             className="w-full accent-gold h-1.5"
@@ -151,7 +159,10 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
             value={n}
             onChange={(event) => set(Number(event.target.value))}
           />
-          <div className="text-[10px] text-cream/50">{String(n)}{unit ?? ''}</div>
+          <div className="text-[10px] text-cream/50">
+            {String(n)}
+            {unit ?? ''}
+          </div>
         </div>
       );
     }
@@ -181,9 +192,7 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
           aria-checked={!!value}
         >
           <span>{value ? 'Ligado' : 'Desligado'}</span>
-          <span className={`block w-4 h-2 rounded-full ${
-            value ? 'bg-gold' : 'bg-white/10'
-          }`} />
+          <span className={`block w-4 h-2 rounded-full ${value ? 'bg-gold' : 'bg-white/10'}`} />
         </button>
       );
     }
@@ -265,10 +274,7 @@ function ListItemInput({ field, items, onItemsChange }: ListItemInputProps): JSX
   return (
     <div className="space-y-2">
       {items.map((item, index) => (
-        <div
-          key={index}
-          className="rounded-md border border-white/10 bg-black/20 p-2"
-        >
+        <div key={index} className="rounded-md border border-white/10 bg-black/20 p-2">
           <div className="flex justify-between items-center mb-1">
             <span className="text-[10px] text-cream/40 uppercase">Item {index + 1}</span>
             <button
@@ -336,7 +342,10 @@ function FormGroupSection({
   const visibleFieldsList = group.fields.filter((f) => fieldVisible(f, allValues));
   if (visibleFieldsList.length === 0) return null;
   return (
-    <div key={group.group} className="rounded-md border border-white/10 bg-black/20 overflow-hidden">
+    <div
+      key={group.group}
+      className="rounded-md border border-white/10 bg-black/20 overflow-hidden"
+    >
       <button
         onClick={() => setIsOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-2 px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-cream/60 hover:bg-white/5 transition"
@@ -366,7 +375,9 @@ function FormGroupSection({
                         if (!fk || !fieldVisible(f, allValues)) return null;
                         return (
                           <div key={fk} className="flex flex-col gap-0.5">
-                            {f.label && <span className="text-[10px] text-cream/40">{f.label}</span>}
+                            {f.label && (
+                              <span className="text-[10px] text-cream/40">{f.label}</span>
+                            )}
                             <FieldInput
                               field={f}
                               value={getValues(fk)}
@@ -384,7 +395,10 @@ function FormGroupSection({
               }
               if (field.type === 'info') {
                 return (
-                  <div key={field.label ?? field.type} className="p-3 text-xs text-cream/40 leading-relaxed">
+                  <div
+                    key={field.label ?? field.type}
+                    className="p-3 text-xs text-cream/40 leading-relaxed"
+                  >
                     {field.text ?? ''}
                   </div>
                 );
