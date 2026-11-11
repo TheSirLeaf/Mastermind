@@ -15,16 +15,19 @@ export interface BridgeEvents {
 }
 
 /** Comandos executados pelo iframe sobre o elemento selecionado. */
-export type BridgeCommand =
-  | 'delete'
-  | 'duplicate'
-  | 'front'
-  | 'back'
-  | 'reset'
-  | 'parent'
-  | 'edit'
-  | 'nudge'
-  | 'format';
+export const BRIDGE_COMMANDS = [
+  'delete',
+  'duplicate',
+  'front',
+  'back',
+  'reset',
+  'parent',
+  'edit',
+  'nudge',
+  'format',
+] as const;
+
+export type BridgeCommand = (typeof BRIDGE_COMMANDS)[number];
 
 type DeckMessage =
   | { __mm: 'deck'; type: 'ready'; count: number }

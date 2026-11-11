@@ -82,14 +82,17 @@ export function slideNotes(html: string): string {
 /* Modelos de slide (paridade com o editor original)                          */
 /* -------------------------------------------------------------------------- */
 
-export type SlideTemplateKind =
-  | 'cover'
-  | 'text'
-  | 'bullets'
-  | 'two'
-  | 'stats'
-  | 'blankDark'
-  | 'blankLight';
+export const SLIDE_TEMPLATE_KINDS = [
+  'cover',
+  'text',
+  'bullets',
+  'two',
+  'stats',
+  'blankDark',
+  'blankLight',
+] as const;
+
+export type SlideTemplateKind = (typeof SLIDE_TEMPLATE_KINDS)[number];
 
 const CHECK_SVG =
   '<svg class="ic" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
