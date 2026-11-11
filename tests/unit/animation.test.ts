@@ -42,6 +42,7 @@ describe('animação de elementos', () => {
     expect(el.getAttribute('data-anim')).toBe('slide');
     expect(el.getAttribute('data-anim-dir')).toBe('left');
     expect(el.style.getPropertyValue('--d')).toBe('0.4s');
+    expect(el.style.getPropertyValue('--anim-delay')).toBe('0.4s');
     expect(el.style.getPropertyValue('--anim-duration')).toBe('0.9s');
     expect(el.style.getPropertyValue('--anim-ease')).toBe('ease-out');
     expect(el.style.getPropertyValue('--anim-distance')).toBe('48px');
@@ -58,6 +59,7 @@ describe('animação de elementos', () => {
     expect(el.classList.contains('anim')).toBe(false);
     expect(el.hasAttribute('data-anim')).toBe(false);
     expect(el.style.getPropertyValue('--d')).toBe('');
+    expect(el.style.getPropertyValue('--anim-delay')).toBe('');
     expect(readAnimation(el)).toBeNull();
   });
 
@@ -105,8 +107,21 @@ describe('animação de elementos', () => {
     ]);
     expect(ANIMATION_CSS).toContain('@keyframes mmRise');
     expect(ANIMATION_CSS).toContain('@keyframes mmBlur');
-    expect(ANIMATION_CSS).toContain('mm-static');
+    expect(ANIMATION_CSS).toContain('.slide.mm-static .anim{');
+    expect(ANIMATION_CSS).toContain('animation-delay:var(--anim-delay,var(--d,0s))');
     expect(ANIMATION_CSS).toContain('prefers-reduced-motion');
+  });
+
+  it('aceita --anim-delay legado sem perder o --d canônico', () => {
+    const el = element();
+    el.classList.add('anim');
+    el.style.setProperty('--anim-delay', '0.35s');
+
+    expect(readAnimation(el)?.delay).toBe(0.35);
+
+    applyAnimation(el, { ...ANIMATION_DEFAULTS, delay: 0.7 });
+    expect(el.style.getPropertyValue('--d')).toBe('0.7s');
+    expect(el.style.getPropertyValue('--anim-delay')).toBe('0.7s');
   });
 
   it('injeta o CSS no export e no documento do editor', () => {
