@@ -222,21 +222,9 @@
               "label": "Tipo",
               "type": "seg",
               "options": [
-                [
-                  "shape",
-                  "Forma",
-                  "square"
-                ],
-                [
-                  "text",
-                  "Texto",
-                  "bold"
-                ],
-                [
-                  "image",
-                  "Imagem",
-                  "image"
-                ]
+                ["shape", "Forma", "square"],
+                ["text", "Texto", "bold"],
+                ["image", "Imagem", "image"]
               ]
             },
             {
@@ -264,21 +252,9 @@
               "label": "Formato",
               "type": "seg",
               "options": [
-                [
-                  "rect",
-                  "Retângulo",
-                  "square"
-                ],
-                [
-                  "pill",
-                  "Pílula",
-                  "dash"
-                ],
-                [
-                  "circle",
-                  "Círculo",
-                  "circle"
-                ]
+                ["rect", "Retângulo", "square"],
+                ["pill", "Pílula", "dash"],
+                ["circle", "Círculo", "circle"]
               ],
               "showIf": {
                 "k": "kind",
@@ -497,34 +473,13 @@
                   "type": "select",
                   "w": "1.3fr",
                   "options": [
-                    [
-                      "x",
-                      "X"
-                    ],
-                    [
-                      "y",
-                      "Y"
-                    ],
-                    [
-                      "w",
-                      "Largura"
-                    ],
-                    [
-                      "h",
-                      "Altura"
-                    ],
-                    [
-                      "opacity",
-                      "Opacidade"
-                    ],
-                    [
-                      "rotate",
-                      "Rotação"
-                    ],
-                    [
-                      "scale",
-                      "Escala"
-                    ]
+                    ["x", "X"],
+                    ["y", "Y"],
+                    ["w", "Largura"],
+                    ["h", "Altura"],
+                    ["opacity", "Opacidade"],
+                    ["rotate", "Rotação"],
+                    ["scale", "Escala"]
                   ]
                 },
                 {
@@ -539,50 +494,17 @@
                   "type": "select",
                   "w": "1.4fr",
                   "options": [
-                    [
-                      "default",
-                      "Padrão"
-                    ],
-                    [
-                      "linear",
-                      "Linear"
-                    ],
-                    [
-                      "ease",
-                      "Suave"
-                    ],
-                    [
-                      "ease-in",
-                      "Acelera (ease-in)"
-                    ],
-                    [
-                      "ease-out",
-                      "Desacelera (ease-out)"
-                    ],
-                    [
-                      "ease-in-out",
-                      "Acelera e desacelera"
-                    ],
-                    [
-                      "back",
-                      "Estouro (back)"
-                    ],
-                    [
-                      "bounce",
-                      "Quicar (bounce)"
-                    ],
-                    [
-                      "elastic",
-                      "Elástico"
-                    ],
-                    [
-                      "steps",
-                      "Em degraus"
-                    ],
-                    [
-                      "custom",
-                      "Cubic-bezier personalizado"
-                    ]
+                    ["default", "Padrão"],
+                    ["linear", "Linear"],
+                    ["ease", "Suave"],
+                    ["ease-in", "Acelera (ease-in)"],
+                    ["ease-out", "Desacelera (ease-out)"],
+                    ["ease-in-out", "Acelera e desacelera"],
+                    ["back", "Estouro (back)"],
+                    ["bounce", "Quicar (bounce)"],
+                    ["elastic", "Elástico"],
+                    ["steps", "Em degraus"],
+                    ["custom", "Cubic-bezier personalizado"]
                   ]
                 }
               ]
@@ -618,46 +540,16 @@
               "label": "Modo de animação",
               "type": "select",
               "options": [
-                [
-                  "linear",
-                  "Linear"
-                ],
-                [
-                  "ease",
-                  "Suave"
-                ],
-                [
-                  "ease-in",
-                  "Acelera (ease-in)"
-                ],
-                [
-                  "ease-out",
-                  "Desacelera (ease-out)"
-                ],
-                [
-                  "ease-in-out",
-                  "Acelera e desacelera"
-                ],
-                [
-                  "back",
-                  "Estouro (back)"
-                ],
-                [
-                  "bounce",
-                  "Quicar (bounce)"
-                ],
-                [
-                  "elastic",
-                  "Elástico"
-                ],
-                [
-                  "steps",
-                  "Em degraus"
-                ],
-                [
-                  "custom",
-                  "Cubic-bezier personalizado"
-                ]
+                ["linear", "Linear"],
+                ["ease", "Suave"],
+                ["ease-in", "Acelera (ease-in)"],
+                ["ease-out", "Desacelera (ease-out)"],
+                ["ease-in-out", "Acelera e desacelera"],
+                ["back", "Estouro (back)"],
+                ["bounce", "Quicar (bounce)"],
+                ["elastic", "Elástico"],
+                ["steps", "Em degraus"],
+                ["custom", "Cubic-bezier personalizado"]
               ]
             },
             {
@@ -723,18 +615,9 @@
               "label": "Repetição",
               "type": "seg",
               "options": [
-                [
-                  "once",
-                  "Uma vez"
-                ],
-                [
-                  "loop",
-                  "Em loop"
-                ],
-                [
-                  "pingpong",
-                  "Ida e volta"
-                ]
+                ["once", "Uma vez"],
+                ["loop", "Em loop"],
+                ["pingpong", "Ida e volta"]
               ]
             }
           ]
