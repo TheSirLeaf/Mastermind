@@ -1,9 +1,11 @@
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ChartPackage } from '../../src/packages/chart/ChartPackage';
-import type { ChartSpec } from '../../src/packages/chart/ChartRenderer';
+import { ChartRenderer, type ChartSpec } from '../../src/packages/chart/ChartRenderer';
 import { chartRuntime } from '../../src/packages/chart/ChartRuntime';
 import { buildRegistryPayload } from '../../src/packages/core/export';
+import { H } from '../../src/packages/core/helper';
 import { PackageRegistry } from '../../src/packages/core/PackageRegistry';
 import type { RuntimeAPI } from '../../src/packages/core/types';
 
@@ -107,6 +109,56 @@ describe('chart runtime', () => {
       rafSpy.mockRestore();
       perfSpy.mockRestore();
     }
+  });
+});
+
+describe('chart renderer — posicionamento', () => {
+  it('distribui os segmentos do donut a partir do topo, sem sobrepor', () => {
+    const spec: ChartSpec = {
+      ...defaults,
+      kind: 'donut',
+      rows: [
+        { label: 'a', val: '3' },
+        { label: 'b', val: '5' },
+        { label: 'c', val: '2' },
+      ],
+    };
+    const html = renderToStaticMarkup(ChartRenderer({ spec, h: H }));
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const circles = [...doc.querySelectorAll('circle')];
+    const circumference = 2 * Math.PI * 120;
+    const expectedFirstDash = (3 / 10) * circumference;
+
+    expect(circles[0]?.getAttribute('stroke-dashoffset')).toBe('0');
+    expect(Number(circles[1]?.getAttribute('stroke-dashoffset'))).toBeCloseTo(
+      -expectedFirstDash,
+      5
+    );
+  });
+
+  it('mantém margens iguais nas barras verticais', () => {
+    const spec: ChartSpec = {
+      ...defaults,
+      rows: [
+        { label: 'a', val: '3' },
+        { label: 'b', val: '5' },
+        { label: 'c', val: '2' },
+      ],
+      showValues: false,
+    };
+    const html = renderToStaticMarkup(ChartRenderer({ spec, h: H }));
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const bars = [...doc.querySelectorAll('rect.pk-bar')];
+    const first = bars[0];
+    const last = bars[bars.length - 1];
+    if (!first || !last) throw new Error('barras não renderizadas');
+
+    const left = Number(first.getAttribute('x'));
+    const lastRight = Number(last.getAttribute('x')) + Number(last.getAttribute('width'));
+    const pad = 60;
+    const width = 900;
+
+    expect(left - pad).toBeCloseTo(width - pad - lastRight, 5);
   });
 });
 
