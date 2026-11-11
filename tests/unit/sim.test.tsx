@@ -4,7 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { registerBuiltins } from '../../src/packages';
 import { H } from '../../src/packages/core/helper';
 import { PackageRegistry } from '../../src/packages/core/PackageRegistry';
+import { compileFunction, serializePackage } from '../../src/packages/core/serialization';
 import type { RuntimeAPI } from '../../src/packages/core/types';
+import { SimPackage } from '../../src/packages/sim/SimPackage';
 import { SimRenderer } from '../../src/packages/sim/SimRenderer';
 import { simRuntime } from '../../src/packages/sim/simRuntime';
 import { normalizeSteps, simDefaults } from '../../src/packages/sim/SimSpec';
@@ -71,5 +73,16 @@ describe('pacote sim', () => {
     registerBuiltins(registry);
     expect(registry.has('sim')).toBe(true);
     expect(registry.toHTML('sim', simDefaults)).toContain('pk-sim-app');
+  });
+
+  it('serializa o runtime autossuficiente para o HTML exportado', async () => {
+    const serialized = serializePackage(SimPackage);
+    expect(serialized.runtime).toEqual({ $fn: String(simRuntime) });
+    const revived = compileFunction((serialized.runtime as { $fn: string }).$fn) as typeof simRuntime;
+    const root = mount();
+    const controller = revived(root, simDefaults, instantApi());
+    await controller?.play();
+    expect(root.querySelector('[data-sim-state]')?.textContent).toBe('ROLLBACK ↩');
+    controller?.final();
   });
 });
