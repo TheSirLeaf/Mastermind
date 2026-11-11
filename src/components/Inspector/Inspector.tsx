@@ -13,7 +13,7 @@ export function Inspector() {
     <div className="flex flex-col h-full overflow-hidden">
       <div
         id="tabs"
-        className="grid grid-cols-4 border-b border-white/10 bg-white/[0.02] flex-none"
+        className="grid grid-cols-5 border-b border-white/10 bg-white/[0.02] flex-none"
       >
         <button
           className={clsx('tab', inspectorActiveTab === 'style' && 'active')}
@@ -75,6 +75,25 @@ export function Inspector() {
             <path d="M12 22V12" />
           </svg>
           <span>Pacote</span>
+        </button>
+        <button
+          className={clsx('tab', inspectorActiveTab === 'animation' && 'active')}
+          onClick={() => setInspectorTab('animation')}
+          title="Animação"
+        >
+          <svg
+            className="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
+            <circle cx="12" cy="12" r="2.5" />
+          </svg>
+          <span>Animação</span>
         </button>
         <button
           className={clsx('tab', isPackageManagerOpen && 'active')}

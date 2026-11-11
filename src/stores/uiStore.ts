@@ -6,7 +6,8 @@ interface UIState {
   // Panels
   leftPanelWidth: number;
   rightPanelWidth: number;
-  inspectorActiveTab: 'style' | 'content' | 'package';
+  inspectorActiveTab: 'style' | 'content' | 'package' | 'animation';
+  animationPreviewNonce: number;
 
   // Modals
   isPackageManagerOpen: boolean;
@@ -24,7 +25,8 @@ interface UIState {
   initialize: () => void;
   setLeftPanelWidth: (width: number) => void;
   setRightPanelWidth: (width: number) => void;
-  setInspectorTab: (tab: 'style' | 'content' | 'package') => void;
+  setInspectorTab: (tab: 'style' | 'content' | 'package' | 'animation') => void;
+  replayAnimations: () => void;
   openPackageManager: () => void;
   closePackageManager: () => void;
   openWelcome: () => void;
@@ -42,6 +44,7 @@ export const useUIStore = create<UIState>()(
     leftPanelWidth: 248,
     rightPanelWidth: 344,
     inspectorActiveTab: 'style',
+    animationPreviewNonce: 0,
 
     isPackageManagerOpen: false,
     isWelcomeOpen: true,
@@ -58,6 +61,10 @@ export const useUIStore = create<UIState>()(
     setRightPanelWidth: (width) => set({ rightPanelWidth: Math.max(280, Math.min(500, width)) }),
 
     setInspectorTab: (tab) => set({ inspectorActiveTab: tab }),
+    replayAnimations: () =>
+      set((state) => {
+        state.animationPreviewNonce += 1;
+      }),
 
     openPackageManager: () => set({ isPackageManagerOpen: true }),
     closePackageManager: () => set({ isPackageManagerOpen: false }),

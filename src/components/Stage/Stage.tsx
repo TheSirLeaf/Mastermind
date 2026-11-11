@@ -3,6 +3,7 @@ import { buildEditorHTML } from '@packages/core/export';
 import { IframeBridge } from '@packages/core/iframeBridge';
 import { registry } from '@packages/core/PackageRegistry';
 import { useDeckStore } from '@store/deckStore';
+import { useUIStore } from '@stores/uiStore';
 import { useRef, useEffect, useState } from 'react';
 
 export function Stage() {
@@ -11,6 +12,8 @@ export function Stage() {
   const bridgeRef = useRef<IframeBridge | null>(null);
   const lastSlidesRef = useRef<string[]>([]);
   const lastIdsRef = useRef<string[]>([]);
+  const lastPreviewRef = useRef(0);
+  const previewNonce = useUIStore((state) => state.animationPreviewNonce);
   const [booted, setBooted] = useState(false);
 
   // Initialize iframe bridge once. Deck edits are applied by the effects below;
@@ -46,6 +49,14 @@ export function Stage() {
     if (!bridge || !booted) return;
     bridge.goto(currentIndex);
   }, [currentIndex, booted]);
+
+  // Replay requested by the Animation tab. This effect runs after the deck
+  // effect above, so a just-applied patch is already in the iframe.
+  useEffect(() => {
+    if (!booted || previewNonce === lastPreviewRef.current) return;
+    lastPreviewRef.current = previewNonce;
+    bridgeRef.current?.previewAnimations();
+  }, [previewNonce, booted]);
 
   // Update iframe when deck changes
   useEffect(() => {

@@ -1,13 +1,14 @@
 // components/Inspector/InspectorContent.tsx
 import type { SelectionInfo } from '@packages/core/types';
 
+import { AnimationTab } from './AnimationTab';
 import { ContentTab } from './ContentTab';
 import { EmptyState } from './EmptyState';
 import { PackageTab } from './PackageTab';
 import { StyleTab } from './StyleTab';
 
 interface InspectorContentProps {
-  activeTab: 'style' | 'content' | 'package';
+  activeTab: 'style' | 'content' | 'package' | 'animation';
   selection: SelectionInfo | null;
 }
 
@@ -31,6 +32,7 @@ export function InspectorContent({ activeTab, selection }: InspectorContentProps
       {activeTab === 'style' && <StyleTab selection={selection} />}
       {activeTab === 'content' && <ContentTab selection={selection} />}
       {activeTab === 'package' && <PackageTab selection={selection} />}
+      {activeTab === 'animation' && <AnimationTab selection={selection} />}
     </div>
   );
 }
