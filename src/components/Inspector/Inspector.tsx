@@ -4,6 +4,7 @@ import { useUIStore } from '@stores/uiStore';
 import { clsx } from 'clsx';
 import type { ReactNode } from 'react';
 
+import { ElementTree } from './ElementTree';
 import { InspectorContent } from './InspectorContent';
 
 export function Inspector() {
@@ -58,6 +59,8 @@ export function Inspector() {
           <path d="M14 8V5a2 2 0 1 1 4 0v3h2v10h-6v-3" />
         </TabButton>
       </div>
+
+      <ElementTree />
 
       <div id="rbody" className="min-h-0 flex-1 overflow-auto">
         <InspectorContent activeTab={inspectorActiveTab} selection={selection} />

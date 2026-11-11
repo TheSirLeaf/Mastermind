@@ -4,6 +4,7 @@ import { WelcomeModal } from '@components/common/WelcomeModal';
 import { Inspector } from '@components/Inspector/Inspector';
 import { PackageManagerModal } from '@components/PackageManager/PackageManagerModal';
 import { Sidebar } from '@components/Sidebar/Sidebar';
+import { PresentationOverlay } from '@components/Stage/PresentationOverlay';
 import { Stage } from '@components/Stage/Stage';
 import { useUIStore } from '@stores/uiStore';
 import { clsx } from 'clsx';
@@ -11,8 +12,15 @@ import { clsx } from 'clsx';
 import { Header } from './Header';
 
 export function Layout() {
-  const { leftPanelWidth, rightPanelWidth, isPreviewMode, isWelcomeOpen, toast, hideToast } =
-    useUIStore();
+  const {
+    leftPanelWidth,
+    rightPanelWidth,
+    isPreviewMode,
+    isPresenting,
+    isWelcomeOpen,
+    toast,
+    hideToast,
+  } = useUIStore();
 
   return (
     <div className="flex h-full flex-col bg-payday-bg text-payday-text">
@@ -50,6 +58,9 @@ export function Layout() {
         </aside>
       </div>
 
+      {(isPreviewMode || isPresenting) && (
+        <PresentationOverlay mode={isPresenting ? 'present' : 'preview'} />
+      )}
       {isWelcomeOpen && <WelcomeModal />}
       <PackageManagerModal />
       {toast && <Toast message={toast.message} type={toast.type} onDismiss={hideToast} />}
