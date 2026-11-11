@@ -1,0 +1,755 @@
+{
+  "format": "dialcron-package",
+  "spec": 1,
+  "packages": [
+    {
+      "id": "keyframes",
+      "name": "Keyframes",
+      "version": "1.0.0",
+      "icon": "sparkles",
+      "author": "Dialcron",
+      "description": "Elemento animado por keyframes: surge com fade, move-se entre posições e redimensiona, com o modo de animação escolhido e keyframes definidos por tempo, propriedade e valor.",
+      "defaults": {
+        "kind": "shape",
+        "shape": "rect",
+        "label": "Elemento",
+        "src": "",
+        "fill": "#D6A84F",
+        "color": "#2A0E1A",
+        "fontSize": 32,
+        "radius": 22,
+        "border": false,
+        "w": 900,
+        "stageH": 420,
+        "frame": true,
+        "guides": false,
+        "x0": 340,
+        "y0": 220,
+        "w0": 220,
+        "h0": 120,
+        "o0": 0,
+        "r0": 0,
+        "s0": 1,
+        "keys": [
+          {
+            "t": 700,
+            "prop": "opacity",
+            "value": 1,
+            "ease": "ease-out"
+          },
+          {
+            "t": 700,
+            "prop": "y",
+            "value": 150,
+            "ease": "ease-out"
+          }
+        ],
+        "easing": "ease-in-out",
+        "bz1": 0.42,
+        "bz2": 0,
+        "bz3": 0.58,
+        "bz4": 1,
+        "steps": 4,
+        "startDelay": 400,
+        "repeat": "once"
+      },
+      "presets": [
+        {
+          "name": "Surgir · fade e subida",
+          "desc": "O elemento aparece subindo de leve",
+          "spec": {}
+        },
+        {
+          "name": "Mover · A para B",
+          "desc": "Desliza da esquerda para a direita",
+          "spec": {
+            "shape": "pill",
+            "label": "Deploy",
+            "o0": 1,
+            "x0": 40,
+            "y0": 150,
+            "keys": [
+              {
+                "t": 1400,
+                "prop": "x",
+                "value": 640,
+                "ease": "ease-in-out"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Redimensionar · crescer",
+          "desc": "Cresce a partir do centro com leve estouro",
+          "spec": {
+            "shape": "circle",
+            "label": "",
+            "fill": "#C95C62",
+            "o0": 1,
+            "x0": 400,
+            "y0": 160,
+            "w0": 100,
+            "h0": 100,
+            "keys": [
+              {
+                "t": 1000,
+                "prop": "w",
+                "value": 300,
+                "ease": "back"
+              },
+              {
+                "t": 1000,
+                "prop": "h",
+                "value": 300,
+                "ease": "back"
+              },
+              {
+                "t": 1000,
+                "prop": "x",
+                "value": 300,
+                "ease": "back"
+              },
+              {
+                "t": 1000,
+                "prop": "y",
+                "value": 60,
+                "ease": "back"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Quicar · queda",
+          "desc": "Cai e quica no chão do palco",
+          "spec": {
+            "shape": "circle",
+            "label": "",
+            "fill": "#72A68A",
+            "o0": 1,
+            "x0": 400,
+            "y0": 10,
+            "w0": 100,
+            "h0": 100,
+            "keys": [
+              {
+                "t": 1200,
+                "prop": "y",
+                "value": 300,
+                "ease": "bounce"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Sequência · entrar, girar, sair",
+          "desc": "Vários keyframes encadeados",
+          "spec": {
+            "label": "Build",
+            "x0": 40,
+            "y0": 150,
+            "keys": [
+              {
+                "t": 500,
+                "prop": "opacity",
+                "value": 1,
+                "ease": "ease-out"
+              },
+              {
+                "t": 1700,
+                "prop": "x",
+                "value": 640,
+                "ease": "ease-in-out"
+              },
+              {
+                "t": 1700,
+                "prop": "rotate",
+                "value": 360,
+                "ease": "ease-in-out"
+              },
+              {
+                "t": 2300,
+                "prop": "scale",
+                "value": 1.3,
+                "ease": "back"
+              },
+              {
+                "t": 3000,
+                "prop": "opacity",
+                "value": 0,
+                "ease": "ease-in"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Pulso · em loop",
+          "desc": "Pulsa continuamente, ida e volta",
+          "spec": {
+            "label": "Ao vivo",
+            "shape": "pill",
+            "o0": 1,
+            "x0": 340,
+            "y0": 150,
+            "repeat": "pingpong",
+            "keys": [
+              {
+                "t": 700,
+                "prop": "scale",
+                "value": 1.25,
+                "ease": "ease-in-out"
+              },
+              {
+                "t": 700,
+                "prop": "opacity",
+                "value": 0.7,
+                "ease": "ease-in-out"
+              }
+            ]
+          }
+        }
+      ],
+      "box": {
+        "w": 900
+      },
+      "form": [
+        {
+          "group": "Elemento",
+          "icon": "square",
+          "open": true,
+          "fields": [
+            {
+              "k": "kind",
+              "label": "Tipo",
+              "type": "seg",
+              "options": [
+                [
+                  "shape",
+                  "Forma",
+                  "square"
+                ],
+                [
+                  "text",
+                  "Texto",
+                  "bold"
+                ],
+                [
+                  "image",
+                  "Imagem",
+                  "image"
+                ]
+              ]
+            },
+            {
+              "k": "label",
+              "label": "Texto",
+              "type": "text",
+              "placeholder": "Elemento",
+              "showIf": {
+                "k": "kind",
+                "ne": "image"
+              }
+            },
+            {
+              "k": "src",
+              "label": "Endereço da imagem",
+              "type": "text",
+              "placeholder": "https://…",
+              "showIf": {
+                "k": "kind",
+                "eq": "image"
+              }
+            },
+            {
+              "k": "shape",
+              "label": "Formato",
+              "type": "seg",
+              "options": [
+                [
+                  "rect",
+                  "Retângulo",
+                  "square"
+                ],
+                [
+                  "pill",
+                  "Pílula",
+                  "dash"
+                ],
+                [
+                  "circle",
+                  "Círculo",
+                  "circle"
+                ]
+              ],
+              "showIf": {
+                "k": "kind",
+                "eq": "shape"
+              }
+            },
+            {
+              "k": "radius",
+              "label": "Arredondamento",
+              "type": "range",
+              "min": 0,
+              "max": 80,
+              "step": 1,
+              "unit": "px",
+              "showIf": {
+                "k": "shape",
+                "eq": "rect"
+              }
+            },
+            {
+              "type": "row",
+              "fields": [
+                {
+                  "k": "fill",
+                  "label": "Cor de fundo",
+                  "type": "color",
+                  "showIf": {
+                    "k": "kind",
+                    "eq": "shape"
+                  }
+                },
+                {
+                  "k": "color",
+                  "label": "Cor do texto",
+                  "type": "color",
+                  "showIf": {
+                    "k": "kind",
+                    "ne": "image"
+                  }
+                }
+              ]
+            },
+            {
+              "k": "fontSize",
+              "label": "Tamanho do texto",
+              "type": "range",
+              "min": 12,
+              "max": 140,
+              "step": 1,
+              "unit": "px",
+              "showIf": {
+                "k": "kind",
+                "ne": "image"
+              }
+            },
+            {
+              "k": "border",
+              "label": "Borda clara",
+              "type": "toggle",
+              "showIf": {
+                "k": "kind",
+                "eq": "shape"
+              }
+            }
+          ]
+        },
+        {
+          "group": "Palco",
+          "icon": "layers",
+          "open": false,
+          "fields": [
+            {
+              "type": "row",
+              "fields": [
+                {
+                  "k": "w",
+                  "label": "Largura",
+                  "type": "number",
+                  "min": 200,
+                  "max": 1800,
+                  "step": 10,
+                  "unit": "px"
+                },
+                {
+                  "k": "stageH",
+                  "label": "Altura",
+                  "type": "number",
+                  "min": 120,
+                  "max": 1000,
+                  "step": 10,
+                  "unit": "px"
+                }
+              ]
+            },
+            {
+              "k": "frame",
+              "label": "Moldura tracejada ao redor do palco",
+              "type": "toggle"
+            },
+            {
+              "k": "guides",
+              "label": "Mostrar trajetória e quadros-chave",
+              "type": "toggle",
+              "help": "Guia visual para editar. Some quando a animação toca."
+            }
+          ]
+        },
+        {
+          "group": "Estado inicial",
+          "icon": "sliders",
+          "open": true,
+          "fields": [
+            {
+              "type": "info",
+              "text": "Valores antes do primeiro keyframe. Posição em pixels, a partir do canto superior esquerdo do palco."
+            },
+            {
+              "type": "row",
+              "fields": [
+                {
+                  "k": "x0",
+                  "label": "X",
+                  "type": "number",
+                  "step": 5
+                },
+                {
+                  "k": "y0",
+                  "label": "Y",
+                  "type": "number",
+                  "step": 5
+                }
+              ]
+            },
+            {
+              "type": "row",
+              "fields": [
+                {
+                  "k": "w0",
+                  "label": "Largura",
+                  "type": "number",
+                  "min": 0,
+                  "step": 5
+                },
+                {
+                  "k": "h0",
+                  "label": "Altura",
+                  "type": "number",
+                  "min": 0,
+                  "step": 5
+                }
+              ]
+            },
+            {
+              "k": "o0",
+              "label": "Opacidade",
+              "type": "range",
+              "min": 0,
+              "max": 1,
+              "step": 0.05
+            },
+            {
+              "type": "row",
+              "fields": [
+                {
+                  "k": "r0",
+                  "label": "Rotação",
+                  "type": "range",
+                  "min": -360,
+                  "max": 360,
+                  "step": 5,
+                  "unit": "°"
+                },
+                {
+                  "k": "s0",
+                  "label": "Escala",
+                  "type": "range",
+                  "min": 0.1,
+                  "max": 3,
+                  "step": 0.05,
+                  "unit": "×"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "Keyframes",
+          "icon": "clock",
+          "open": true,
+          "fields": [
+            {
+              "type": "info",
+              "text": "Cada linha leva uma propriedade a um valor no tempo indicado. A suavização vale para o trecho que chega nesse keyframe."
+            },
+            {
+              "k": "keys",
+              "type": "list",
+              "addLabel": "Adicionar keyframe",
+              "itemDefault": {
+                "t": 1000,
+                "prop": "x",
+                "value": 400,
+                "ease": "default"
+              },
+              "item": [
+                {
+                  "k": "t",
+                  "type": "number",
+                  "min": 0,
+                  "step": 50,
+                  "w": "66px",
+                  "label": "Tempo (ms)"
+                },
+                {
+                  "k": "prop",
+                  "type": "select",
+                  "w": "1.3fr",
+                  "options": [
+                    [
+                      "x",
+                      "X"
+                    ],
+                    [
+                      "y",
+                      "Y"
+                    ],
+                    [
+                      "w",
+                      "Largura"
+                    ],
+                    [
+                      "h",
+                      "Altura"
+                    ],
+                    [
+                      "opacity",
+                      "Opacidade"
+                    ],
+                    [
+                      "rotate",
+                      "Rotação"
+                    ],
+                    [
+                      "scale",
+                      "Escala"
+                    ]
+                  ]
+                },
+                {
+                  "k": "value",
+                  "type": "number",
+                  "step": 0.1,
+                  "w": "66px",
+                  "label": "Valor"
+                },
+                {
+                  "k": "ease",
+                  "type": "select",
+                  "w": "1.4fr",
+                  "options": [
+                    [
+                      "default",
+                      "Padrão"
+                    ],
+                    [
+                      "linear",
+                      "Linear"
+                    ],
+                    [
+                      "ease",
+                      "Suave"
+                    ],
+                    [
+                      "ease-in",
+                      "Acelera (ease-in)"
+                    ],
+                    [
+                      "ease-out",
+                      "Desacelera (ease-out)"
+                    ],
+                    [
+                      "ease-in-out",
+                      "Acelera e desacelera"
+                    ],
+                    [
+                      "back",
+                      "Estouro (back)"
+                    ],
+                    [
+                      "bounce",
+                      "Quicar (bounce)"
+                    ],
+                    [
+                      "elastic",
+                      "Elástico"
+                    ],
+                    [
+                      "steps",
+                      "Em degraus"
+                    ],
+                    [
+                      "custom",
+                      "Cubic-bezier personalizado"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "buttons",
+              "items": [
+                {
+                  "label": "Ordenar por tempo",
+                  "icon": "swap",
+                  "do": {
+                    "$fn": "(spec) => {\n              spec.keys = spec.keys.slice().sort((a, b) => a.t - b.t);\n            }"
+                  }
+                },
+                {
+                  "label": "Limpar",
+                  "icon": "x",
+                  "do": {
+                    "$fn": "(spec) => {\n              spec.keys = [];\n            }"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "Animação",
+          "icon": "sparkles",
+          "open": true,
+          "fields": [
+            {
+              "k": "easing",
+              "label": "Modo de animação",
+              "type": "select",
+              "options": [
+                [
+                  "linear",
+                  "Linear"
+                ],
+                [
+                  "ease",
+                  "Suave"
+                ],
+                [
+                  "ease-in",
+                  "Acelera (ease-in)"
+                ],
+                [
+                  "ease-out",
+                  "Desacelera (ease-out)"
+                ],
+                [
+                  "ease-in-out",
+                  "Acelera e desacelera"
+                ],
+                [
+                  "back",
+                  "Estouro (back)"
+                ],
+                [
+                  "bounce",
+                  "Quicar (bounce)"
+                ],
+                [
+                  "elastic",
+                  "Elástico"
+                ],
+                [
+                  "steps",
+                  "Em degraus"
+                ],
+                [
+                  "custom",
+                  "Cubic-bezier personalizado"
+                ]
+              ]
+            },
+            {
+              "type": "row",
+              "fields": [
+                {
+                  "k": "bz1",
+                  "label": "x1",
+                  "type": "number",
+                  "min": 0,
+                  "max": 1,
+                  "step": 0.05
+                },
+                {
+                  "k": "bz2",
+                  "label": "y1",
+                  "type": "number",
+                  "step": 0.05
+                },
+                {
+                  "k": "bz3",
+                  "label": "x2",
+                  "type": "number",
+                  "min": 0,
+                  "max": 1,
+                  "step": 0.05
+                },
+                {
+                  "k": "bz4",
+                  "label": "y2",
+                  "type": "number",
+                  "step": 0.05
+                }
+              ],
+              "showIf": {
+                "k": "easing",
+                "eq": "custom"
+              }
+            },
+            {
+              "k": "steps",
+              "label": "Degraus",
+              "type": "number",
+              "min": 1,
+              "max": 30,
+              "step": 1,
+              "showIf": {
+                "k": "easing",
+                "eq": "steps"
+              }
+            },
+            {
+              "k": "startDelay",
+              "label": "Começar após",
+              "type": "range",
+              "min": 0,
+              "max": 5000,
+              "step": 100,
+              "unit": " ms"
+            },
+            {
+              "k": "repeat",
+              "label": "Repetição",
+              "type": "seg",
+              "options": [
+                [
+                  "once",
+                  "Uma vez"
+                ],
+                [
+                  "loop",
+                  "Em loop"
+                ],
+                [
+                  "pingpong",
+                  "Ida e volta"
+                ]
+              ]
+            }
+          ]
+        }
+      ],
+      "css": "\n.pk-keyframes .kf-stage{position:relative;overflow:hidden;box-sizing:border-box}\n.pk-keyframes .kf-stage[data-frame=\"true\"]{border:2px dashed rgba(247,217,139,.35);border-radius:18px;background:rgba(255,248,245,.03)}\n.pk-keyframes .kf-actor{position:absolute;left:0;top:0;box-sizing:border-box;transform-origin:50% 50%;display:flex;align-items:center;justify-content:center;overflow:hidden;will-change:transform,opacity,width,height;font-family:\"DM Sans\",system-ui,sans-serif;font-weight:700;line-height:1.1;text-align:center;white-space:nowrap}\n.pk-keyframes .kf-actor[data-kind=\"shape\"]{box-shadow:0 14px 34px rgba(0,0,0,.35)}\n.pk-keyframes .kf-actor[data-kind=\"shape\"][data-border=\"true\"]{border:3px solid rgba(255,248,245,.4)}\n.pk-keyframes .kf-actor[data-kind=\"text\"]{overflow:visible}\n.pk-keyframes .kf-actor[data-kind=\"image\"]{overflow:hidden}\n.pk-keyframes .kf-actor img{width:100%;height:100%;object-fit:contain;display:block}\n.pk-keyframes .kf-ph{width:100%;height:100%;display:grid;place-items:center;background:rgba(255,248,245,.1);color:rgba(255,248,245,.6);font-size:18px}\n.pk-keyframes .kf-guides{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}\n.pk-keyframes .kf-guides text{font:600 14px \"DM Sans\",system-ui,sans-serif;fill:#F7D98B}\n@media (prefers-reduced-motion:reduce){\n  .pk-keyframes .kf-actor{width:var(--kf-lw)!important;height:var(--kf-lh)!important;transform:var(--kf-lt)!important;opacity:var(--kf-lo)!important}\n}\n",
+      "render": {
+        "$fn": "function renderHtml(spec, h) {\n  var N = function(v, d) {\n    var n = Number(v);\n    return isFinite(n) ? n : d;\n  };\n  var PR = [\"x\", \"y\", \"w\", \"h\", \"opacity\", \"rotate\", \"scale\"];\n  var base = { x: N(spec.x0, 0), y: N(spec.y0, 0), w: N(spec.w0, 200), h: N(spec.h0, 120), opacity: N(spec.o0, 1), rotate: N(spec.r0, 0), scale: N(spec.s0, 1) };\n  var keys = Array.isArray(spec.keys) ? spec.keys : [];\n  function poseAt2(t) {\n    var out = {};\n    PR.forEach(function(p) {\n      var pts = keys.filter(function(k) {\n        return k && k.prop === p;\n      }).map(function(k) {\n        return { t: Math.max(0, N(k.t, 0)), v: N(k.value, base[p]) };\n      }).sort(function(a, b) {\n        return a.t - b.t;\n      });\n      if (!pts.length || pts[0].t > 0) pts.unshift({ t: 0, v: base[p] });\n      var v = pts[pts.length - 1].v;\n      for (var i = 0; i < pts.length; i++) {\n        if (t <= pts[i].t) {\n          v = i === 0 || pts[i].t === pts[i - 1].t ? pts[i].v : pts[i - 1].v + (pts[i].v - pts[i - 1].v) * (t - pts[i - 1].t) / (pts[i].t - pts[i - 1].t);\n          break;\n        }\n      }\n      out[p] = v;\n    });\n    return out;\n  }\n  function tf(p) {\n    return \"translate(\" + p.x + \"px,\" + p.y + \"px) rotate(\" + p.rotate + \"deg) scale(\" + p.scale + \")\";\n  }\n  var first = poseAt2(0), last = poseAt2(Infinity);\n  var radius = spec.shape === \"circle\" ? \"50%\" : spec.shape === \"pill\" ? \"999px\" : N(spec.radius, 22) + \"px\";\n  var st = \"width:\" + Math.max(0, first.w) + \"px;height:\" + Math.max(0, first.h) + \"px;opacity:\" + first.opacity + \";transform:\" + tf(first) + \";font-size:\" + N(spec.fontSize, 32) + \"px;color:\" + h.esc(spec.color) + \";--kf-lw:\" + Math.max(0, last.w) + \"px;--kf-lh:\" + Math.max(0, last.h) + \"px;--kf-lt:\" + tf(last) + \";--kf-lo:\" + last.opacity;\n  if (spec.kind === \"shape\") st += \";background:\" + h.esc(spec.fill) + \";border-radius:\" + radius;\n  var W = N(spec.w, 900), H = N(spec.stageH, 420);\n  var set = { 0: true };\n  keys.forEach(function(k) {\n    if (k) set[Math.max(0, N(k.t, 0))] = true;\n  });\n  var times = Object.keys(set).map(Number).sort(function(a, b) {\n    return a - b;\n  });\n  var poses = times.map(function(t) {\n    return { t, p: poseAt2(t) };\n  });\n  var cs = poses.map(function(o) {\n    return [o.p.x + o.p.w / 2, o.p.y + o.p.h / 2];\n  });\n  var g = \"\";\n  if (spec.guides) {\n    g = '<svg class=\"kf-guides\" width=\"' + W + '\" height=\"' + H + '\" viewBox=\"0 0 ' + W + \" \" + H + '\"><polyline points=\"' + cs.map(function(c) {\n      return c[0] + \",\" + c[1];\n    }).join(\" \") + '\" fill=\"none\" stroke=\"#F7D98B\" stroke-width=\"2\" stroke-dasharray=\"8 6\" opacity=\".7\"/>';\n    poses.forEach(function(o, i) {\n      var p = o.p;\n      g += '<g><rect x=\"' + (cs[i][0] - p.w * p.scale / 2) + '\" y=\"' + (cs[i][1] - p.h * p.scale / 2) + '\" width=\"' + Math.max(0, p.w * p.scale) + '\" height=\"' + Math.max(0, p.h * p.scale) + '\" transform=\"rotate(' + p.rotate + \" \" + cs[i][0] + \" \" + cs[i][1] + ')\" fill=\"none\" stroke=\"#F7D98B\" stroke-width=\"1.5\" stroke-dasharray=\"5 5\" opacity=\".55\"/><circle cx=\"' + cs[i][0] + '\" cy=\"' + cs[i][1] + '\" r=\"5\" fill=\"#F7D98B\"/><text x=\"' + (cs[i][0] + 9) + '\" y=\"' + (cs[i][1] - 9) + '\">' + o.t + \" ms</text></g>\";\n    });\n    g += \"</svg>\";\n  }\n  var body = spec.kind === \"image\" ? spec.src ? '<img src=\"' + h.esc(spec.src) + '\" alt=\"' + h.esc(spec.label) + '\" draggable=\"false\">' : '<div class=\"kf-ph\">imagem</div>' : h.esc(spec.label);\n  return '<div class=\"kf-stage\" data-frame=\"' + (spec.frame ? \"true\" : \"false\") + '\" style=\"width:' + W + \"px;height:\" + H + 'px\">' + g + '<div class=\"kf-actor\" data-kind=\"' + spec.kind + '\" data-border=\"' + (spec.kind === \"shape\" && spec.border ? \"true\" : \"false\") + '\" style=\"' + st + '\">' + body + \"</div></div>\";\n}"
+      },
+      "duration": {
+        "$fn": "(spec) => {\n    let total = 0;\n    (Array.isArray(spec.keys) ? spec.keys : []).forEach((k) => {\n      const t = Number(k && k.t);\n      if (isFinite(t) && t > total) total = t;\n    });\n    const cycle = spec.repeat === \"pingpong\" ? total * 2 : total;\n    const delay = Number(spec.startDelay);\n    return (isFinite(delay) ? Math.max(0, delay) : 0) + cycle;\n  }"
+      },
+      "runtime": {
+        "$fn": "function keyframesRuntime(root, spec, api) {\n  const actor = root.querySelector(\".kf-actor\");\n  if (!actor) {\n    return { play: () => void 0, final: () => void 0 };\n  }\n  const guides = root.querySelector(\".kf-guides\");\n  const names = [\"x\", \"y\", \"w\", \"h\", \"opacity\", \"rotate\", \"scale\"];\n  const num2 = (v, d) => {\n    const n = Number(v);\n    return isFinite(n) ? n : d;\n  };\n  const base = {\n    x: num2(spec.x0, 0),\n    y: num2(spec.y0, 0),\n    w: num2(spec.w0, 200),\n    h: num2(spec.h0, 120),\n    opacity: num2(spec.o0, 1),\n    rotate: num2(spec.r0, 0),\n    scale: num2(spec.s0, 1)\n  };\n  const tracks = {};\n  names.forEach((n) => {\n    tracks[n] = [];\n  });\n  const keys = Array.isArray(spec.keys) ? spec.keys : [];\n  keys.forEach((k) => {\n    if (!k || names.indexOf(k.prop) < 0) return;\n    const e = !k.ease || k.ease === \"default\" ? String(spec.easing || \"ease-in-out\") : k.ease;\n    tracks[k.prop].push({ t: Math.max(0, num2(k.t, 0)), v: num2(k.value, base[k.prop]), e });\n  });\n  let total = 0;\n  names.forEach((n) => {\n    const tr = tracks[n];\n    tr.sort((a, b) => a.t - b.t);\n    if (!tr.length || tr[0].t > 0) tr.unshift({ t: 0, v: base[n], e: \"linear\" });\n    total = Math.max(total, tr[tr.length - 1].t);\n  });\n  const bez = (x1, y1, x2, y2, x) => {\n    if (x <= 0) return 0;\n    if (x >= 1) return 1;\n    const cx = 3 * x1;\n    const bx = 3 * (x2 - x1) - cx;\n    const ax = 1 - cx - bx;\n    const cy = 3 * y1;\n    const by = 3 * (y2 - y1) - cy;\n    const ay = 1 - cy - by;\n    const px = (t2) => ((ax * t2 + bx) * t2 + cx) * t2;\n    let t = x;\n    for (let i = 0; i < 8; i++) {\n      const f = px(t) - x;\n      if (Math.abs(f) < 1e-6) break;\n      const d = (3 * ax * t + 2 * bx) * t + cx;\n      if (Math.abs(d) < 1e-6) break;\n      t -= f / d;\n    }\n    if (!(t >= 0 && t <= 1) || Math.abs(px(t) - x) > 1e-4) {\n      let lo = 0;\n      let hi = 1;\n      t = x;\n      for (let i = 0; i < 24; i++) {\n        if (px(t) < x) lo = t;\n        else hi = t;\n        t = (lo + hi) / 2;\n      }\n    }\n    return ((ay * t + by) * t + cy) * t;\n  };\n  const bounce = (p) => {\n    const n = 7.5625;\n    const d = 2.75;\n    if (p < 1 / d) return n * p * p;\n    if (p < 2 / d) return n * (p -= 1.5 / d) * p + 0.75;\n    if (p < 2.5 / d) return n * (p -= 2.25 / d) * p + 0.9375;\n    return n * (p -= 2.625 / d) * p + 0.984375;\n  };\n  const ease = (name, p) => {\n    if (p <= 0) return 0;\n    if (p >= 1) return 1;\n    switch (name) {\n      case \"linear\":\n        return p;\n      case \"ease\":\n        return bez(0.25, 0.1, 0.25, 1, p);\n      case \"ease-in\":\n        return bez(0.42, 0, 1, 1, p);\n      case \"ease-out\":\n        return bez(0, 0, 0.58, 1, p);\n      case \"ease-in-out\":\n        return bez(0.42, 0, 0.58, 1, p);\n      case \"back\":\n        return bez(0.34, 1.56, 0.64, 1, p);\n      case \"bounce\":\n        return bounce(p);\n      case \"elastic\":\n        return Math.pow(2, -10 * p) * Math.sin((p * 10 - 0.75) * (2 * Math.PI) / 3) + 1;\n      case \"steps\": {\n        const n = Math.max(1, Math.round(num2(spec.steps, 4)));\n        return Math.floor(p * n) / n;\n      }\n      case \"custom\":\n        return bez(\n          Math.min(1, Math.max(0, num2(spec.bz1, 0.42))),\n          num2(spec.bz2, 0),\n          Math.min(1, Math.max(0, num2(spec.bz3, 0.58))),\n          num2(spec.bz4, 1),\n          p\n        );\n      default:\n        return bez(0.42, 0, 0.58, 1, p);\n    }\n  };\n  const at = (name, t) => {\n    const tr = tracks[name];\n    if (t <= tr[0].t) return tr[0].v;\n    for (let i = 1; i < tr.length; i++) {\n      const a = tr[i - 1];\n      const b = tr[i];\n      if (t <= b.t) {\n        if (b.t === a.t) return b.v;\n        return a.v + (b.v - a.v) * ease(b.e, (t - a.t) / (b.t - a.t));\n      }\n    }\n    return tr[tr.length - 1].v;\n  };\n  const apply = (t) => {\n    const s = actor.style;\n    s.width = Math.max(0, at(\"w\", t)) + \"px\";\n    s.height = Math.max(0, at(\"h\", t)) + \"px\";\n    s.opacity = String(Math.min(1, Math.max(0, at(\"opacity\", t))));\n    s.transform = \"translate(\" + at(\"x\", t) + \"px,\" + at(\"y\", t) + \"px) rotate(\" + at(\"rotate\", t) + \"deg) scale(\" + at(\"scale\", t) + \")\";\n  };\n  const play = () => {\n    if (guides) guides.style.display = \"none\";\n    apply(0);\n    const delay = Math.max(0, num2(spec.startDelay, 0));\n    const mode = spec.repeat;\n    let t0 = -1;\n    api.frame((ts) => {\n      if (t0 < 0) t0 = ts;\n      const t = ts - t0 - delay;\n      if (t <= 0) {\n        apply(0);\n        return true;\n      }\n      if (total <= 0) {\n        apply(0);\n        return false;\n      }\n      if (mode === \"loop\") {\n        apply(t % total);\n        return true;\n      }\n      if (mode === \"pingpong\") {\n        const c = t % (2 * total);\n        apply(c <= total ? c : 2 * total - c);\n        return true;\n      }\n      if (t >= total) {\n        apply(total);\n        return false;\n      }\n      apply(t);\n      return true;\n    });\n  };\n  const final = () => {\n    if (guides) guides.style.display = \"none\";\n    apply(total);\n  };\n  return { play, final };\n}"
+      }
+    }
+  ]
+}
