@@ -43,4 +43,29 @@ describe('StyleTab', () => {
     const html = state().deck.slides[0]?.html ?? '';
     expect(html).toContain('font-size: 2rem;');
   });
+
+  it('aplica negrito, itálico, sublinhado, família e espaçamentos', () => {
+    render(<StyleTab selection={selection} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Negrito' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Itálico' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sublinhado' }));
+    fireEvent.change(screen.getByLabelText('Família da fonte'), {
+      target: { value: "Georgia, 'Times New Roman', serif" },
+    });
+    fireEvent.change(screen.getByLabelText('Espaço entre linhas'), {
+      target: { value: '1.4' },
+    });
+    fireEvent.change(screen.getByLabelText('Espaço entre letras'), {
+      target: { value: '0.05' },
+    });
+
+    const html = state().deck.slides[0]?.html ?? '';
+    expect(html).toContain('font-weight: 700;');
+    expect(html).toContain('font-style: italic;');
+    expect(html).toContain('text-decoration: underline;');
+    expect(html).toMatch(/font-family: Georgia, (?:'|&quot;)Times New Roman(?:'|&quot;), serif;/);
+    expect(html).toContain('line-height: 1.4;');
+    expect(html).toContain('letter-spacing: 0.05em;');
+  });
 });
