@@ -281,7 +281,7 @@ const inputClass =
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <details className="group open">
+    <details className="group open" open>
       <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-[#F3E6E2]/60">
         <svg
           className="h-4 w-4 text-[#F7D98B]"
