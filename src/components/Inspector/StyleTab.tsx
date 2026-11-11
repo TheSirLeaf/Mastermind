@@ -24,10 +24,11 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
     });
   };
 
-  const numberValue = (value: string | undefined): number => {
-    const parsed = Number.parseInt(value ?? '', 10);
-    return Number.isFinite(parsed) ? parsed : 0;
-  };
+  const x = parseLength(current.left);
+  const y = parseLength(current.top);
+  const width = parseLength(current.width);
+  const height = parseLength(current.height);
+  const fontSize = parseLength(current['font-size']);
 
   return (
     <div className="space-y-4">
@@ -40,33 +41,37 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
           <Field label="X">
             <input
               type="number"
+              aria-label="X"
               className={inputClass}
-              value={numberValue(current.left)}
-              onChange={(event) => setStyle('left', `${event.target.value}px`)}
+              value={x.value}
+              onChange={(event) => setStyle('left', `${event.target.value}${x.unit}`)}
             />
           </Field>
           <Field label="Y">
             <input
               type="number"
+              aria-label="Y"
               className={inputClass}
-              value={numberValue(current.top)}
-              onChange={(event) => setStyle('top', `${event.target.value}px`)}
+              value={y.value}
+              onChange={(event) => setStyle('top', `${event.target.value}${y.unit}`)}
             />
           </Field>
           <Field label="Largura">
             <input
               type="number"
+              aria-label="Largura"
               className={inputClass}
-              value={numberValue(current.width)}
-              onChange={(event) => setStyle('width', `${event.target.value}px`)}
+              value={width.value}
+              onChange={(event) => setStyle('width', `${event.target.value}${width.unit}`)}
             />
           </Field>
           <Field label="Altura">
             <input
               type="number"
+              aria-label="Altura"
               className={inputClass}
-              value={numberValue(current.height)}
-              onChange={(event) => setStyle('height', `${event.target.value}px`)}
+              value={height.value}
+              onChange={(event) => setStyle('height', `${event.target.value}${height.unit}`)}
             />
           </Field>
         </div>
@@ -85,8 +90,8 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
           />
           <Toggle
             label="Travado (sem interação)"
-            checked={current.pointerEvents === 'none'}
-            onChange={(checked) => setStyle('pointerEvents', checked ? 'none' : null)}
+            checked={current['pointer-events'] === 'none'}
+            onChange={(checked) => setStyle('pointer-events', checked ? 'none' : null)}
           />
         </div>
       </details>
@@ -108,9 +113,10 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
           <Field label="Tamanho">
             <input
               type="number"
+              aria-label="Tamanho da fonte"
               className={inputClass}
-              value={numberValue(current.fontSize)}
-              onChange={(event) => setStyle('fontSize', `${event.target.value}px`)}
+              value={fontSize.value}
+              onChange={(event) => setStyle('font-size', `${event.target.value}${fontSize.unit}`)}
             />
           </Field>
         </div>
@@ -169,6 +175,15 @@ function Icon({ path }: { path: string }) {
       <path d={path} />
     </svg>
   );
+}
+
+function parseLength(value: string | undefined): { value: number; unit: string } {
+  const trimmed = (value ?? '').trim();
+  const match = /^(-?\d+(?:\.\d+)?)\s*([a-z%]*)$/i.exec(trimmed);
+  const number = match?.[1];
+  if (!number) return { value: 0, unit: 'px' };
+  const unit = match?.[2] || 'px';
+  return { value: Number(number), unit };
 }
 
 function toHex(color: string | undefined): string | null {
