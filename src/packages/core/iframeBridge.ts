@@ -74,7 +74,7 @@ export class IframeBridge {
         if (this.pendingSelect) {
           const { path, edit } = this.pendingSelect;
           this.pendingSelect = null;
-          this.send(edit ? { type: 'select', path, edit: true } : { type: 'select', path });
+          this.sendSelect(path, edit);
         }
         break;
       case 'select':
@@ -103,6 +103,12 @@ export class IframeBridge {
   }
 
   /** Envia um comando; se o iframe ainda não estiver pronto, ignora comandos visuais. */
+  private sendSelect(path: number[] | null, edit: boolean): void {
+    const message: Record<string, unknown> = { type: 'select', path };
+    if (edit) message.edit = true;
+    this.send(message);
+  }
+
   private send(message: Record<string, unknown>): void {
     const win = this.iframe.contentWindow;
     if (!win) return;
@@ -128,7 +134,7 @@ export class IframeBridge {
       if (path) this.pendingSelect = { path, edit };
       return;
     }
-    this.send(edit ? { type: 'select', path, edit: true } : { type: 'select', path });
+    this.sendSelect(path, edit);
   }
 
   /** Executa uma ação sobre o elemento selecionado (excluir, duplicar, z-order…). */

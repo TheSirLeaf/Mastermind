@@ -94,48 +94,49 @@ export type SlideTemplateKind =
 const CHECK_SVG =
   '<svg class="ic" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 
-const bulletItems = (): string =>
-  [1, 2, 3]
-    .map(
-      (n) =>
-        `<li><span class="tick">${CHECK_SVG}</span><div><b>Tópico ${n}</b><p>Descrição curta do tópico.</p></div></li>`
-    )
-    .join('');
+function bulletItems(): string {
+  let items = '';
+  for (let n = 1; n <= 3; n += 1) {
+    items += `<li><span class="tick">${CHECK_SVG}</span><div><b>Tópico ${n}</b><p>Descrição curta do tópico.</p></div></li>`;
+  }
+  return items;
+}
 
-const statItems = (): string =>
-  [1, 2, 3]
-    .map(
-      () =>
-        '<div class="stat"><div class="stat-n">00</div><div class="stat-t">rótulo</div><p>Descrição curta do número.</p></div>'
-    )
-    .join('');
+function statItems(): string {
+  const item =
+    '<div class="stat"><div class="stat-n">00</div><div class="stat-t">rótulo</div><p>Descrição curta do número.</p></div>';
+  return item + item + item;
+}
 
-export const SLIDE_TEMPLATES: Record<SlideTemplateKind, { name: string; html: () => string }> = {
+function bulletsHTML(): string {
+  return `<section class="slide light" data-notes=""><div class="eyebrow">SEÇÃO</div><h2 class="title">Título do slide</h2><div class="content"><ul class="ticks" style="margin-top:0">${bulletItems()}</ul></div>{FOOT}</section>`;
+}
+
+function twoColumnsHTML(): string {
+  return '<section class="slide light" data-notes=""><div class="eyebrow">SEÇÃO</div><h2 class="title">Título do slide</h2><div class="content"><div class="two-col"><div><p class="lead dark-lead">Texto da coluna da esquerda.</p></div><div class="panel"><div class="panel-label">DESTAQUE</div><p style="margin:0;font-size:24px;line-height:1.5">Conteúdo do painel da direita.</p></div></div></div>{FOOT}</section>';
+}
+
+function statsHTML(): string {
+  return `<section class="slide dark" data-notes=""><div class="eyebrow">NÚMEROS</div><h2 class="title">Título do slide</h2><div class="content"><div class="stats" style="grid-template-columns:repeat(3,1fr)">${statItems()}</div></div>{FOOT}</section>`;
+}
+
+function blankHTML(theme: 'dark' | 'light'): string {
+  return `<section class="slide ${theme}" data-notes="">{FOOT}</section>`;
+}
+
+interface SlideTemplate {
+  name: string;
+  html: () => string;
+}
+
+export const SLIDE_TEMPLATES: Record<SlideTemplateKind, SlideTemplate> = {
   cover: { name: 'Capa', html: () => DEFAULT_COVER_HTML },
   text: { name: 'Título + texto', html: () => DEFAULT_TEXT_HTML },
-  bullets: {
-    name: 'Título + tópicos',
-    html: () =>
-      `<section class="slide light" data-notes=""><div class="eyebrow">SEÇÃO</div><h2 class="title">Título do slide</h2><div class="content"><ul class="ticks" style="margin-top:0">${bulletItems()}</ul></div>{FOOT}</section>`,
-  },
-  two: {
-    name: 'Duas colunas',
-    html: () =>
-      '<section class="slide light" data-notes=""><div class="eyebrow">SEÇÃO</div><h2 class="title">Título do slide</h2><div class="content"><div class="two-col"><div><p class="lead dark-lead">Texto da coluna da esquerda.</p></div><div class="panel"><div class="panel-label">DESTAQUE</div><p style="margin:0;font-size:24px;line-height:1.5">Conteúdo do painel da direita.</p></div></div></div>{FOOT}</section>',
-  },
-  stats: {
-    name: 'Números',
-    html: () =>
-      `<section class="slide dark" data-notes=""><div class="eyebrow">NÚMEROS</div><h2 class="title">Título do slide</h2><div class="content"><div class="stats" style="grid-template-columns:repeat(3,1fr)">${statItems()}</div></div>{FOOT}</section>`,
-  },
-  blankDark: {
-    name: 'Em branco (escuro)',
-    html: () => '<section class="slide dark" data-notes="">{FOOT}</section>',
-  },
-  blankLight: {
-    name: 'Em branco (claro)',
-    html: () => '<section class="slide light" data-notes="">{FOOT}</section>',
-  },
+  bullets: { name: 'Título + tópicos', html: bulletsHTML },
+  two: { name: 'Duas colunas', html: twoColumnsHTML },
+  stats: { name: 'Números', html: statsHTML },
+  blankDark: { name: 'Em branco (escuro)', html: () => blankHTML('dark') },
+  blankLight: { name: 'Em branco (claro)', html: () => blankHTML('light') },
 };
 
 export function slideTemplateHTML(kind: SlideTemplateKind): string {
