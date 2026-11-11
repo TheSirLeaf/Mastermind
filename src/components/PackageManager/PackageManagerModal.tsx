@@ -104,7 +104,8 @@ function PackageIcon(props: SVGIconProps) {
 
 export function PackageManagerModal() {
   const { isPackageManagerOpen, closePackageManager, showToast } = useUIStore();
-  const { listPackages, getPackageDef, importPackage, exportPackages, registerPackage } = usePackageRegistry();
+  const { listPackages, getPackageDef, importPackage, exportPackages, registerPackage } =
+    usePackageRegistry();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);

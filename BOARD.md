@@ -19,14 +19,14 @@
 
 ## Itens B-1 a B-6 (Packages)
 
-| ID | Item | Status |
-|----|------|--------|
-| B-1 | Manter pacotes `code` e `chart` em `src/packages/` (Renderer, Runtime, formSchema, css, Package, index) | ✅ Conforme contrato |
-| B-2 | Manter `FormGenerator.tsx` em `src/components/Inspector/forms/` | ✅ Conforme contrato |
+| ID  | Item                                                                                                                 | Status                                                                                                          |
+| --- | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| B-1 | Manter pacotes `code` e `chart` em `src/packages/` (Renderer, Runtime, formSchema, css, Package, index)              | ✅ Conforme contrato                                                                                            |
+| B-2 | Manter `FormGenerator.tsx` em `src/components/Inspector/forms/`                                                      | ✅ Conforme contrato                                                                                            |
 | B-3 | Escrever e manter testes de unidade em `tests/unit/` (ex: `code-chart-renderer.test.tsx`, `form-generator.test.tsx`) | ⚠️ `formGenerator.test.tsx` existe; `chart.test.ts` atualizado pelo PR #10; faltam testes dedicados do renderer |
-| B-4 | Rebase/verificar correção local do gap das barras (`rows.length + 1`) após merge do #10 | 🔴 Pendente — PR #10 contesta a mudança; fórmula atual (`rows.length`) está na main |
-| B-5 | Proteger `main` — nunca commit direto, sempre via PR com checks verdes | ✅ Seguido |
-| B-6 | Atualizar BOARD.md para coordenação entre agentes | ✅ Este arquivo |
+| B-4 | Rebase/verificar correção local do gap das barras (`rows.length + 1`) após merge do #10                              | 🔴 Pendente — PR #10 contesta a mudança; fórmula atual (`rows.length`) está na main                             |
+| B-5 | Proteger `main` — nunca commit direto, sempre via PR com checks verdes                                               | ✅ Seguido                                                                                                      |
+| B-6 | Atualizar BOARD.md para coordenação entre agentes                                                                    | ✅ Este arquivo                                                                                                 |
 
 ---
 

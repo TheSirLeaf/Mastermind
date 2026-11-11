@@ -11,7 +11,8 @@ import { clsx } from 'clsx';
 import { Header } from './Header';
 
 export function Layout() {
-  const { leftPanelWidth, rightPanelWidth, isPreviewMode, isWelcomeOpen, toast, hideToast } = useUIStore();
+  const { leftPanelWidth, rightPanelWidth, isPreviewMode, isWelcomeOpen, toast, hideToast } =
+    useUIStore();
 
   return (
     <div className="flex h-full flex-col bg-[#10060B] text-[#F3E6E2]">
