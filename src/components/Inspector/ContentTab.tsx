@@ -19,7 +19,7 @@ export function ContentTab({ selection }: { selection: SelectionInfo }) {
     const alt = element.getAttribute('alt') ?? '';
     return (
       <div className="space-y-4">
-        <details className="group open">
+        <details className="group open" open>
           <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-[#F3E6E2]/60">
             <Icon path="M3 3h18v18H3zM8.5 8.5h.01M21 15l-5-5L5 21" />
             Imagem
@@ -89,7 +89,7 @@ export function ContentTab({ selection }: { selection: SelectionInfo }) {
 
     return (
       <div className="space-y-4">
-        <details className="group open">
+        <details className="group open" open>
           <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-[#F3E6E2]/60">
             <Icon path="M4 7V4h16v3M9 20h6M12 4v16" />
             Conteúdo do texto

@@ -34,6 +34,9 @@ export function Stage() {
     lastSlidesRef.current = initialDeck.slides.map((slide) => slide.html);
     lastIdsRef.current = initialDeck.slides.map((slide) => slide.id);
     bridge.load(buildEditorHTML(initialDeck, registry));
+    // O `goto` é enfileirado até o iframe anunciar `ready`; sem isso o primeiro
+    // slide nunca recebe `.active` e o palco abre em branco.
+    bridge.goto(useDeckStore.getState().currentIndex);
     setBooted(true);
 
     return () => {
@@ -73,6 +76,7 @@ export function Stage() {
 
     if (structural) {
       bridge.load(buildEditorHTML(deck, registry));
+      bridge.goto(currentIndex);
       lastSlidesRef.current = current;
       lastIdsRef.current = currentIds;
       return;
@@ -86,7 +90,7 @@ export function Stage() {
     });
     lastSlidesRef.current = current;
     lastIdsRef.current = currentIds;
-  }, [deck, booted]);
+  }, [deck, booted, currentIndex]);
 
   return (
     <iframe

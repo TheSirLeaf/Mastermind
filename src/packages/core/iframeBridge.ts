@@ -23,6 +23,7 @@ type DeckMessage =
 export class IframeBridge {
   private readonly handler: (event: MessageEvent) => void;
   private ready = false;
+  private pendingGoto: number | null = null;
   private pendingSelect: number[] | null = null;
   private readonly iframe: HTMLIFrameElement;
   private readonly events: BridgeEvents;
@@ -44,9 +45,15 @@ export class IframeBridge {
       case 'ready':
         this.ready = true;
         this.events.onReady?.(data.count);
+        if (this.pendingGoto !== null) {
+          const index = this.pendingGoto;
+          this.pendingGoto = null;
+          this.send({ type: 'goto', index });
+        }
         if (this.pendingSelect) {
-          this.select(this.pendingSelect);
+          const path = this.pendingSelect;
           this.pendingSelect = null;
+          this.send({ type: 'select', path });
         }
         break;
       case 'select':
@@ -79,6 +86,10 @@ export class IframeBridge {
   }
 
   goto(index: number): void {
+    if (!this.ready) {
+      this.pendingGoto = index;
+      return;
+    }
     this.send({ type: 'goto', index });
   }
 
