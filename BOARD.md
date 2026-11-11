@@ -9,12 +9,14 @@
 ## Status dos PRs
 
 ### PR #10 (agent-a/chart-layout) — MERGEADO
+
 - Mergeado em `main` via `gh pr merge 10 --merge --auto`.
 - Checks verdes: `quality` (SUCCESS), `e2e` (SUCCESS). Merge state: CLEAN.
 - Commit de merge: `29d492b`.
 - Arquivos: `src/packages/chart/ChartRenderer.tsx`, `tests/unit/chart.test.ts`, `tests/unit/export.test.ts`.
 
 ### PR #13 (agent-b/ui-fixes) — MERGEADO
+
 - Mergeado em `main` via `gh pr merge 13 --merge --auto`.
 - Checks verdes: `quality` + `e2e` (SUCCESS).
 - Correções aplicadas:
@@ -24,11 +26,15 @@
   - `PackageManagerModal.tsx`: "Add code"/"Add chart" registram pacotes via `registerPackage`
   - `BOARD.md`: criado com coordenação B-1 a B-6
 
-### PR #14 (agent-b/theme-payday) — ABERTO, checks pendentes
+### PR #14 (agent-b/theme-payday) — ABERTO, quality FALHANDO
+
 - Tema estilo Payday 2 aplicado ao editor.
 - URL: https://github.com/TheSirLeaf/Mastermind/pull/14
-- `quality` pendente, `e2e` pendente.
-
+- `quality` FALHOU 2x (após push inicial e após correções de prettier).
+- `e2e` SKIPPED (sem testes e2e para esse escopo).
+- Todos os checks locais passam: typecheck, lint, test (101/101), build, prettier (nos 16 arquivos alterados).
+- Causa da falha no CI não identificada (sem acesso aos logs do GitHub Actions).
+- Não fazer merge até que quality passe.
 
 ---
 
