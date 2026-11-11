@@ -8,6 +8,8 @@ import { X, Download, Upload, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { SVGProps } from 'react';
 
+import { insertPackage } from '../../editor/insertPackage';
+
 type SVGIconProps = SVGProps<SVGSVGElement>;
 
 function SearchIcon(props: SVGIconProps) {
@@ -144,6 +146,20 @@ export function PackageManagerModal() {
     a.click();
     URL.revokeObjectURL(url);
     showToast('Pacotes exportados', 'success');
+  };
+
+  const handleInsert = (id: string) => {
+    // O pacote built-in pode ainda não ter sido registrado (o editor registra
+    // no boot); garante o registro antes de inserir.
+    const builtin = id === 'code' ? CodePackage : id === 'chart' ? ChartPackage : null;
+    if (builtin && !getPackageDef(id)) registerPackage(builtin);
+    const result = insertPackage(id);
+    if (!result) {
+      showToast('Não foi possível inserir o elemento no slide.', 'error');
+      return;
+    }
+    closePackageManager();
+    showToast(`${result.label} inserido no slide`, 'success');
   };
 
   return (
@@ -306,10 +322,7 @@ export function PackageManagerModal() {
           <div className="flex gap-3 flex-wrap">
             <button
               className="p-3 rounded-lg border border-white/10 flex-1 min-w-[150px] cursor-pointer hover:bg-white/5 transition"
-              onClick={() => {
-                registerPackage(CodePackage);
-                showToast('Pacote Code adicionado', 'success');
-              }}
+              onClick={() => handleInsert('code')}
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
@@ -333,10 +346,7 @@ export function PackageManagerModal() {
             </button>
             <button
               className="p-3 rounded-lg border border-white/10 flex-1 min-w-[150px] cursor-pointer hover:bg-white/5 transition"
-              onClick={() => {
-                registerPackage(ChartPackage);
-                showToast('Pacote Chart adicionado', 'success');
-              }}
+              onClick={() => handleInsert('chart')}
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">

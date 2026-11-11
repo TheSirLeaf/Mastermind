@@ -6,7 +6,7 @@ interface UIState {
   // Panels
   leftPanelWidth: number;
   rightPanelWidth: number;
-  inspectorActiveTab: 'style' | 'content' | 'package' | 'animation';
+  inspectorActiveTab: 'style' | 'content' | 'package' | 'animation' | 'packages';
   animationPreviewNonce: number;
 
   // Modals
@@ -25,7 +25,7 @@ interface UIState {
   initialize: () => void;
   setLeftPanelWidth: (width: number) => void;
   setRightPanelWidth: (width: number) => void;
-  setInspectorTab: (tab: 'style' | 'content' | 'package' | 'animation') => void;
+  setInspectorTab: (tab: 'style' | 'content' | 'package' | 'animation' | 'packages') => void;
   replayAnimations: () => void;
   openPackageManager: () => void;
   closePackageManager: () => void;

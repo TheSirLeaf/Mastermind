@@ -17,6 +17,8 @@ export interface DeckState {
   deck: Deck;
   currentIndex: number;
   selection: SelectionInfo | null;
+  /** Seleção a aplicar no iframe depois de inserir um elemento. */
+  pendingSelection: number[] | null;
   /** Incrementa a cada restauração de histórico (força re-render). */
   revision: number;
   dirty: boolean;
@@ -38,6 +40,7 @@ export interface DeckState {
   setTitle: (title: string) => void;
   selectSlide: (index: number) => void;
   setSelection: (selection: SelectionInfo | null) => void;
+  requestSelection: (path: number[] | null) => void;
   undo: () => void;
   redo: () => void;
   markSaved: (at?: number) => void;
@@ -86,6 +89,7 @@ export const useDeckStore = create<DeckState>()((set, get) => {
     deck: createDefaultDeck(),
     currentIndex: 0,
     selection: null,
+    pendingSelection: null,
     revision: 0,
     dirty: false,
     savedAt: null,
@@ -213,6 +217,8 @@ export const useDeckStore = create<DeckState>()((set, get) => {
     },
 
     setSelection: (selection) => set({ selection }),
+
+    requestSelection: (path) => set({ pendingSelection: path }),
 
     undo: () => {
       const previous = history.undo(snapshot());
