@@ -7,7 +7,7 @@ import { useUIStore } from '@stores/uiStore';
 import { useRef, useEffect, useState } from 'react';
 
 export function Stage() {
-  const { deck, currentIndex } = useDeckStore();
+  const { deck, currentIndex, pendingSelection } = useDeckStore();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const bridgeRef = useRef<IframeBridge | null>(null);
   const lastSlidesRef = useRef<string[]>([]);
@@ -91,6 +91,14 @@ export function Stage() {
     lastSlidesRef.current = current;
     lastIdsRef.current = currentIds;
   }, [deck, booted, currentIndex]);
+
+  // Depois de inserir um elemento, o store pede a seleção dele. Este efeito
+  // fica após o efeito do deck para que o `set-slide` já tenha sido enviado.
+  useEffect(() => {
+    if (!booted || !pendingSelection) return;
+    bridgeRef.current?.select(pendingSelection);
+    useDeckStore.getState().requestSelection(null);
+  }, [pendingSelection, booted]);
 
   return (
     <iframe
