@@ -1,5 +1,5 @@
-import { ChartPackage } from './chart/ChartPackage';
-import { CodePackage } from './code/CodePackage';
+import { ChartPackage } from './chart';
+import { CodePackage } from './code';
 import type { PackageRegistry } from './core/PackageRegistry';
 import { SimPackage } from './sim/SimPackage';
 
