@@ -49,7 +49,10 @@ export function insertElement(
     const img = doc.createElement('img');
     img.setAttribute('src', options.src);
     img.setAttribute('alt', 'Imagem inserida');
-    img.setAttribute('style', `position:absolute;left:${left}px;top:${top}px;width:720px;height:auto`);
+    img.setAttribute(
+      'style',
+      `position:absolute;left:${left}px;top:${top}px;width:720px;height:auto`
+    );
     element = img;
   } else {
     const div = doc.createElement('div');

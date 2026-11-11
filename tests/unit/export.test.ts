@@ -40,6 +40,21 @@ const pkg: PackageDef = {
 };
 
 describe('export', () => {
+  it('preserva specs com quebras de linha e aspas no data-spec', () => {
+    const spec = {
+      code: 'linha "um"\nlinha <dois> & três',
+      title: 'demo',
+    };
+    const html = packageElementHTML('code', spec, '<div>inner</div>');
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const wrapper = doc.querySelector('[data-pkg="code"]');
+    const raw = wrapper?.getAttribute('data-spec');
+
+    expect(wrapper).not.toBeNull();
+    expect(raw).not.toBeNull();
+    expect(JSON.parse(raw ?? '{}')).toEqual(spec);
+  });
+
   it('preenche todos os placeholders do template', () => {
     const registry = new PackageRegistry();
     registry.register(pkg);

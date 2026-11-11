@@ -9,10 +9,7 @@ interface PresentationOverlayProps {
   mode: 'preview' | 'present';
 }
 
-/**
- * Mostra o deck real (HTML autônomo de apresentação) por cima do editor.
- * `present` pede tela cheia; `preview` mantém a janela normal.
- */
+/** Mostra o deck real (HTML autônomo) por cima do editor. */
 export function PresentationOverlay({ mode }: PresentationOverlayProps) {
   const deck = useDeckStore((state) => state.deck);
   const currentIndex = useDeckStore((state) => state.currentIndex);
@@ -22,8 +19,7 @@ export function PresentationOverlay({ mode }: PresentationOverlayProps) {
   const [error, setError] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // O deck/índice são lidos uma única vez: o overlay é uma fotografia do
-  // momento em que foi aberto.
+  // O deck é fotografado ao abrir; mudanças no editor não afetam o overlay.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -62,6 +58,12 @@ export function PresentationOverlay({ mode }: PresentationOverlayProps) {
     return () => document.removeEventListener('keydown', onKey);
   }, [mode, setPreviewMode, setPresenting]);
 
+  const close = () => {
+    setPreviewMode(false);
+    setPresenting(false);
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+  };
+
   return (
     <div
       ref={wrapperRef}
@@ -78,11 +80,7 @@ export function PresentationOverlay({ mode }: PresentationOverlayProps) {
         <button
           type="button"
           className="inline-flex items-center gap-1 rounded px-2 py-1 transition hover:bg-white/10 hover:text-[#F7D98B]"
-          onClick={() => {
-            setPreviewMode(false);
-            setPresenting(false);
-            if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
-          }}
+          onClick={close}
         >
           <X className="h-4 w-4" /> Fechar (Esc)
         </button>

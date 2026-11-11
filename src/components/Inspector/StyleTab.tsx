@@ -10,7 +10,7 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
 
   if (!element) {
     return (
-      <div className="rounded border border-white/10 p-3 text-[11px] text-[#F3E6E2]/60">
+      <div className="rounded border border-payday-border p-3 text-[11px] text-payday-textDim/50">
         Elemento não encontrado no slide atual.
       </div>
     );
@@ -24,15 +24,22 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
     });
   };
 
-  const numberValue = (value: string | undefined): number => {
-    const parsed = Number.parseInt(value ?? '', 10);
-    return Number.isFinite(parsed) ? parsed : 0;
-  };
+  const x = parseLength(current.left);
+  const y = parseLength(current.top);
+  const width = parseLength(current.width);
+  const height = parseLength(current.height);
+  const fontSize = parseLength(current['font-size']);
+  const letterSpacing = parseLength(current['letter-spacing'], 'em');
+  const fontFamily = current['font-family'] ?? '';
+  const fontWeight = current['font-weight'] ?? '';
+  const bold = fontWeight === 'bold' || Number.parseInt(fontWeight, 10) >= 600;
+  const italic = current['font-style'] === 'italic';
+  const underline = (current['text-decoration'] ?? '').includes('underline');
 
   return (
     <div className="space-y-4">
-      <details className="group open">
-        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-[#F3E6E2]/60">
+      <details className="group open" open>
+        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-payday-textDim/50">
           <Icon path="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3-3M2 12h20M12 2v20" />
           Posição e tamanho
         </summary>
@@ -40,40 +47,44 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
           <Field label="X">
             <input
               type="number"
+              aria-label="X"
               className={inputClass}
-              value={numberValue(current.left)}
-              onChange={(event) => setStyle('left', `${event.target.value}px`)}
+              value={x.value}
+              onChange={(event) => setStyle('left', `${event.target.value}${x.unit}`)}
             />
           </Field>
           <Field label="Y">
             <input
               type="number"
+              aria-label="Y"
               className={inputClass}
-              value={numberValue(current.top)}
-              onChange={(event) => setStyle('top', `${event.target.value}px`)}
+              value={y.value}
+              onChange={(event) => setStyle('top', `${event.target.value}${y.unit}`)}
             />
           </Field>
           <Field label="Largura">
             <input
               type="number"
+              aria-label="Largura"
               className={inputClass}
-              value={numberValue(current.width)}
-              onChange={(event) => setStyle('width', `${event.target.value}px`)}
+              value={width.value}
+              onChange={(event) => setStyle('width', `${event.target.value}${width.unit}`)}
             />
           </Field>
           <Field label="Altura">
             <input
               type="number"
+              aria-label="Altura"
               className={inputClass}
-              value={numberValue(current.height)}
-              onChange={(event) => setStyle('height', `${event.target.value}px`)}
+              value={height.value}
+              onChange={(event) => setStyle('height', `${event.target.value}${height.unit}`)}
             />
           </Field>
         </div>
       </details>
 
-      <details className="group open">
-        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-[#F3E6E2]/60">
+      <details className="group open" open>
+        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-payday-textDim/50">
           <Icon path="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
           Visibilidade
         </summary>
@@ -85,14 +96,14 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
           />
           <Toggle
             label="Travado (sem interação)"
-            checked={current.pointerEvents === 'none'}
-            onChange={(checked) => setStyle('pointerEvents', checked ? 'none' : null)}
+            checked={current['pointer-events'] === 'none'}
+            onChange={(checked) => setStyle('pointer-events', checked ? 'none' : null)}
           />
         </div>
       </details>
 
-      <details className="group open">
-        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-[#F3E6E2]/60">
+      <details className="group open" open>
+        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-payday-textDim/50">
           <Icon path="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" />
           Tipografia
         </summary>
@@ -100,23 +111,94 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
           <Field label="Cor">
             <input
               type="color"
-              className="h-9 w-full cursor-pointer rounded border border-white/10 bg-black/20"
-              value={toHex(current.color) ?? '#f3e6e2'}
+              className="h-9 w-full cursor-pointer rounded border border-payday-border bg-payday-surface"
+              value={toHex(current.color) ?? '#ffffff'}
               onChange={(event) => setStyle('color', event.target.value)}
             />
           </Field>
           <Field label="Tamanho">
             <input
               type="number"
+              aria-label="Tamanho da fonte"
               className={inputClass}
-              value={numberValue(current.fontSize)}
-              onChange={(event) => setStyle('fontSize', `${event.target.value}px`)}
+              value={fontSize.value}
+              onChange={(event) => setStyle('font-size', `${event.target.value}${fontSize.unit}`)}
             />
           </Field>
+          <Field label="Família">
+            <select
+              className={inputClass}
+              aria-label="Família da fonte"
+              value={fontFamily}
+              onChange={(event) => setStyle('font-family', event.target.value)}
+            >
+              <option value="">Padrão do slide</option>
+              <option value="'DM Sans', system-ui, sans-serif">DM Sans</option>
+              <option value="Georgia, 'Times New Roman', serif">Georgia</option>
+              <option value="ui-monospace, 'Cascadia Mono', Consolas, monospace">
+                Monoespaçada
+              </option>
+              {fontFamily &&
+              ![
+                "'DM Sans', system-ui, sans-serif",
+                "Georgia, 'Times New Roman', serif",
+                "ui-monospace, 'Cascadia Mono', Consolas, monospace",
+              ].includes(fontFamily) ? (
+                <option value={fontFamily}>Personalizada</option>
+              ) : null}
+            </select>
+          </Field>
+          <div className="flex items-center gap-1">
+            <FormatButton
+              label="Negrito"
+              active={bold}
+              onClick={() => setStyle('font-weight', bold ? null : '700')}
+            >
+              B
+            </FormatButton>
+            <FormatButton
+              label="Itálico"
+              active={italic}
+              onClick={() => setStyle('font-style', italic ? null : 'italic')}
+            >
+              I
+            </FormatButton>
+            <FormatButton
+              label="Sublinhado"
+              active={underline}
+              onClick={() => setStyle('text-decoration', underline ? null : 'underline')}
+            >
+              U
+            </FormatButton>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Espaço entre linhas">
+              <input
+                type="number"
+                aria-label="Espaço entre linhas"
+                step="0.1"
+                className={inputClass}
+                value={current['line-height'] ?? ''}
+                onChange={(event) => setStyle('line-height', event.target.value)}
+              />
+            </Field>
+            <Field label="Espaço entre letras">
+              <input
+                type="number"
+                aria-label="Espaço entre letras"
+                step="0.01"
+                className={inputClass}
+                value={letterSpacing.value}
+                onChange={(event) =>
+                  setStyle('letter-spacing', `${event.target.value}${letterSpacing.unit}`)
+                }
+              />
+            </Field>
+          </div>
         </div>
       </details>
 
-      <div className="rounded border border-white/10 p-3 text-[11px] leading-relaxed text-[#F3E6E2]/40">
+      <div className="rounded border border-payday-border p-3 text-[11px] leading-relaxed text-payday-textDim/50">
         Estilos inline são persistidos no HTML do slide e entram no undo/redo.
       </div>
     </div>
@@ -124,12 +206,12 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
 }
 
 const inputClass =
-  'w-full rounded border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-[#F3E6E2] outline-none focus:border-[#F7D98B]/40';
+  'w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-xs text-payday-text outline-none focus:border-gold-DEFAULT/40';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[10px] uppercase tracking-wider text-[#F3E6E2]/50">{label}</label>
+      <label className="text-[10px] uppercase tracking-wider text-payday-textDim/50">{label}</label>
       {children}
     </div>
   );
@@ -145,10 +227,10 @@ function Toggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm text-[#F3E6E2]">
+    <label className="flex cursor-pointer items-center gap-2 text-sm text-payday-text">
       <input
         type="checkbox"
-        className="accent-[#F7D98B]"
+        className="accent-gold-DEFAULT"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
       />
@@ -160,7 +242,7 @@ function Toggle({
 function Icon({ path }: { path: string }) {
   return (
     <svg
-      className="h-4 w-4 text-[#F7D98B]"
+      className="h-4 w-4 text-gold-DEFAULT"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -169,6 +251,46 @@ function Icon({ path }: { path: string }) {
       <path d={path} />
     </svg>
   );
+}
+
+function FormatButton({
+  label,
+  active,
+  onClick,
+  children,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={active}
+      onClick={onClick}
+      className={`h-8 w-8 rounded border text-xs font-semibold transition ${
+        active
+          ? 'border-gold-DEFAULT/60 bg-gold-DEFAULT/15 text-gold-DEFAULT'
+          : 'border-payday-border text-payday-textMuted hover:border-white/25 hover:text-payday-text'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function parseLength(
+  value: string | undefined,
+  fallbackUnit = 'px'
+): { value: number; unit: string } {
+  const trimmed = (value ?? '').trim();
+  const match = /^(-?\d+(?:\.\d+)?)\s*([a-z%]*)$/i.exec(trimmed);
+  const number = match?.[1];
+  if (!number) return { value: 0, unit: fallbackUnit };
+  const unit = match?.[2] || fallbackUnit;
+  return { value: Number(number), unit };
 }
 
 function toHex(color: string | undefined): string | null {

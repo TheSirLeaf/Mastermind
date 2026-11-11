@@ -172,7 +172,9 @@ describe('code package — 5 campos únicos editáveis', () => {
 
   it('possui campo "Etiqueta" (tag) no grupo Conteúdo', () => {
     const contentGroup = form.find((g) => g.group === 'Conteúdo');
-    const tagField = contentGroup?.fields.flatMap((f) => (f.type === 'row' ? f.fields : [f])).find((f) => f?.k === 'tag');
+    const tagField = contentGroup?.fields
+      .flatMap((f) => (f.type === 'row' ? f.fields : [f]))
+      .find((f) => f?.k === 'tag');
     expect(tagField).toBeDefined();
     expect(tagField?.label).toBe('Etiqueta');
     expect(tagField?.type).toBe('text');
@@ -180,7 +182,9 @@ describe('code package — 5 campos únicos editáveis', () => {
 
   it('possui campo "Linguagem" (lang) no grupo Conteúdo', () => {
     const contentGroup = form.find((g) => g.group === 'Conteúdo');
-    const langField = contentGroup?.fields.flatMap((f) => (f.type === 'row' ? f.fields : [f])).find((f) => f?.k === 'lang');
+    const langField = contentGroup?.fields
+      .flatMap((f) => (f.type === 'row' ? f.fields : [f]))
+      .find((f) => f?.k === 'lang');
     expect(langField).toBeDefined();
     expect(langField?.label).toBe('Linguagem');
     expect(langField?.type).toBe('select');

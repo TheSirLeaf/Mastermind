@@ -1,4 +1,3 @@
-
 import { ChartRenderer, type ChartSpec } from '@packages/chart/ChartRenderer';
 import { CodeRenderer, type CodeSpec } from '@packages/code/CodeRenderer';
 import { H } from '@packages/core/helper';
@@ -111,9 +110,7 @@ describe('ChartRenderer', () => {
   });
 
   it('renderiza barras horizontais quando kind é hbar', () => {
-    render(
-      <ChartRenderer spec={{ ...defaults, kind: 'hbar' }} h={H} />,
-    );
+    render(<ChartRenderer spec={{ ...defaults, kind: 'hbar' }} h={H} />);
     const bars = screen.getAllByTestId(/^pk-hbar-\d+$/);
     expect(bars.length).toBe(3);
   });
@@ -133,9 +130,7 @@ describe('ChartRenderer', () => {
     const highlighted = screen.getAllByTestId(/^pk-hl-\d+$/);
     expect(highlighted.length).toBeGreaterThan(0);
     // Pelo menos um círculo deve ter a cor de destaque
-    const hlColorCircle = highlighted.find(
-      (el) => el.getAttribute('stroke') === '#F7D98B',
-    );
+    const hlColorCircle = highlighted.find((el) => el.getAttribute('stroke') === '#F7D98B');
     expect(hlColorCircle).toBeDefined();
   });
 
@@ -145,9 +140,7 @@ describe('ChartRenderer', () => {
   });
 
   it('aplica sufixo nos valores quando definido', () => {
-    render(
-      <ChartRenderer spec={{ ...defaults, suffix: '%' }} h={H} />,
-    );
+    render(<ChartRenderer spec={{ ...defaults, suffix: '%' }} h={H} />);
     expect(screen.getAllByText(/%$/).length).toBeGreaterThan(0);
   });
 });

@@ -4,6 +4,7 @@ import { WelcomeModal } from '@components/common/WelcomeModal';
 import { Inspector } from '@components/Inspector/Inspector';
 import { PackageManagerModal } from '@components/PackageManager/PackageManagerModal';
 import { Sidebar } from '@components/Sidebar/Sidebar';
+import { PresentationOverlay } from '@components/Stage/PresentationOverlay';
 import { Stage } from '@components/Stage/Stage';
 import { useUIStore } from '@stores/uiStore';
 import { clsx } from 'clsx';
@@ -11,16 +12,24 @@ import { clsx } from 'clsx';
 import { Header } from './Header';
 
 export function Layout() {
-  const { leftPanelWidth, rightPanelWidth, isPreviewMode, isWelcomeOpen, toast } = useUIStore();
+  const {
+    leftPanelWidth,
+    rightPanelWidth,
+    isPreviewMode,
+    isPresenting,
+    isWelcomeOpen,
+    toast,
+    hideToast,
+  } = useUIStore();
 
   return (
-    <div className="flex h-full flex-col bg-[#10060B] text-[#F3E6E2]">
+    <div className="flex h-full flex-col bg-payday-bg text-payday-text">
       <Header />
 
       <div className="flex min-h-0 flex-1">
         <aside
           id="left"
-          className="flex w-60 shrink-0 flex-col border-r border-white/10 bg-white/[0.02]"
+          className="flex w-60 shrink-0 flex-col border-r border-payday-border bg-payday-surface"
           style={{ width: leftPanelWidth }}
         >
           <Sidebar />
@@ -42,16 +51,19 @@ export function Layout() {
 
         <aside
           id="right"
-          className="flex w-72 shrink-0 flex-col border-l border-white/10 bg-white/[0.02]"
+          className="flex w-72 shrink-0 flex-col border-l border-payday-border bg-payday-surface"
           style={{ width: rightPanelWidth }}
         >
           <Inspector />
         </aside>
       </div>
 
+      {(isPreviewMode || isPresenting) && (
+        <PresentationOverlay mode={isPresenting ? 'present' : 'preview'} />
+      )}
       {isWelcomeOpen && <WelcomeModal />}
       <PackageManagerModal />
-      {toast && <Toast message={toast.message} type={toast.type} />}
+      {toast && <Toast message={toast.message} type={toast.type} onDismiss={hideToast} />}
     </div>
   );
 }

@@ -1,4 +1,3 @@
-
 import { FormGenerator } from '@components/Inspector/forms/FormGenerator';
 import type { FormSchema } from '@packages/core/types';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -63,9 +62,7 @@ function makeSchema(): FormSchema {
 describe('FormGenerator - integração', () => {
   it('renderiza todos os campos do schema', () => {
     const onChange = vi.fn();
-    render(
-      <FormGenerator schema={makeSchema()} spec={{}} onChange={onChange} />,
-    );
+    render(<FormGenerator schema={makeSchema()} spec={{}} onChange={onChange} />);
 
     expect(screen.getByPlaceholderText('Controls/AgendaUC.cs')).toBeInTheDocument();
     expect(screen.getByRole('combobox')).toBeInTheDocument();
@@ -82,7 +79,7 @@ describe('FormGenerator - integração', () => {
         schema={makeSchema()}
         spec={{ file: 'MeuArquivo.cs', lang: 'yaml', typing: true }}
         onChange={onChange}
-      />,
+      />
     );
 
     const fileInput = screen.getByPlaceholderText('Controls/AgendaUC.cs') as HTMLInputElement;
@@ -97,41 +94,27 @@ describe('FormGenerator - integração', () => {
 
   it('dispara onChange ao alterar campo de texto', () => {
     const onChange = vi.fn();
-    render(
-      <FormGenerator schema={makeSchema()} spec={{}} onChange={onChange} />,
-    );
+    render(<FormGenerator schema={makeSchema()} spec={{}} onChange={onChange} />);
 
     const fileInput = screen.getByPlaceholderText('Controls/AgendaUC.cs') as HTMLInputElement;
     fireEvent.input(fileInput, { target: { value: 'novo.cs' } });
 
-    expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ file: 'novo.cs' }),
-    );
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ file: 'novo.cs' }));
   });
 
   it('dispara onChange ao alterar select', () => {
     const onChange = vi.fn();
-    render(
-      <FormGenerator schema={makeSchema()} spec={{}} onChange={onChange} />,
-    );
+    render(<FormGenerator schema={makeSchema()} spec={{}} onChange={onChange} />);
 
     const langSelect = screen.getByRole('combobox') as HTMLSelectElement;
     fireEvent.change(langSelect, { target: { value: 'json' } });
 
-    expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ lang: 'json' }),
-    );
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ lang: 'json' }));
   });
 
   it('mostra campo condicional (showIf) quando toggle está ligado', () => {
     const onChange = vi.fn();
-    render(
-      <FormGenerator
-        schema={makeSchema()}
-        spec={{ typing: true }}
-        onChange={onChange}
-      />,
-    );
+    render(<FormGenerator schema={makeSchema()} spec={{ typing: true }} onChange={onChange} />);
 
     // O campo "Velocidade" só aparece quando typing === true
     expect(screen.getByRole('slider')).toBeInTheDocument();
@@ -140,18 +123,14 @@ describe('FormGenerator - integração', () => {
 
   it('esconde campo condicional (showIf) quando toggle está desligado', () => {
     const onChange = vi.fn();
-    render(
-      <FormGenerator schema={makeSchema()} spec={{}} onChange={onChange} />,
-    );
+    render(<FormGenerator schema={makeSchema()} spec={{}} onChange={onChange} />);
 
     expect(screen.queryByLabelText(/Velocidade/)).not.toBeInTheDocument();
   });
 
   it('adiciona item à lista', () => {
     const onChange = vi.fn();
-    render(
-      <FormGenerator schema={makeSchema()} spec={{ rows: [] }} onChange={onChange} />,
-    );
+    render(<FormGenerator schema={makeSchema()} spec={{ rows: [] }} onChange={onChange} />);
 
     const addButton = screen.getByText(/Adicionar item/);
     fireEvent.click(addButton);
@@ -161,7 +140,7 @@ describe('FormGenerator - integração', () => {
         rows: expect.arrayContaining([
           expect.objectContaining({ label: 'novo', val: '1', hl: false }),
         ]),
-      }),
+      })
     );
   });
 
@@ -172,7 +151,7 @@ describe('FormGenerator - integração', () => {
         schema={makeSchema()}
         spec={{ rows: [{ label: 'A', val: '1', hl: false }] }}
         onChange={onChange}
-      />,
+      />
     );
 
     // O input de rótulo dentro do item da lista (placeholders são únicos por item)
@@ -184,7 +163,7 @@ describe('FormGenerator - integração', () => {
         rows: expect.arrayContaining([
           expect.objectContaining({ label: 'Modificado', val: '1', hl: false }),
         ]),
-      }),
+      })
     );
   });
 });

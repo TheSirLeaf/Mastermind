@@ -67,7 +67,7 @@ export function EmptyState({ message, icon = 'layout' }: EmptyStateProps) {
     <div className="p-3">
       <div style={{ padding: '34px 22px', textAlign: 'center' }}>
         {icons[icon]}
-        <b style={{ display: 'block', color: '#F3E6E2', marginBottom: '4px' }}>{message}</b>
+        <b style={{ display: 'block', color: '#ffffff', marginBottom: '4px' }}>{message}</b>
       </div>
     </div>
   );
