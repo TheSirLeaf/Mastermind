@@ -1,3 +1,4 @@
+import { ANIMATION_CSS } from './animation';
 import type { PackageRegistry } from './PackageRegistry';
 import { PKG_HOST_SRC, EDITOR_BRIDGE_SRC } from './pkgHost';
 import type { Deck, Slide } from './types';
@@ -94,7 +95,10 @@ export function buildPresentationHTML(options: BuildPresentationOptions): string
   html = fill(html, '{{NAV}}', NAV_SCRIPT);
 
   if (html.includes('</head>')) {
-    html = html.replace('</head>', `<style id="mm-print">${PRINT_CSS}</style>\n</head>`);
+    html = html.replace(
+      '</head>',
+      `<style id="mm-anim">${ANIMATION_CSS}</style>\n<style id="mm-print">${PRINT_CSS}</style>\n</head>`
+    );
   }
 
   return html;
@@ -115,6 +119,10 @@ export function buildEditorHTML(
   html = fill(html, '{{PKG_REGISTRY}}', buildRegistryPayload(registry));
   html = fill(html, '{{PKG_HOST}}', '');
   html = fill(html, '{{NAV}}', EDITOR_BRIDGE_SRC);
+
+  if (html.includes('</head>')) {
+    html = html.replace('</head>', `<style id="mm-anim">${ANIMATION_CSS}</style>\n</head>`);
+  }
 
   return html;
 }
