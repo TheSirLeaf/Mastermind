@@ -103,7 +103,7 @@ export function Stage() {
   return (
     <iframe
       ref={iframeRef}
-      className="h-full w-full border-0 bg-[#10060B]"
+      className="h-full w-full border-0 bg-payday-bg"
       title="Palco da apresentação"
     />
   );

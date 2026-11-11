@@ -9,14 +9,14 @@ export function SlideFooter() {
     <div className="grid grid-cols-2 gap-1 border-t border-white/10 p-2">
       <button
         type="button"
-        className="flex items-center justify-center gap-1 rounded px-2 py-1.5 text-[11px] text-[#F3E6E2]/60 hover:bg-white/5"
+        className="flex items-center justify-center gap-1 rounded px-2 py-1.5 text-[11px] text-payday-textMuted hover:bg-payday-surface"
         onClick={() => addSlide()}
       >
         <Plus className="w-3.5 h-3.5" /> Novo
       </button>
       <button
         type="button"
-        className="flex items-center justify-center gap-1 rounded px-2 py-1.5 text-[11px] text-[#F3E6E2]/60 hover:bg-white/5 disabled:opacity-30"
+        className="flex items-center justify-center gap-1 rounded px-2 py-1.5 text-[11px] text-payday-textMuted hover:bg-payday-surface disabled:opacity-30"
         disabled={deck.slides.length <= 1}
         onClick={() => deleteSlide(currentIndex)}
       >

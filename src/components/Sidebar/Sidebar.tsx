@@ -10,7 +10,7 @@ export function Sidebar() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-[#F3E6E2]/40">
+      <div className="flex items-center justify-between px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-payday-textDim">
         <span className="flex items-center gap-1.5">
           <Layers className="w-3.5 h-3.5" /> Slides ({deck.slides.length})
         </span>

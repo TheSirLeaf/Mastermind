@@ -6,14 +6,35 @@
 
 ---
 
-## Status do Merge PR #10
+## Status dos PRs
 
-- PR #10 (agent-a/chart-layout) **mergeado** em `main` via `gh pr merge 10 --merge --auto`.
+### PR #10 (agent-a/chart-layout) — MERGEADO
+
+- Mergeado em `main` via `gh pr merge 10 --merge --auto`.
 - Checks verdes: `quality` (SUCCESS), `e2e` (SUCCESS). Merge state: CLEAN.
-- Commit de merge: `29d492b` (fast-forward via `git pull`).
-- Arquivos alterados pelo #10: `src/packages/chart/ChartRenderer.tsx` (offset do donut), `tests/unit/chart.test.ts`, `tests/unit/export.test.ts`.
-- Branch `agent-a/chart-layout` **não deletada** (bloqueada por worktree do agent-a).
-- Local `main` está à frente de `origin/main` por 1 commit (`d78ee45` — fix(slide): desabilita hover nos itens do slide, domínio Editor UI / Agent C, feito por B a pedido).
+- Commit de merge: `29d492b`.
+- Arquivos: `src/packages/chart/ChartRenderer.tsx`, `tests/unit/chart.test.ts`, `tests/unit/export.test.ts`.
+
+### PR #13 (agent-b/ui-fixes) — MERGEADO
+
+- Mergeado em `main` via `gh pr merge 13 --merge --auto`.
+- Checks verdes: `quality` + `e2e` (SUCCESS).
+- Correções aplicadas:
+  - `Toast.tsx`: prop `onDismiss` para fechar via botão X
+  - `Layout.tsx`: passa `hideToast` como `onDismiss`
+  - `WelcomeModal.tsx`: checkbox "Não mostrar agora" fecha o modal
+  - `PackageManagerModal.tsx`: "Add code"/"Add chart" registram pacotes via `registerPackage`
+  - `BOARD.md`: criado com coordenação B-1 a B-6
+
+### PR #14 (agent-b/theme-payday) — ABERTO, quality FALHANDO
+
+- Tema estilo Payday 2 aplicado ao editor.
+- URL: https://github.com/TheSirLeaf/Mastermind/pull/14
+- `quality` FALHOU 2x (após push inicial e após correções de prettier).
+- `e2e` SKIPPED (sem testes e2e para esse escopo).
+- Todos os checks locais passam: typecheck, lint, test (101/101), build, prettier (nos 16 arquivos alterados).
+- Causa da falha no CI não identificada (sem acesso aos logs do GitHub Actions).
+- Não fazer merge até que quality passe.
 
 ---
 

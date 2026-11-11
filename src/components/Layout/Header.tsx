@@ -62,36 +62,38 @@ export function Header() {
   return (
     <header
       id="top"
-      className="flex h-[52px] shrink-0 items-center gap-2 overflow-hidden border-b border-white/10 bg-[#10060B] px-3.5"
+      className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-3.5 h-13 bg-payday-bg border-b border-payday-border"
     >
-      <div className="brand flex shrink-0 items-center gap-1.5">
-        <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#F7D98B]" />
-        <span className="text-sm font-semibold tracking-[0.2em] text-[#F3E6E2]/80">MASTERMIND</span>
+      <div className="brand flex items-center gap-1.5">
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-gold-DEFAULT" />
+        <span className="text-sm font-semibold tracking-[0.2em] text-payday-textMuted">
+          MASTERMIND
+        </span>
       </div>
 
-      <div className="grp flex shrink-0 items-center gap-1.5 border-r border-white/10 pr-2.5">
+      <div className="grp flex shrink-0 items-center gap-1.5 border-r border-payday-border pr-2.5">
         <button
-          className="rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
+          className="rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
           title="Novo (Ctrl+N)"
           onClick={handleNewSlide}
         >
           <FileText className="w-4 h-4" />
         </button>
         <button
-          className="rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
+          className="rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
           title="Abrir… (Ctrl+O)"
         >
           <Upload className="w-4 h-4" />
         </button>
         <button
-          className="rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
+          className="rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
           title="Salvar (Ctrl+S)"
           onClick={handleSave}
         >
           <Save className="w-4 h-4" />
         </button>
         <button
-          className="rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
+          className="rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
           title="Exportar HTML"
           onClick={handleExport}
         >
@@ -99,11 +101,11 @@ export function Header() {
         </button>
       </div>
 
-      <div className="grp flex shrink-0 items-center gap-1.5 border-r border-white/10 pr-2.5">
+      <div className="grp flex shrink-0 items-center gap-1.5 border-r border-payday-border pr-2.5">
         <button
           className={clsx(
-            'rounded p-1.5 transition hover:bg-white/10 hover:text-[#F7D98B]',
-            canUndo ? 'text-[#F3E6E2]/60' : 'text-[#F3E6E2]/25 pointer-events-none'
+            'rounded p-1.5 transition hover:bg-payday-surface hover:text-gold-DEFAULT',
+            canUndo ? 'text-payday-textMuted' : 'text-payday-textDim pointer-events-none'
           )}
           title="Desfazer (Ctrl+Z)"
           onClick={() => {
@@ -114,8 +116,8 @@ export function Header() {
         </button>
         <button
           className={clsx(
-            'rounded p-1.5 transition hover:bg-white/10 hover:text-[#F7D98B]',
-            canRedo ? 'text-[#F3E6E2]/60' : 'text-[#F3E6E2]/25 pointer-events-none'
+            'rounded p-1.5 transition hover:bg-payday-surface hover:text-gold-DEFAULT',
+            canRedo ? 'text-payday-textMuted' : 'text-payday-textDim pointer-events-none'
           )}
           title="Refazer (Ctrl+Y)"
           onClick={() => {
@@ -126,35 +128,35 @@ export function Header() {
         </button>
       </div>
 
-      <div className="grp flex shrink-0 items-center gap-1.5 border-r border-white/10 pr-2.5">
+      <div className="grp flex shrink-0 items-center gap-1.5 border-r border-payday-border pr-2.5">
         <button
-          className="inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
+          className="inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
           title="Inserir caixa de texto"
         >
           <Type className="w-4 h-4" />
           <span className="hidden xl:inline">Texto</span>
         </button>
         <button
-          className="inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
+          className="inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
           title="Inserir imagem"
         >
           <Image className="w-4 h-4" />
           <span className="hidden xl:inline">Imagem</span>
         </button>
         <button
-          className="rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
+          className="rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
           title="Retângulo"
         >
           <Square className="w-4 h-4" />
         </button>
         <button
-          className="rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
+          className="rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
           title="Elipse"
         >
           <Circle className="w-4 h-4" />
         </button>
         <button
-          className="rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
+          className="rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
           title="Linha"
         >
           <Minus className="w-4 h-4" />
@@ -163,7 +165,7 @@ export function Header() {
 
       <div className="grp nb flex shrink-0 items-center gap-1.5">
         <button
-          className="inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 text-[#F3E6E2]/60 transition hover:bg-white/10 hover:text-[#F7D98B]"
+          className="inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
           title="Inserir elementos de pacotes"
           onClick={openPackageManager}
         >
@@ -177,7 +179,7 @@ export function Header() {
 
       <span
         id="saveState"
-        className="min-w-0 truncate pr-2 text-xs text-[#F3E6E2]/35"
+        className="min-w-0 truncate pr-2 text-xs text-payday-textDim"
         title={`${deck.title} • ${deck.slides.length} slide${deck.slides.length !== 1 ? 's' : ''}`}
       >
         {deck.title} • {deck.slides.length} slide{deck.slides.length !== 1 ? 's' : ''}
@@ -186,7 +188,7 @@ export function Header() {
       <div className="grp tools2 flex shrink-0 items-center gap-1.5">
         <button
           className={clsx(
-            'inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 transition hover:bg-white/10 hover:text-[#F7D98B]',
+            'inline-flex items-center gap-1 whitespace-nowrap rounded p-1.5 transition hover:bg-payday-surface hover:text-gold-DEFAULT',
             isPreviewMode && 'text-[#C77C8A]'
           )}
           title="Visualizar (P)"
@@ -200,7 +202,7 @@ export function Header() {
             'inline-flex items-center gap-1 whitespace-nowrap rounded border-0 px-3 py-1.5 text-xs font-medium transition',
             isPresenting
               ? 'bg-[#C77C8A] text-[#2A0E1A]'
-              : 'bg-gradient-to-r from-[#F7D98B] to-[#D6A84F] text-[#2A0E1A]'
+              : 'bg-gradient-to-r from-gold-DEFAULT to-gold-dark text-payday-bg'
           )}
           title="Apresentar (F5)"
           onClick={handlePlay}

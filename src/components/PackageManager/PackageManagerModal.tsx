@@ -168,32 +168,32 @@ export function PackageManagerModal() {
       onClick={closePackageManager}
     >
       <div
-        className="bg-[#1A0A12] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col"
+        className="bg-payday-surface border border-payday-border rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <h2 className="font-serif text-2xl text-[#F7D98B] flex items-center gap-3">
+        <div className="flex items-center justify-between p-4 border-b border-payday-border">
+          <h2 className="font-serif text-2xl text-gold-DEFAULT flex items-center gap-3">
             <PuzzleIcon />
             Gerenciador de Pacotes
           </h2>
           <div className="flex items-center gap-2">
             <button
-              className="rounded p-1.5 text-[#F3E6E2]/60 hover:bg-white/10 hover:text-[#F7D98B] transition"
+              className="rounded p-1.5 text-payday-textMuted hover:bg-payday-surface hover:text-gold-DEFAULT transition"
               onClick={handleExport}
               title="Exportar pacotes"
             >
               <Download className="w-4 h-4" />
             </button>
             <button
-              className="rounded p-1.5 text-[#F3E6E2]/60 hover:bg-white/10 hover:text-[#F7D98B] transition"
+              className="rounded p-1.5 text-payday-textMuted hover:bg-payday-surface hover:text-gold-DEFAULT transition"
               onClick={() => setShowImportModal(true)}
               title="Importar pacotes"
             >
               <Upload className="w-4 h-4" />
             </button>
             <button
-              className="rounded p-1.5 text-[#F3E6E2]/60 hover:bg-white/10 hover:text-[#F7D98B] transition"
+              className="rounded p-1.5 text-payday-textMuted hover:bg-payday-surface hover:text-gold-DEFAULT transition"
               onClick={closePackageManager}
               title="Fechar"
             >
@@ -203,12 +203,12 @@ export function PackageManagerModal() {
         </div>
 
         {/* Search */}
-        <div className="p-4 border-b border-white/10">
+        <div className="p-4 border-b border-payday-border">
           <div className="relative">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#F3E6E2]/40" />
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-payday-textMuted/40" />
             <input
               type="text"
-              className="w-full rounded border border-white/10 bg-black/20 px-2 py-1.5 pl-10 text-sm text-[#F3E6E2] outline-none focus:border-[#F7D98B]/40"
+              className="w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 pl-10 text-sm text-payday-text outline-none focus:border-gold-DEFAULT/40"
               placeholder="Buscar pacotes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -222,10 +222,10 @@ export function PackageManagerModal() {
             <div className="h-full grid place-items-center">
               <div style={{ textAlign: 'center' }}>
                 <PackageIcon className="w-12 h-12 mx-auto mb-3" style={{ color: '#6d565b' }} />
-                <b style={{ display: 'block', color: '#F3E6E2', marginBottom: '4px' }}>
+                <b style={{ display: 'block', color: '#ffffff', marginBottom: '4px' }}>
                   {searchQuery ? 'Nenhum pacote encontrado' : 'Nenhum pacote instalado'}
                 </b>
-                <p style={{ color: '#a88f92', fontSize: '12px' }}>
+                <p style={{ color: '#b0b0b0', fontSize: '12px' }}>
                   {searchQuery
                     ? 'Tente outro termo de busca'
                     : 'Importe pacotes ou instale built-ins'}
@@ -241,13 +241,13 @@ export function PackageManagerModal() {
                   <div
                     key={pkg.id}
                     className={clsx(
-                      'p-3 rounded-lg border border-transparent hover:border-white/10 transition',
-                      selectedPackage === pkg.id && 'ring-2 ring-[#F7D98B] bg-white/5'
+                      'p-3 rounded-lg border border-transparent hover:border-payday-border transition',
+                      selectedPackage === pkg.id && 'ring-2 ring-gold-DEFAULT bg-payday-surface'
                     )}
                     onClick={() => setSelectedPackage(selectedPackage === pkg.id ? null : pkg.id)}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-lg bg-payday-surface flex items-center justify-center">
                         {def?.icon === 'code' ? (
                           <CodeIcon />
                         ) : def?.icon === 'bar-chart-2' ? (
@@ -258,25 +258,25 @@ export function PackageManagerModal() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <b className="truncate text-[#F3E6E2]">
+                          <b className="truncate text-payday-text">
                             {(def?.name as string) || pkg.id}
                           </b>
-                          <span className="px-2 py-0.5 rounded text-[10px] bg-[#F7D98B]/20 text-[#F7D98B]">
+                          <span className="px-2 py-0.5 rounded text-[10px] bg-gold-DEFAULT/20 text-gold-DEFAULT">
                             v{(def?.version as string) || '1.0.0'}
                           </span>
                           {isBuiltin && (
-                            <span className="px-2 py-0.5 rounded text-[10px] bg-white/10 text-[#F3E6E2]/60">
+                            <span className="px-2 py-0.5 rounded text-[10px] bg-payday-surface text-payday-textMuted/60">
                               built-in
                             </span>
                           )}
                         </div>
-                        <p className="truncate text-sm text-[#F3E6E2]/60">
+                        <p className="truncate text-sm text-payday-textMuted/60">
                           {(def?.description as string) || 'Sem descrição'}
                         </p>
                       </div>
                       {!isBuiltin && (
                         <button
-                          className="rounded p-1.5 text-[#C77C8A]/60 hover:bg-[#C77C8A]/10 hover:text-[#C77C8A] transition"
+                          className="rounded p-1.5 text-payday-textDim/60 hover:bg-payday-surface hover:text-payday-text transition"
                           onClick={(e) => {
                             e.stopPropagation();
                           }}
@@ -291,7 +291,7 @@ export function PackageManagerModal() {
                         <summary className="text-[11px] text-[#d6c3c0] cursor-pointer">
                           Ver detalhes
                         </summary>
-                        <pre className="mt-2 p-3 bg-black/20 border border-white/10 rounded-lg overflow-auto text-[11px] text-[#d6c3c0]">
+                        <pre className="mt-2 p-3 bg-payday-surface border border-payday-border rounded-lg overflow-auto text-[11px] text-payday-textMuted">
                           {JSON.stringify(
                             {
                               id: def.id,
@@ -315,13 +315,13 @@ export function PackageManagerModal() {
         </div>
 
         {/* Built-in packages section */}
-        <div className="p-4 border-t border-white/10">
-          <h3 className="text-[11px] uppercase tracking-wider text-[#F7D98B] mb-3">
+        <div className="p-4 border-t border-payday-border">
+          <h3 className="text-[11px] uppercase tracking-wider text-gold-DEFAULT mb-3">
             Pacotes built-in disponíveis
           </h3>
           <div className="flex gap-3 flex-wrap">
             <button
-              className="p-3 rounded-lg border border-white/10 flex-1 min-w-[150px] cursor-pointer hover:bg-white/5 transition"
+              className="p-3 rounded-lg border border-payday-border flex-1 min-w-[150px] cursor-pointer hover:bg-payday-surface transition"
               onClick={() => handleInsert('code')}
             >
               <div className="flex items-center gap-3">
@@ -329,23 +329,23 @@ export function PackageManagerModal() {
                   <CodeIcon />
                 </div>
                 <div>
-                  <b className="text-[#F3E6E2]">Code</b>
-                  <div className="text-[11px] text-[#F3E6E2]/50">
+                  <b className="text-payday-text">Code</b>
+                  <div className="text-[11px] text-payday-textMuted/50">
                     Editor de código com syntax highlighting
                   </div>
                 </div>
               </div>
-              <p className="mt-2 text-[12px] text-[#a88f92]">
+              <p className="mt-2 text-[12px] text-payday-textDim">
                 Caixas de código com animação de digitação
               </p>
               <div className="mt-2 flex gap-2">
-                <span className="px-2 py-0.5 rounded text-[10px] bg-white/10 text-[#F3E6E2]/60">
+                <span className="px-2 py-0.5 rounded text-[10px] bg-payday-surface text-payday-textMuted/60">
                   built-in
                 </span>
               </div>
             </button>
             <button
-              className="p-3 rounded-lg border border-white/10 flex-1 min-w-[150px] cursor-pointer hover:bg-white/5 transition"
+              className="p-3 rounded-lg border border-payday-border flex-1 min-w-[150px] cursor-pointer hover:bg-payday-surface transition"
               onClick={() => handleInsert('chart')}
             >
               <div className="flex items-center gap-3">
@@ -353,15 +353,15 @@ export function PackageManagerModal() {
                   <BarChartIcon />
                 </div>
                 <div>
-                  <b className="text-[#F3E6E2]">Chart</b>
-                  <div className="text-[11px] text-[#F3E6E2]/50">
+                  <b className="text-payday-text">Chart</b>
+                  <div className="text-[11px] text-payday-textMuted/50">
                     Gráficos: barras, linhas, rosca
                   </div>
                 </div>
               </div>
-              <p className="mt-2 text-[12px] text-[#a88f92]">Gráficos animados com count-up</p>
+              <p className="mt-2 text-[12px] text-payday-textDim">Gráficos animados com count-up</p>
               <div className="mt-2 flex gap-2">
-                <span className="px-2 py-0.5 rounded text-[10px] bg-white/10 text-[#F3E6E2]/60">
+                <span className="px-2 py-0.5 rounded text-[10px] bg-payday-surface text-payday-textMuted/60">
                   built-in
                 </span>
               </div>
@@ -377,38 +377,38 @@ export function PackageManagerModal() {
           onClick={() => setShowImportModal(false)}
         >
           <div
-            className="bg-[#1A0A12] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+            className="bg-payday-surface border border-payday-border rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 border-b border-white/10 flex items-center justify-between">
-              <h3 className="font-serif text-xl text-[#F7D98B]">Importar pacotes</h3>
+            <div className="p-4 border-b border-payday-border flex items-center justify-between">
+              <h3 className="font-serif text-xl text-gold-DEFAULT">Importar pacotes</h3>
               <button
-                className="rounded p-1.5 text-[#F3E6E2]/60 hover:bg-white/10 hover:text-[#F7D98B] transition"
+                className="rounded p-1.5 text-payday-textMuted hover:bg-payday-surface hover:text-gold-DEFAULT transition"
                 onClick={() => setShowImportModal(false)}
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="p-4">
-              <label className="block text-sm text-[#F3E6E2]/60 mb-2">
+              <label className="block text-sm text-payday-textMuted/60 mb-2">
                 Cole o JSON do pacote (.dialcron-pkg.json)
               </label>
               <textarea
-                className="w-full min-h-[200px] resize-y rounded border border-white/10 bg-black/20 px-2 py-1.5 text-sm text-[#F3E6E2] outline-none focus:border-[#F7D98B]/40 font-mono"
+                className="w-full min-h-[200px] resize-y rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-sm text-payday-text outline-none focus:border-gold-DEFAULT/40 font-mono"
                 value={importJson}
                 onChange={(e) => setImportJson(e.target.value)}
                 placeholder='[{"id": "meu-pacote", "name": "Meu Pacote", "version": "1.0.0", "icon": "package", "defaults": {}, "form": [], "css": "", "runtime": ""}]'
               />
             </div>
-            <div className="p-4 border-t border-white/10 flex justify-end gap-2">
+            <div className="p-4 border-t border-payday-border flex justify-end gap-2">
               <button
-                className="rounded px-4 py-2 text-sm border border-white/10 bg-white/5 text-[#F3E6E2] hover:bg-white/10 transition"
+                className="rounded px-4 py-2 text-sm border border-payday-border bg-payday-surface text-payday-text hover:bg-payday-surface transition"
                 onClick={() => setShowImportModal(false)}
               >
                 Cancelar
               </button>
               <button
-                className="rounded px-4 py-2 text-sm font-semibold bg-gradient-to-r from-[#F7D98B] to-[#D6A84F] text-[#2A0E1A] border-0 hover:opacity-90 transition"
+                className="rounded px-4 py-2 text-sm font-semibold bg-gradient-to-r from-gold-DEFAULT to-gold-dark text-payday-bg border-0 hover:opacity-90 transition"
                 onClick={handleImport}
               >
                 Importar

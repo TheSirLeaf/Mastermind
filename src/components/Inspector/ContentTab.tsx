@@ -20,7 +20,7 @@ export function ContentTab({ selection }: { selection: SelectionInfo }) {
     return (
       <div className="space-y-4">
         <details className="group open" open>
-          <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-[#F3E6E2]/60">
+          <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-payday-textDim/50">
             <Icon path="M3 3h18v18H3zM8.5 8.5h.01M21 15l-5-5L5 21" />
             Imagem
           </summary>
@@ -90,7 +90,7 @@ export function ContentTab({ selection }: { selection: SelectionInfo }) {
     return (
       <div className="space-y-4">
         <details className="group open" open>
-          <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-[#F3E6E2]/60">
+          <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-payday-textDim/50">
             <Icon path="M4 7V4h16v3M9 20h6M12 4v16" />
             Conteúdo do texto
           </summary>
@@ -114,7 +114,7 @@ export function ContentTab({ selection }: { selection: SelectionInfo }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded border border-white/10 p-3 text-[11px] leading-relaxed text-[#F3E6E2]/60">
+      <div className="rounded border border-white/10 p-3 text-[11px] leading-relaxed text-payday-textDim/60">
         Este tipo de elemento não tem conteúdo editável diretamente. Use a aba Estilo ou Pacote.
       </div>
     </div>
@@ -122,12 +122,14 @@ export function ContentTab({ selection }: { selection: SelectionInfo }) {
 }
 
 const inputClass =
-  'w-full rounded border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-[#F3E6E2] outline-none focus:border-[#F7D98B]/40';
+  'w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-xs text-payday-text outline-none focus:border-gold-DEFAULT/40';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[10px] uppercase tracking-widest text-[#a88f92]">{label}</label>
+      <label className="text-[10px] uppercase tracking-widest text-payday-textDim/50">
+        {label}
+      </label>
       {children}
     </div>
   );
@@ -135,7 +137,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 function Hint({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded border border-white/10 p-3 text-[11px] leading-relaxed text-[#F3E6E2]/60">
+    <div className="rounded border border-white/10 p-3 text-[11px] leading-relaxed text-payday-textDim/60">
       {children}
     </div>
   );
@@ -144,7 +146,7 @@ function Hint({ children }: { children: ReactNode }) {
 function Icon({ path }: { path: string }) {
   return (
     <svg
-      className="h-4 w-4 text-[#F7D98B]"
+      className="h-4 w-4 text-gold-DEFAULT"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

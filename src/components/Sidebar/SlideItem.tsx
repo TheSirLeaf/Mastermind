@@ -50,19 +50,19 @@ export function SlideItem({
       style={style}
       className={clsx(
         'flex w-full items-start gap-2 rounded-md px-2 py-2 text-left transition',
-        isActive ? 'bg-[#F7D98B]/15 text-[#F3E6E2]' : 'text-[#F3E6E2]/60'
+        isActive ? 'bg-gold-DEFAULT/15 text-payday-text' : 'text-payday-textMuted'
       )}
       onClick={onSelect}
       {...attributes}
       {...listeners}
     >
-      <span className="mt-0.5 w-5 shrink-0 text-[10px] tabular-nums text-[#F3E6E2]/35">
+      <span className="mt-0.5 w-5 shrink-0 text-[10px] tabular-nums text-payday-textDim/50">
         {String(index + 1).padStart(2, '0')}
       </span>
       <span className="line-clamp-2 text-xs leading-snug flex-1">{getSlideTitle(slide.html)}</span>
       <div className="flex items-center gap-1 opacity-100">
         <button
-          className="rounded p-1 text-[#F3E6E2]/60 transition"
+          className="rounded p-1 text-payday-textMuted transition"
           onClick={(e) => {
             e.stopPropagation();
             onDuplicate();
@@ -72,7 +72,7 @@ export function SlideItem({
           <Copy className="w-3.5 h-3.5" />
         </button>
         <button
-          className="rounded p-1 text-[#F3E6E2]/60 transition"
+          className="rounded p-1 text-payday-textMuted transition"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
