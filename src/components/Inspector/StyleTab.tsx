@@ -29,6 +29,12 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
   const width = parseLength(current.width);
   const height = parseLength(current.height);
   const fontSize = parseLength(current['font-size']);
+  const letterSpacing = parseLength(current['letter-spacing'], 'em');
+  const fontFamily = current['font-family'] ?? '';
+  const fontWeight = current['font-weight'] ?? '';
+  const bold = fontWeight === 'bold' || Number.parseInt(fontWeight, 10) >= 600;
+  const italic = current['font-style'] === 'italic';
+  const underline = (current['text-decoration'] ?? '').includes('underline');
 
   return (
     <div className="space-y-4">
@@ -119,6 +125,76 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
               onChange={(event) => setStyle('font-size', `${event.target.value}${fontSize.unit}`)}
             />
           </Field>
+          <Field label="Família">
+            <select
+              className={inputClass}
+              aria-label="Família da fonte"
+              value={fontFamily}
+              onChange={(event) => setStyle('font-family', event.target.value)}
+            >
+              <option value="">Padrão do slide</option>
+              <option value="'DM Sans', system-ui, sans-serif">DM Sans</option>
+              <option value="Georgia, 'Times New Roman', serif">Georgia</option>
+              <option value="ui-monospace, 'Cascadia Mono', Consolas, monospace">
+                Monoespaçada
+              </option>
+              {fontFamily &&
+              ![
+                "'DM Sans', system-ui, sans-serif",
+                "Georgia, 'Times New Roman', serif",
+                "ui-monospace, 'Cascadia Mono', Consolas, monospace",
+              ].includes(fontFamily) ? (
+                <option value={fontFamily}>Personalizada</option>
+              ) : null}
+            </select>
+          </Field>
+          <div className="flex items-center gap-1">
+            <FormatButton
+              label="Negrito"
+              active={bold}
+              onClick={() => setStyle('font-weight', bold ? null : '700')}
+            >
+              B
+            </FormatButton>
+            <FormatButton
+              label="Itálico"
+              active={italic}
+              onClick={() => setStyle('font-style', italic ? null : 'italic')}
+            >
+              I
+            </FormatButton>
+            <FormatButton
+              label="Sublinhado"
+              active={underline}
+              onClick={() => setStyle('text-decoration', underline ? null : 'underline')}
+            >
+              U
+            </FormatButton>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Espaço entre linhas">
+              <input
+                type="number"
+                aria-label="Espaço entre linhas"
+                step="0.1"
+                className={inputClass}
+                value={current['line-height'] ?? ''}
+                onChange={(event) => setStyle('line-height', event.target.value)}
+              />
+            </Field>
+            <Field label="Espaço entre letras">
+              <input
+                type="number"
+                aria-label="Espaço entre letras"
+                step="0.01"
+                className={inputClass}
+                value={letterSpacing.value}
+                onChange={(event) =>
+                  setStyle('letter-spacing', `${event.target.value}${letterSpacing.unit}`)
+                }
+              />
+            </Field>
+          </div>
         </div>
       </details>
 
@@ -177,12 +253,43 @@ function Icon({ path }: { path: string }) {
   );
 }
 
-function parseLength(value: string | undefined): { value: number; unit: string } {
+function FormatButton({
+  label,
+  active,
+  onClick,
+  children,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={active}
+      onClick={onClick}
+      className={`h-8 w-8 rounded border text-xs font-semibold transition ${
+        active
+          ? 'border-[#F7D98B]/60 bg-[#F7D98B]/15 text-[#F7D98B]'
+          : 'border-white/10 text-[#F3E6E2]/60 hover:border-white/25 hover:text-[#F3E6E2]'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function parseLength(
+  value: string | undefined,
+  fallbackUnit = 'px'
+): { value: number; unit: string } {
   const trimmed = (value ?? '').trim();
   const match = /^(-?\d+(?:\.\d+)?)\s*([a-z%]*)$/i.exec(trimmed);
   const number = match?.[1];
-  if (!number) return { value: 0, unit: 'px' };
-  const unit = match?.[2] || 'px';
+  if (!number) return { value: 0, unit: fallbackUnit };
+  const unit = match?.[2] || fallbackUnit;
   return { value: Number(number), unit };
 }
 

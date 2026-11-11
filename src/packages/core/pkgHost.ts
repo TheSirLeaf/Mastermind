@@ -128,10 +128,6 @@ export const EDITOR_BRIDGE_SRC = `(function(){
   sel.style.cssText = 'position:absolute;z-index:9000;pointer-events:none;border:2px solid #F7D98B;box-shadow:0 0 0 1px rgba(16,6,11,.55),0 0 24px rgba(247,217,139,.35);border-radius:2px;display:none;box-sizing:border-box';
   deck.appendChild(sel);
 
-  var hover = document.createElement('div');
-  hover.style.cssText = 'position:absolute;z-index:8999;pointer-events:none;border:1px dashed rgba(247,217,139,.55);display:none;box-sizing:border-box';
-  deck.appendChild(hover);
-
   var style = document.createElement('style');
   style.textContent = [
     'html,body{overflow:hidden}',
@@ -291,20 +287,6 @@ export const EDITOR_BRIDGE_SRC = `(function(){
     e.preventDefault();
     e.stopPropagation();
     beginEdit(target);
-  }, true);
-
-  document.addEventListener('mousemove', function (e) {
-    if (editing) { hover.style.display = 'none'; return; }
-    var target = e.target;
-    if (!target || !(target instanceof Element) || !deck.contains(target)) { hover.style.display = 'none'; return; }
-    var slide = activeSlide();
-    if (!slide || !slide.contains(target) || target === slide) { hover.style.display = 'none'; return; }
-    var r = rectOf(target);
-    hover.style.display = 'block';
-    hover.style.left = r.left + 'px';
-    hover.style.top = r.top + 'px';
-    hover.style.width = r.width + 'px';
-    hover.style.height = r.height + 'px';
   }, true);
 
   document.addEventListener('keydown', function (e) {
