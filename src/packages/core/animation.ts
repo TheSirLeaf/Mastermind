@@ -223,6 +223,7 @@ export function animationPatch(animation: ElementAnimation | null): ElementPatch
     classes: { add: ['anim'] },
     style: {
       '--d': `${anim.delay}s`,
+      '--anim-delay': `${anim.delay}s`,
       '--anim-duration': `${anim.duration}s`,
       '--anim-ease': anim.easing,
       '--anim-distance': `${anim.distance}px`,
@@ -281,7 +282,7 @@ export const ANIMATION_CSS = `
 ${KEYFRAMES}
 .slide.active .anim[data-anim]{
   animation-duration:var(--anim-duration,.85s);
-  animation-delay:var(--d,0s);
+  animation-delay:var(--anim-delay,var(--d,0s));
   animation-timing-function:var(--anim-ease,cubic-bezier(.16,.84,.24,1));
   animation-fill-mode:both;
 }
@@ -294,11 +295,11 @@ ${KEYFRAMES}
 .slide.active .anim[data-anim="zoom"]{animation-name:mmZoom}
 .slide.active .anim[data-anim="blur"]{animation-name:mmBlur}
 .slide.active .anim[data-anim="flip"]{animation-name:mmFlip}
-.slide.mm-static .anim[data-anim]{animation:none!important;opacity:1!important;transform:none!important;filter:none!important}
+.slide.mm-static .anim{animation:none!important;opacity:1!important;transform:none!important;filter:none!important}
 @media (prefers-reduced-motion:reduce){
-  .slide.active .anim[data-anim]{animation:none!important;opacity:1!important;transform:none!important;filter:none!important}
+  .slide.active .anim{animation:none!important;opacity:1!important;transform:none!important;filter:none!important}
 }
 @media print{
-  .slide.active .anim[data-anim]{animation:none!important;opacity:1!important;transform:none!important;filter:none!important}
+  .slide.active .anim{animation:none!important;opacity:1!important;transform:none!important;filter:none!important}
 }
 `.trim();
