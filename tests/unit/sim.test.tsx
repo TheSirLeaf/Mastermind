@@ -75,6 +75,77 @@ describe('pacote sim', () => {
     expect(registry.toHTML('sim', simDefaults)).toContain('pk-sim-app');
   });
 
+  it('renderiza toast do Windows e cursor configurado', () => {
+    const root = mount({
+      ...simDefaults,
+      codeEnabled: false,
+      cursorVisible: true,
+      cursorX: 12,
+      cursorY: 34,
+      cursorSize: 30,
+      toasts: [
+        {
+          id: 'backup',
+          app: 'Backup do Windows',
+          title: 'Backup concluído',
+          body: 'Arquivos salvos.',
+          tone: 'success',
+          visible: true,
+        },
+      ],
+    });
+    expect(root.querySelector('[data-sim-toast="backup"]')?.classList.contains('is-show')).toBe(
+      true
+    );
+    const cursor = root.querySelector<HTMLElement>('[data-sim-cursor]');
+    expect(cursor).not.toBeNull();
+    expect(cursor?.style.left).toBe('12%');
+    expect(cursor?.style.top).toBe('34%');
+    expect(cursor?.style.width).toBe('30px');
+  });
+
+  it('executa cursor e toast pelo roteiro', async () => {
+    const spec = {
+      ...simDefaults,
+      codeEnabled: false,
+      cursorVisible: true,
+      cursorX: 10,
+      cursorY: 10,
+      toasts: [
+        {
+          id: 'backup',
+          app: 'Backup do Windows',
+          title: 'Backup concluído',
+          body: 'Arquivos salvos.',
+          tone: 'success' as const,
+          visible: false,
+        },
+      ],
+      steps: JSON.stringify([
+        { wait: 10, toast: { id: 'backup', action: 'show' } },
+        {
+          wait: 10,
+          cursor: { x: 72, y: 28, duration: 0, ease: 'linear', click: true },
+        },
+        { wait: 10, toast: { id: 'backup', action: 'click' } },
+      ]),
+    };
+    const root = mount(spec);
+    const controller = simRuntime(root, spec, instantApi());
+    await controller?.play();
+
+    const toast = root.querySelector('[data-sim-toast="backup"]');
+    expect(toast?.classList.contains('is-show')).toBe(true);
+    expect(toast?.classList.contains('is-click')).toBe(true);
+    const cursor = root.querySelector<HTMLElement>('[data-sim-cursor]');
+    expect(cursor?.style.left).toBe('72%');
+    expect(cursor?.style.top).toBe('28%');
+    await new Promise((resolve) => window.setTimeout(resolve, 5));
+    expect(root.querySelector('.pk-sim-click')).not.toBeNull();
+
+    controller?.final();
+  });
+
   it('serializa o runtime autossuficiente para o HTML exportado', async () => {
     const serialized = serializePackage(SimPackage);
     expect(serialized.runtime).toEqual({ $fn: String(simRuntime) });

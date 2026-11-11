@@ -1,6 +1,6 @@
 import type { RuntimeAPI, RuntimeController } from '../core/types';
 
-import type { SimSpec, SimStep } from './SimSpec';
+import type { SimCursorStep, SimSpec, SimStep } from './SimSpec';
 
 /**
  * Runtime do pacote `sim`.
@@ -34,6 +34,13 @@ export function simRuntime(
         }
       })();
 
+  const toasts = Array.isArray(spec.toasts) ? spec.toasts : [];
+  const cursorConfig = {
+    visible: spec.cursorVisible === true,
+    x: Number.isFinite(spec.cursorX) ? spec.cursorX : 82,
+    y: Number.isFinite(spec.cursorY) ? spec.cursorY : 68,
+  };
+
   const schedule = (fn: () => void, ms: number): void => {
     const timer = window.setTimeout(fn, ms);
     timers.push(timer);
@@ -66,7 +73,87 @@ export function simRuntime(
     schedule(hideMessages, kind === 'success' ? 2300 : 3400);
   };
 
+  const cursorEl = (): HTMLElement | null => $('[data-sim-cursor]');
+  const appEl = (): HTMLElement | null => $('.pk-sim-app');
+
+  const resolveTarget = (target: string): Element | null => {
+    if (target.startsWith('toast:')) {
+      return root.querySelector(`[data-sim-toast="${target.slice(6)}"]`);
+    }
+    if (target.startsWith('button:')) {
+      return root.querySelector(`[data-sim-btn="${target.slice(7)}"]`);
+    }
+    return root.querySelector(target);
+  };
+
+  const pointFor = (step: SimCursorStep): { x: number; y: number } | null => {
+    if (typeof step.x === 'number' && typeof step.y === 'number') {
+      return { x: step.x, y: step.y };
+    }
+    if (!step.target) return null;
+    const target = resolveTarget(step.target);
+    const app = appEl();
+    if (!target || !app) return null;
+    const ar = app.getBoundingClientRect();
+    const tr = target.getBoundingClientRect();
+    if (!ar.width || !ar.height) return null;
+    return {
+      x: ((tr.left + tr.width / 2 - ar.left) / ar.width) * 100,
+      y: ((tr.top + tr.height / 2 - ar.top) / ar.height) * 100,
+    };
+  };
+
+  const ripple = (point: { x: number; y: number }): void => {
+    const app = appEl();
+    if (!app) return;
+    const dot = document.createElement('span');
+    dot.className = 'pk-sim-click';
+    dot.style.left = `${point.x}%`;
+    dot.style.top = `${point.y}%`;
+    app.appendChild(dot);
+    schedule(() => dot.remove(), 520);
+  };
+
+  const moveCursor = (step: SimCursorStep): void => {
+    const el = cursorEl();
+    if (!el) return;
+    const point = pointFor(step);
+    if (!point) return;
+    const duration = Math.max(0, step.duration ?? 600);
+    const ease =
+      step.ease === 'linear'
+        ? 'linear'
+        : step.ease === 'spring'
+          ? 'cubic-bezier(.2,1.4,.4,1)'
+          : 'cubic-bezier(.22,.61,.36,1)';
+    el.style.transition = `left ${duration}ms ${ease}, top ${duration}ms ${ease}`;
+    el.style.left = `${point.x}%`;
+    el.style.top = `${point.y}%`;
+    if (step.click) schedule(() => ripple(point), duration);
+  };
+
+  const toastEl = (id: string): HTMLElement | null =>
+    root.querySelector(`[data-sim-toast="${id}"]`);
+
+  const patchToast = (id: string, action: 'show' | 'hide' | 'click'): void => {
+    const el = toastEl(id);
+    if (!el) return;
+    if (action === 'show') {
+      el.classList.add('is-show');
+      const def = toasts.find((toast) => toast.id === id);
+      const autoHide = def?.autoHide ?? 0;
+      if (autoHide > 0) schedule(() => el.classList.remove('is-show'), autoHide);
+    }
+    if (action === 'hide') el.classList.remove('is-show');
+    if (action === 'click') {
+      el.classList.add('is-click');
+      schedule(() => el.classList.remove('is-click'), 650);
+    }
+  };
+
   const apply = (step: SimStep): void => {
+    if (step.cursor) moveCursor(step.cursor);
+    if (step.toast) patchToast(step.toast.id, step.toast.action);
     if (step.press) press(step.press);
 
     if (typeof step.valid === 'boolean') {
@@ -130,6 +217,15 @@ export function simRuntime(
 
   const reset = (): void => {
     root.classList.add('is-running');
+    $$('[data-sim-toast]').forEach((el) => el.classList.remove('is-show', 'is-click'));
+    const cursor = cursorEl();
+    if (cursor) {
+      cursor.style.transition = 'none';
+      cursor.style.left = `${cursorConfig.x}%`;
+      cursor.style.top = `${cursorConfig.y}%`;
+      void cursor.offsetWidth;
+      cursor.style.transition = '';
+    }
     $('[data-sim-valid]')?.classList.remove('is-on');
     $$('[data-sim-row]').forEach((row) => {
       if (row.classList.contains('is-new')) row.classList.add('is-hidden');

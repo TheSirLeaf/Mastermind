@@ -94,7 +94,32 @@ export const simCss = `
 .pk-sim-note.is-on{opacity:1}
 .pk-sim.is-rollback .pk-sim-code-win{border-color:rgba(201,92,98,.45)}
 
+/* Windows 11 notifications */
+.pk-sim-toasts{position:absolute;top:14px;right:14px;width:320px;display:flex;flex-direction:column;gap:8px;z-index:8;pointer-events:none}
+.pk-sim-toast{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:10px;padding:11px 12px;border:1px solid rgba(255,255,255,.14);border-radius:10px;background:rgba(30,30,32,.94);backdrop-filter:blur(18px);box-shadow:0 16px 42px rgba(0,0,0,.38);color:#fff;opacity:0;transform:translateX(118%);transition:opacity .28s ease,transform .28s cubic-bezier(.2,.8,.25,1)}
+.pk-sim-toast.is-show{opacity:1;transform:none}
+.pk-sim-toast.is-click{outline:2px solid rgba(247,217,139,.9);outline-offset:2px;transform:scale(.985)}
+.pk-sim-toast-ic{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;background:rgba(255,255,255,.12);font-weight:800;font-size:15px;color:#F7D98B}
+.pk-sim-toast.is-success .pk-sim-toast-ic{background:rgba(114,166,138,.25);color:#A9E3C4}
+.pk-sim-toast.is-error .pk-sim-toast-ic{background:rgba(201,92,98,.28);color:#F0A5A9}
+.pk-sim-toast.is-warning .pk-sim-toast-ic{background:rgba(214,168,79,.25);color:#F3D08A}
+.pk-sim-toast-body{min-width:0}
+.pk-sim-toast-app{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk-sim-toast-body b{display:block;font-size:12.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk-sim-toast-body p{margin:3px 0 0;font-size:11.5px;line-height:1.35;color:rgba(255,255,255,.68)}
+.pk-sim-toast-action{display:inline-block;margin-top:8px;border:1px solid rgba(255,255,255,.22);border-radius:5px;padding:2px 9px;font-size:10.5px;color:#F7D98B}
+.pk-sim-toast-time{font-size:10px;color:rgba(255,255,255,.42);white-space:nowrap}
+
+/* Cursor */
+.pk-sim-cursor{position:absolute;z-index:9;pointer-events:none;transform:translate(-2px,-2px);filter:drop-shadow(0 3px 5px rgba(0,0,0,.45))}
+.pk-sim-cursor svg{display:block;width:100%;height:100%}
+.pk-sim-cursor.has-trail::after{content:'';position:absolute;left:6px;top:6px;width:10px;height:10px;border-radius:50%;background:rgba(247,217,139,.35);box-shadow:0 0 0 5px rgba(247,217,139,.08)}
+.pk-sim-click{position:absolute;z-index:9;width:16px;height:16px;margin:-8px 0 0 -8px;border:2px solid #F7D98B;border-radius:50%;pointer-events:none;animation:pkSimClick .5s ease-out both}
+@keyframes pkSimClick{from{opacity:.9;transform:scale(.3)}to{opacity:0;transform:scale(2.6)}}
+
 @media (prefers-reduced-motion: reduce){
+  .pk-sim-toast,.pk-sim-cursor{transition:none!important}
+  .pk-sim-click{animation:none!important}
   .pk-sim *{transition:none!important;animation:none!important}
 }
 `;
