@@ -31,12 +31,13 @@ export function CodeRenderer({ spec, h }: CodeRendererProps): JSX.Element {
   const highlighted = h.range(spec.hl);
   return (
     <div
+      data-testid="pk-code-container"
       className={`pk-code pk-${spec.theme}${spec.typing ? ' pk-typing' : ''}`}
       style={{ width: `${spec.w}px`, maxWidth: '100%' }}
     >
       <div className="pk-win">
         {spec.titlebar ? (
-          <div className="pk-bar">
+          <div data-testid="pk-titlebar" className="pk-bar">
             <span className="pk-dot" />
             <span className="pk-dot" />
             <span className="pk-dot" />
@@ -56,13 +57,18 @@ export function CodeRenderer({ spec, h }: CodeRendererProps): JSX.Element {
           {lines.map((line, index) => (
             <span
               key={index}
+              data-testid={`pk-code-line-${index + 1}`}
               className={`pk-ln${highlighted[index + 1] ? ' pk-hl' : ''}`}
               data-n={index + 1}
               dangerouslySetInnerHTML={{ __html: line || ' ' }}
             />
           ))}
         </pre>
-        {spec.note ? <div className="pk-note">{spec.note}</div> : null}
+        {spec.note ? (
+          <div data-testid="pk-note" className="pk-note">
+            {spec.note}
+          </div>
+        ) : null}
       </div>
     </div>
   );
