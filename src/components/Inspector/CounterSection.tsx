@@ -1,5 +1,5 @@
-import type { SelectionInfo } from '@packages/core/types';
 import { counterTarget, setCounter } from '@packages/core/counter';
+import type { SelectionInfo } from '@packages/core/types';
 import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 

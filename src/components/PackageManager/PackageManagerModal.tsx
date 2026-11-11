@@ -2,13 +2,12 @@
 import { usePackageRegistry } from '@hooks/usePackageRegistry';
 import { ChartPackage } from '@packages/chart';
 import { CodePackage } from '@packages/code';
+import { exportPackagesFile } from '@packages/core/export';
 import { useUIStore } from '@stores/uiStore';
 import { clsx } from 'clsx';
 import { X, Download, Upload, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { SVGProps } from 'react';
-
-import { exportPackagesFile } from '@packages/core/export';
 
 import { insertPackage } from '../../editor/insertPackage';
 import { importPackagesText, persistCustomPackages } from '../../editor/packages';

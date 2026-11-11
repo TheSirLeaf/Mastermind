@@ -6,8 +6,8 @@ import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 import { useRef, useEffect, useState } from 'react';
 
-import { setActiveBridge } from '../../editor/bridgeRef';
 import { handleDroppedFile } from '../../editor/actions';
+import { setActiveBridge } from '../../editor/bridgeRef';
 import { handleBridgeKey } from '../../editor/shortcuts';
 
 export function Stage() {
