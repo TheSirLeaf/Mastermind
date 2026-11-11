@@ -14,9 +14,7 @@ function statusDot(row: SimRow, index: number, statusColumn: number): JSX.Elemen
 }
 
 export function SimRenderer({ spec, h }: { spec: SimSpec; h: HelperAPI }): JSX.Element {
-  const codeLines = spec.codeEnabled
-    ? h.hl(spec.codeCode, spec.codeLang, 'pk-sim-tk-')
-    : [];
+  const codeLines = spec.codeEnabled ? h.hl(spec.codeCode, spec.codeLang, 'pk-sim-tk-') : [];
   const hasTx = spec.txChips.length > 0;
 
   return (
@@ -114,10 +112,7 @@ export function SimRenderer({ spec, h }: { spec: SimSpec; h: HelperAPI }): JSX.E
                         <tr
                           key={rowIndex}
                           data-sim-row={rowIndex}
-                          className={[
-                            row.isNew ? 'is-new' : '',
-                            row.highlight ? 'is-hl' : '',
-                          ]
+                          className={[row.isNew ? 'is-new' : '', row.highlight ? 'is-hl' : '']
                             .filter(Boolean)
                             .join(' ')}
                         >
@@ -162,7 +157,11 @@ export function SimRenderer({ spec, h }: { spec: SimSpec; h: HelperAPI }): JSX.E
                 <div className="pk-sim-dim" data-sim-dim />
                 {(['success', 'error', 'confirm'] as const).map((kind) => {
                   const text =
-                    kind === 'success' ? spec.msgSuccess : kind === 'error' ? spec.msgError : spec.msgConfirm;
+                    kind === 'success'
+                      ? spec.msgSuccess
+                      : kind === 'error'
+                        ? spec.msgError
+                        : spec.msgConfirm;
                   if (!text) return null;
                   return (
                     <div
@@ -175,7 +174,9 @@ export function SimRenderer({ spec, h }: { spec: SimSpec; h: HelperAPI }): JSX.E
                         <span>✕</span>
                       </div>
                       <div className="pk-sim-msg-body">
-                        <span className="pk-sim-msg-ic">{kind === 'error' ? '×' : kind === 'confirm' ? '?' : 'i'}</span>
+                        <span className="pk-sim-msg-ic">
+                          {kind === 'error' ? '×' : kind === 'confirm' ? '?' : 'i'}
+                        </span>
                         <p style={{ margin: 0 }}>{text}</p>
                       </div>
                       <div className="pk-sim-msg-foot">

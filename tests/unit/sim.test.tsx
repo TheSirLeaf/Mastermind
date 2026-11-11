@@ -78,7 +78,9 @@ describe('pacote sim', () => {
   it('serializa o runtime autossuficiente para o HTML exportado', async () => {
     const serialized = serializePackage(SimPackage);
     expect(serialized.runtime).toEqual({ $fn: String(simRuntime) });
-    const revived = compileFunction((serialized.runtime as { $fn: string }).$fn) as typeof simRuntime;
+    const revived = compileFunction(
+      (serialized.runtime as { $fn: string }).$fn
+    ) as typeof simRuntime;
     const root = mount();
     const controller = revived(root, simDefaults, instantApi());
     await controller?.play();

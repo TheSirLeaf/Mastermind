@@ -18,7 +18,12 @@ export const simForm: FormSchema = [
           { k: 'activeMenu', label: 'Item ativo', type: 'text', placeholder: 'Agenda' },
         ],
       },
-      { k: 'subtitle', label: 'Subtítulo da lateral', type: 'text', placeholder: 'Sistema de agendamentos' },
+      {
+        k: 'subtitle',
+        label: 'Subtítulo da lateral',
+        type: 'text',
+        placeholder: 'Sistema de agendamentos',
+      },
       {
         k: 'menu',
         label: 'Menu lateral',
@@ -43,8 +48,23 @@ export const simForm: FormSchema = [
       {
         type: 'row',
         fields: [
-          { k: 'statusColumn', label: 'Coluna de situação', type: 'number', min: 0, max: 8, step: 1 },
-          { k: 'width', label: 'Largura total', type: 'range', min: 1200, max: 1680, step: 20, unit: 'px' },
+          {
+            k: 'statusColumn',
+            label: 'Coluna de situação',
+            type: 'number',
+            min: 0,
+            max: 8,
+            step: 1,
+          },
+          {
+            k: 'width',
+            label: 'Largura total',
+            type: 'range',
+            min: 1200,
+            max: 1680,
+            step: 20,
+            unit: 'px',
+          },
         ],
       },
       {
@@ -202,8 +222,24 @@ export const simForm: FormSchema = [
       {
         type: 'row',
         fields: [
-          { k: 'codeFontSize', label: 'Fonte', type: 'range', min: 12, max: 28, step: 1, unit: 'px' },
-          { k: 'codeLineHeight', label: 'Entrelinha', type: 'range', min: 1.2, max: 2.2, step: 0.02, unit: '×' },
+          {
+            k: 'codeFontSize',
+            label: 'Fonte',
+            type: 'range',
+            min: 12,
+            max: 28,
+            step: 1,
+            unit: 'px',
+          },
+          {
+            k: 'codeLineHeight',
+            label: 'Entrelinha',
+            type: 'range',
+            min: 1.2,
+            max: 2.2,
+            step: 0.02,
+            unit: '×',
+          },
         ],
       },
     ],
