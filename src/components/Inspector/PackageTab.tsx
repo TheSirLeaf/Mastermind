@@ -56,8 +56,8 @@ export function PackageTab({ selection }: PackageTabProps) {
 
       <FormGenerator
         key={selection.path.join('.')}
-        form={formSchema}
-        defaultValues={currentSpec}
+        schema={formSchema}
+        spec={currentSpec}
         onChange={(newSpec) => updatePackageSpec(selection, newSpec)}
       />
     </div>
