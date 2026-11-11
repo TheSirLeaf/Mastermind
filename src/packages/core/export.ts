@@ -1,3 +1,4 @@
+import { ANIMATION_CSS } from './animation';
 import type { PackageRegistry } from './PackageRegistry';
 import { PKG_HOST_SRC, EDITOR_BRIDGE_SRC } from './pkgHost';
 import type { Deck, Slide } from './types';
@@ -33,6 +34,34 @@ export function slidesToHTML(slides: Slide[]): string {
   return slides.map((slide) => slide.html).join('\n');
 }
 
+/**
+ * CSS de impressão/PDF: cada slide ocupa uma página 1920×1080 sem escala.
+ * O host restaura o estado final dos runtimes antes de imprimir.
+ */
+export const PRINT_CSS = `@media print {
+  @page { size: 1920px 1080px; margin: 0; }
+  html, body { width: 1920px; height: auto !important; overflow: visible !important; background: #10060B !important; }
+  #stage { position: static !important; display: block !important; }
+  #deck { position: static !important; transform: none !important; width: 1920px !important; height: auto !important; }
+  .slide { position: relative !important; inset: auto !important; width: 1920px !important; height: 1080px !important; opacity: 1 !important; visibility: visible !important; transform: none !important; display: flex !important; break-after: page; page-break-after: always; }
+  .slide:last-child { break-after: auto; page-break-after: auto; }
+  .progress, .notes-panel, .hint, .lightbox { display: none !important; }
+}`;
+
+/** Ids de pacotes referenciados nos slides (`data-pkg`). */
+export function collectPackageIds(deck: Deck): string[] {
+  const ids = new Set<string>();
+  const re = /data-pkg=["']([^"']+)["']/g;
+  for (const slide of deck.slides) {
+    let match: RegExpExecArray | null;
+    while ((match = re.exec(slide.html)) !== null) {
+      if (match[1]) ids.add(match[1]);
+    }
+    re.lastIndex = 0;
+  }
+  return [...ids];
+}
+
 export interface BuildPresentationOptions {
   template: string;
   deck: Deck;
@@ -54,7 +83,8 @@ export function buildRegistryPayload(registry: PackageRegistry, ids?: string[]):
  * O resultado não depende do editor: abre e anima em qualquer navegador.
  */
 export function buildPresentationHTML(options: BuildPresentationOptions): string {
-  const { template, deck, registry, packageIds } = options;
+  const { template, deck, registry } = options;
+  const packageIds = options.packageIds ?? collectPackageIds(deck);
   let html = template;
 
   html = fill(html, '{{TITLE}}', escapeText(deck.title || 'Apresentação'));
@@ -64,12 +94,23 @@ export function buildPresentationHTML(options: BuildPresentationOptions): string
   html = fill(html, '{{PKG_HOST}}', PKG_HOST_SRC);
   html = fill(html, '{{NAV}}', NAV_SCRIPT);
 
+  if (html.includes('</head>')) {
+    html = html.replace(
+      '</head>',
+      `<style id="mm-anim">${ANIMATION_CSS}</style>\n<style id="mm-print">${PRINT_CSS}</style>\n</head>`
+    );
+  }
+
   return html;
 }
 
 /** Documento usado pelo iframe do editor (sem apresentação/navegação). */
-export function buildEditorHTML(deck: Deck, registry: PackageRegistry): string {
-  const template = cachedTemplate ?? '';
+export function buildEditorHTML(
+  deck: Deck,
+  registry: PackageRegistry,
+  template: string = cachedTemplate ?? ''
+): string {
+  if (!template) throw new Error('Template da apresentação não carregado.');
   let html = template;
 
   html = fill(html, '{{TITLE}}', escapeText(deck.title || 'Apresentação'));
@@ -78,6 +119,10 @@ export function buildEditorHTML(deck: Deck, registry: PackageRegistry): string {
   html = fill(html, '{{PKG_REGISTRY}}', buildRegistryPayload(registry));
   html = fill(html, '{{PKG_HOST}}', '');
   html = fill(html, '{{NAV}}', EDITOR_BRIDGE_SRC);
+
+  if (html.includes('</head>')) {
+    html = html.replace('</head>', `<style id="mm-anim">${ANIMATION_CSS}</style>\n</head>`);
+  }
 
   return html;
 }
@@ -97,6 +142,72 @@ export function packageElementHTML(
   const width = box?.w ?? 900;
   const specJson = escapeAttr(JSON.stringify(spec));
   return `<div class="pk-wrap" data-pkg="${escapeAttr(id)}" data-spec="${specJson}" style="width:${width}px;max-width:100%">${innerHTML}</div>`;
+}
+
+/** Nome de arquivo seguro a partir do título. */
+export function slugifyTitle(title: string): string {
+  const slug = title
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase();
+  return slug || 'apresentacao';
+}
+
+/** Baixa um arquivo no navegador. */
+export function downloadFile(
+  filename: string,
+  content: string,
+  mime = 'application/octet-stream'
+): void {
+  if (typeof document === 'undefined') return;
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 20_000);
+}
+
+export interface ExportPresentationFileOptions {
+  deck: Deck;
+  registry: PackageRegistry;
+  template?: string;
+  filename?: string;
+  packageIds?: string[];
+}
+
+/** Gera e baixa o HTML autônomo da apresentação. Retorna o nome do arquivo. */
+export async function exportPresentationFile(
+  options: ExportPresentationFileOptions
+): Promise<string> {
+  const template = options.template ?? (await loadTemplate());
+  const filename = options.filename ?? `${slugifyTitle(options.deck.title)}.html`;
+  const html = buildPresentationHTML({
+    template,
+    deck: options.deck,
+    registry: options.registry,
+    ...(options.packageIds ? { packageIds: options.packageIds } : {}),
+  });
+  downloadFile(filename, html, 'text/html;charset=utf-8');
+  return filename;
+}
+
+/** Gera e baixa um `.dialcron-pkg.json` com os pacotes indicados. */
+export function exportPackagesFile(
+  registry: PackageRegistry,
+  ids?: string[],
+  filename?: string
+): string {
+  const name =
+    filename ??
+    (ids?.length === 1 ? `${ids[0]}.dialcron-pkg.json` : 'pacotes-dialcron.dialcron-pkg.json');
+  downloadFile(name, JSON.stringify(registry.exportFile(ids), null, 1), 'application/json');
+  return name;
 }
 
 /** Script de navegação da apresentação (setas, notas, impressão, fullscreen). */

@@ -4,7 +4,9 @@ import {
   buildEditorHTML,
   buildPresentationHTML,
   buildRegistryPayload,
+  collectPackageIds,
   setCachedTemplate,
+  slugifyTitle,
 } from '../../src/packages/core/export';
 import { PackageRegistry } from '../../src/packages/core/PackageRegistry';
 import type { Deck, PackageDef } from '../../src/packages/core/types';
@@ -65,6 +67,38 @@ describe('export', () => {
     const payload = JSON.parse(buildRegistryPayload(registry));
     expect(payload.demo.def.id).toBe('demo');
     expect(payload.demo.def.render.$fn).toBeTruthy();
+  });
+
+  it('coleta os pacotes usados nos slides', () => {
+    expect(
+      collectPackageIds({
+        ...deck,
+        slides: [
+          { id: 'a', html: '<div data-pkg="code" data-spec="{}"></div>' },
+          { id: 'b', html: '<div data-pkg="chart"></div><div data-pkg="code"></div>' },
+        ],
+      })
+    ).toEqual(['code', 'chart']);
+  });
+
+  it('inclui CSS de impressão e apenas os pacotes usados', () => {
+    const registry = new PackageRegistry();
+    registry.register(pkg);
+    registry.register({ ...pkg, id: 'unused', name: 'Unused' });
+    const html = buildPresentationHTML({
+      template,
+      deck: { ...deck, slides: [{ id: 'a', html: '<div data-pkg="demo"></div>' }] },
+      registry,
+    });
+    const payload = JSON.parse(html.match(/id="pkg-registry">(.*?)<\/script>/s)?.[1] ?? '{}');
+    expect(Object.keys(payload)).toEqual(['demo']);
+    expect(html).toContain('id="mm-print"');
+    expect(html).toContain('@page');
+  });
+
+  it('gera slug de arquivo sem acentos', () => {
+    expect(slugifyTitle('Apresentação A3 · GQS')).toBe('apresentacao-a3-gqs');
+    expect(slugifyTitle('!!!')).toBe('apresentacao');
   });
 
   it('o documento do editor não inclui o host nem a navegação', () => {

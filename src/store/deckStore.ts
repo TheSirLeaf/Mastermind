@@ -1,6 +1,7 @@
 import { produce } from 'immer';
 import { create } from 'zustand';
 
+import { applyElementPatch, type ElementPatch } from '../packages/core/animation';
 import {
   createDefaultDeck,
   makeSlide,
@@ -31,6 +32,8 @@ export interface DeckState {
   updateSlideHTML: (index: number, html: string, coalesceKey?: string) => void;
   /** Atualiza o innerHTML de um elemento a partir do path do iframe. */
   updateElementHTML: (path: number[], innerHTML: string) => void;
+  /** Aplica atributos/estilos/classes em um elemento sem recarregar o iframe. */
+  patchElement: (path: number[], patch: ElementPatch) => void;
   updateSlideNotes: (index: number, notes: string) => void;
   setTitle: (title: string) => void;
   selectSlide: (index: number) => void;
@@ -156,12 +159,32 @@ export const useDeckStore = create<DeckState>()((set, get) => {
       if (!slide) return;
 
       const doc = new DOMParser().parseFromString(slide.html, 'text/html');
-      let node: Element | null = doc.body;
+      // O primeiro item do path é o índice do slide; os demais são filhos da section.
+      let node: Element | null = doc.body.firstElementChild;
       for (const part of rest) {
         node = node?.children[part] ?? null;
         if (!node) return;
       }
+      if (!node) return;
       node.innerHTML = innerHTML;
+      const html = doc.body.firstElementChild?.outerHTML ?? slide.html;
+      get().updateSlideHTML(slideIndex, html, `element:${path.join('.')}`);
+    },
+
+    patchElement: (path, patch) => {
+      const [slideIndex, ...rest] = path;
+      if (slideIndex === undefined || rest.length === 0) return;
+      const slide = get().deck.slides[slideIndex];
+      if (!slide) return;
+
+      const doc = new DOMParser().parseFromString(slide.html, 'text/html');
+      let node: Element | null = doc.body.firstElementChild;
+      for (const part of rest) {
+        node = node?.children[part] ?? null;
+        if (!node) return;
+      }
+      if (!node) return;
+      applyElementPatch(node, patch);
       const html = doc.body.firstElementChild?.outerHTML ?? slide.html;
       get().updateSlideHTML(slideIndex, html, `element:${path.join('.')}`);
     },

@@ -1,3 +1,4 @@
+import type { ElementPatch } from './animation';
 import type { SelectionInfo } from './types';
 
 export interface BridgeEvents {
@@ -92,6 +93,27 @@ export class IframeBridge {
   /** Substitui o HTML de um slide já carregado, sem recarregar o iframe. */
   setSlideHTML(index: number, html: string): void {
     this.send({ type: 'set-slide', index, html });
+  }
+
+  /** Aplica atributos, estilos e classes no elemento selecionado. */
+  patchElement(path: number[], patch: ElementPatch): void {
+    this.send({
+      type: 'patch-element',
+      path,
+      attrs: patch.attrs ?? {},
+      style: patch.style ?? {},
+      classes: patch.classes ?? {},
+    });
+  }
+
+  /** Reinicia as animações do slide ativo. */
+  previewAnimations(): void {
+    this.send({ type: 'preview-anim' });
+  }
+
+  /** Encerra o preview e restaura o slide ativo. */
+  stopPreview(): void {
+    this.send({ type: 'stop-preview' });
   }
 
   /** Recalcula a escala do palco (após resize do painel). */
