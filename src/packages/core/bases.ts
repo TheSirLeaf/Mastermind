@@ -191,7 +191,7 @@ export function upgradeBase(base: Slide): Slide {
   const open = SECTION_OPEN.exec(base.html);
   if (!open) return base;
   const attrs = open[1] ?? '';
-  const theme = /light/.test(attr(attrs, 'class') ?? '') ? 'light' : 'dark';
+  const theme = /\blight\b/.test(attr(attrs, 'class') ?? '') ? 'light' : 'dark';
   const hasBg = /background/.test(attr(attrs, 'style') ?? '');
   const style = hasBg ? attr(attrs, 'style') : `background:${BASE_BG[theme]}`;
   const withoutStyle = attrs.replace(/\sstyle="[^"]*"/, '');

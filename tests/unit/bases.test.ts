@@ -8,6 +8,7 @@ import {
   slideBaseId,
   slidesUsingBase,
   stripBaseLayer,
+  upgradeBase,
   withBaseName,
   withSlideBaseId,
 } from '../../src/packages/core/bases';
@@ -92,5 +93,15 @@ describe('bases órfãs e nomes', () => {
     expect(withBaseName('<section class="slide" data-base-id="a"></section>', '  Meu  ')).toContain(
       'data-base-name="Meu"'
     );
+  });
+});
+
+describe('migração de bases antigas', () => {
+  it('base clara antiga ganha o fundo claro e os elementos de luz', () => {
+    const old = { id: 'x', html: '<section class="slide light" data-base-id="a"></section>' };
+    const upgraded = upgradeBase(old);
+    expect(upgraded.html).toContain('background:linear-gradient(155deg,#FFF8F5');
+    expect(upgraded.html).toContain('data-fx="1"');
+    expect(upgradeBase(upgraded)).toBe(upgraded);
   });
 });
