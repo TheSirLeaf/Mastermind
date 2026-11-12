@@ -1,6 +1,9 @@
 // vite-env.d.ts
 /// <reference types="vite/client" />
 
+/** Versão do package.json, injetada pelo Vite. */
+declare const __APP_VERSION__: string;
+
 declare module '*.css' {
   const content: string;
   export default content;

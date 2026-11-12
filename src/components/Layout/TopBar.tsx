@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+import { APP_VERSION } from '../../version';
 import { Tooltip } from '../common/Tooltip';
 
 import { AppMenu } from './AppMenu';
@@ -136,6 +137,12 @@ export function TopBar() {
         title={`${deck.title} • ${deck.slides.length} slide${deck.slides.length !== 1 ? 's' : ''}`}
       >
         {status}
+      </span>
+      <span
+        className="shrink-0 rounded border border-payday-border px-1.5 py-0.5 text-[10px] tabular-nums text-payday-textDim"
+        title={`Mastermind versão ${APP_VERSION}`}
+      >
+        v{APP_VERSION}
       </span>
     </header>
   );
