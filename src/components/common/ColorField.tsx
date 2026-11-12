@@ -109,7 +109,7 @@ export function ColorField({ value, onChange, compact, ariaLabel, className }: C
   }, [open]);
 
   const eyeDropper = (window as unknown as { EyeDropper?: new () => EyeDropperLike }).EyeDropper;
-  const useEyeDropper = async (): Promise<void> => {
+  const pickWithEyeDropper = async (): Promise<void> => {
     if (!eyeDropper) return;
     try {
       const result = await new eyeDropper().open();
@@ -230,7 +230,7 @@ export function ColorField({ value, onChange, compact, ariaLabel, className }: C
                 {eyeDropper ? (
                   <button
                     type="button"
-                    onClick={() => void useEyeDropper()}
+                    onClick={() => void pickWithEyeDropper()}
                     className="inline-flex flex-1 items-center justify-center gap-1.5 rounded border border-payday-border px-2 py-1.5 text-[11px] text-payday-textMuted transition hover:border-accent/50 hover:text-accent"
                   >
                     <Pipette className="h-3.5 w-3.5" /> Conta-gotas
