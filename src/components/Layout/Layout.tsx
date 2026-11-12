@@ -5,6 +5,7 @@ import { Inspector } from '@components/Inspector/Inspector';
 import { PackageManagerModal } from '@components/PackageManager/PackageManagerModal';
 import { NewSlideModal } from '@components/Sidebar/NewSlideModal';
 import { Sidebar } from '@components/Sidebar/Sidebar';
+import { PalettePanel } from '@components/Stage/PalettePanel';
 import { PresentationOverlay } from '@components/Stage/PresentationOverlay';
 import { StageViewport } from '@components/Stage/StageViewport';
 import { useUIStore } from '@stores/uiStore';
@@ -53,7 +54,9 @@ export function Layout() {
               <StageViewport highlighted={isPreviewMode} arrange={workspace === 'slide'} />
               {workspace === 'animation' ? (
                 <Timeline />
-              ) : workspace === 'slide' ? null : (
+              ) : workspace === 'slide' ? (
+                <PalettePanel />
+              ) : (
                 <BottomDock />
               )}
             </>

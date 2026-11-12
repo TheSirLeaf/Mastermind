@@ -23,6 +23,9 @@ interface UIState {
   // Modals
   isPackageManagerOpen: boolean;
   isNewSlideOpen: boolean;
+  /** Cores mais comuns do slide ativo (aba Slides). */
+  slidePalette: string[];
+  setSlidePalette: (colors: string[]) => void;
   /** `deck`: a tela escolhe o modelo de uma apresentação nova; `slide`: adiciona um slide. */
   newSlideMode: 'slide' | 'deck';
   isWelcomeOpen: boolean;
@@ -114,6 +117,8 @@ export const useUIStore = create<UIState>()(
 
     isPackageManagerOpen: false,
     isNewSlideOpen: false,
+    slidePalette: [],
+    setSlidePalette: (colors) => set({ slidePalette: colors }),
     newSlideMode: 'slide',
     isWelcomeOpen: readWelcomePref(),
     hasDraft: false,

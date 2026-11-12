@@ -55,11 +55,17 @@ export function codeRuntime(root: HTMLElement, spec: CodeSpec, api: RuntimeAPI) 
   // 2) Instante de cada caractere: ritmo humano (variação pseudoaleatória fixa),
   //    pausa maior ao mudar de linha e indentação instantânea.
   const base = 1000 / Math.max(5, spec.cps || 48);
+  const byLine = spec.variant === 'terminal';
   let t = 0;
   let seed = 11;
   let previousLine = 0;
   let leading = true;
   chars.forEach((c) => {
+    // Console: a linha inteira aparece de uma vez, uma depois da outra.
+    if (byLine) {
+      times.push(c.line * base * 9);
+      return;
+    }
     if (c.line !== previousLine) {
       t += base * 3.2;
       previousLine = c.line;
@@ -115,9 +121,9 @@ export function codeRuntime(root: HTMLElement, spec: CodeSpec, api: RuntimeAPI) 
           }
         }
         if (last >= chars.length - 1) {
+          // O cursor continua piscando no fim do código; só o realce da linha some.
           void api.wait(450).then(() => {
             if (!api.alive()) return;
-            caret?.remove();
             current?.classList.remove('pk-cur');
           });
           return false;

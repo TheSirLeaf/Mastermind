@@ -1356,6 +1356,9 @@
         viewTimer = setTimeout(function () {
           drawSelection(selected);
         }, 620);
+    } else if (data.type === 'palette') {
+      var pa = activeSlide();
+      post({ type: 'palette', colors: pa ? paletteOf(pa) : [] });
     } else if (data.type === 'highlight') {
       var hl = data.indices || [];
       slideList().forEach(function (sl, i) {
@@ -1368,6 +1371,132 @@
       runCommand(data.name, data.arg);
     }
   });
+
+  /* ---------- paleta de cores do slide ---------- */
+  function toLab(r, g, b) {
+    function lin(c) {
+      c /= 255;
+      return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    }
+    var R = lin(r),
+      G = lin(g),
+      B = lin(b);
+    var x = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047;
+    var y = R * 0.2126 + G * 0.7152 + B * 0.0722;
+    var z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
+    function f(t) {
+      return t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    }
+    return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))];
+  }
+  function hex2(n) {
+    var s = Math.max(0, Math.min(255, Math.round(n))).toString(16);
+    return s.length < 2 ? '0' + s : s;
+  }
+  /* Colhe cores (fundos, degradês, textos, bordas, SVG) com peso por tamanho e as agrupa
+     por semelhança perceptual. A quantidade (4 a 9) segue a variedade real do slide. */
+  function paletteOf(slide) {
+    var items = [];
+    function add(str, w) {
+      var m = /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+%?))?\s*\)/.exec(
+        str || ''
+      );
+      if (!m) return;
+      var a =
+        m[4] === undefined ? 1 : m[4].indexOf('%') > 0 ? parseFloat(m[4]) / 100 : parseFloat(m[4]);
+      if (!(a > 0.04) || !(w > 0)) return;
+      var r = +m[1],
+        g = +m[2],
+        b = +m[3];
+      items.push({ r: r, g: g, b: b, lab: toLab(r, g, b), w: w * a });
+    }
+    function addAll(str, w) {
+      var found = String(str || '').match(/rgba?\([^)]+\)/g) || [];
+      found.forEach(function (c) {
+        add(c, w / found.length);
+      });
+    }
+    var nodes = [slide].concat(Array.prototype.slice.call(slide.querySelectorAll('*'), 0, 900));
+    nodes.forEach(function (el) {
+      var cs = window.getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.05)
+        return;
+      var r = el.getBoundingClientRect();
+      var area = Math.min((r.width / scale) * (r.height / scale), SLIDE_W * SLIDE_H);
+      if (!(area > 40)) return;
+      var side = Math.sqrt(area);
+      add(cs.backgroundColor, side);
+      if (
+        cs.backgroundImage &&
+        cs.backgroundImage !== 'none' &&
+        cs.backgroundImage.indexOf('gradient') >= 0
+      ) {
+        addAll(cs.backgroundImage, side * 0.8);
+      }
+      var bw = parseFloat(cs.borderTopWidth) || 0;
+      if (bw > 0 && cs.borderTopStyle !== 'none')
+        add(cs.borderTopColor, Math.sqrt(bw * side * 4) * 3);
+      var text = 0;
+      for (var n = el.firstChild; n; n = n.nextSibling) {
+        if (n.nodeType === 3) text += n.nodeValue.replace(/\s+/g, '').length;
+      }
+      if (text > 0) {
+        var fs = parseFloat(cs.fontSize) || 16;
+        add(cs.color, Math.sqrt(text * fs * fs * 0.6));
+      }
+      if (el instanceof SVGElement && !(el instanceof SVGSVGElement)) {
+        if (cs.fill && cs.fill !== 'none') add(cs.fill, side);
+        if (cs.stroke && cs.stroke !== 'none') add(cs.stroke, side * 0.5);
+      }
+    });
+    if (!items.length) return [];
+    var total = items.reduce(function (s, i) {
+      return s + i.w;
+    }, 0);
+    function cluster(thr) {
+      var list = items.slice().sort(function (a, b) {
+        return b.w - a.w;
+      });
+      var cl = [];
+      list.forEach(function (it) {
+        var hit = null;
+        for (var i = 0; i < cl.length; i++) {
+          var c = cl[i];
+          var d = Math.hypot(c.lab[0] - it.lab[0], c.lab[1] - it.lab[1], c.lab[2] - it.lab[2]);
+          if (d < thr) {
+            hit = c;
+            break;
+          }
+        }
+        if (!hit) {
+          cl.push({ lab: it.lab, w: it.w, r: it.r * it.w, g: it.g * it.w, b: it.b * it.w });
+        } else {
+          hit.w += it.w;
+          hit.r += it.r * it.w;
+          hit.g += it.g * it.w;
+          hit.b += it.b * it.w;
+        }
+      });
+      return cl.sort(function (a, b) {
+        return b.w - a.w;
+      });
+    }
+    var picked = [];
+    var plan = [
+      [16, 0.012],
+      [10, 0.008],
+      [6, 0.004],
+    ];
+    for (var p = 0; p < plan.length; p++) {
+      picked = cluster(plan[p][0]).filter(function (c) {
+        return c.w / total >= plan[p][1];
+      });
+      if (picked.length >= 4) break;
+    }
+    return picked.slice(0, 9).map(function (c) {
+      return ('#' + hex2(c.r / c.w) + hex2(c.g / c.w) + hex2(c.b / c.w)).toUpperCase();
+    });
+  }
 
   function runCommand(name, arg) {
     if (name === 'delete') delEl();

@@ -27,6 +27,8 @@ export const codeDefaults: CodeSpec = {
   caret: true,
   w: 900,
   variant: 'typing',
+  lineNumbers: false,
+  palette: 'default',
 };
 
 export const codePresets: Preset<CodeSpec>[] = [

@@ -21,6 +21,8 @@ export interface BridgeEvents {
   /** Visão geral: duplo clique num slide (abrir no Editor). */
   onSlideOpen?: (index: number) => void;
   /** Elemento solto em outro slide: o slide e o caminho do elemento já no novo lugar. */
+  /** Paleta de cores do slide ativo (`#RRGGBB`), em resposta a `requestPalette`. */
+  onPalette?: (colors: string[]) => void;
   onElementMoved?: (index: number, path: number[]) => void;
 }
 
@@ -64,7 +66,8 @@ type DeckMessage =
   | { __mm: 'deck'; type: 'pan'; dx: number; dy: number }
   | { __mm: 'deck'; type: 'slide-click'; index: number }
   | { __mm: 'deck'; type: 'slide-open'; index: number }
-  | { __mm: 'deck'; type: 'element-moved'; index: number; path: number[] };
+  | { __mm: 'deck'; type: 'element-moved'; index: number; path: number[] }
+  | { __mm: 'deck'; type: 'palette'; colors: string[] };
 
 /**
  * Ponte com o iframe do palco.
@@ -147,6 +150,9 @@ export class IframeBridge {
       case 'slide-open':
         this.events.onSlideOpen?.(data.index);
         break;
+      case 'palette':
+        this.events.onPalette?.(data.colors);
+        break;
       case 'element-moved':
         this.events.onElementMoved?.(data.index, data.path);
         break;
@@ -178,6 +184,11 @@ export class IframeBridge {
   setMode(mode: StageMode): void {
     this.mode = mode;
     if (this.ready) this.send({ type: 'mode', mode });
+  }
+
+  /** Pede a paleta do slide ativo (a resposta vem em `onPalette`). */
+  requestPalette(): void {
+    if (this.ready) this.send({ type: 'palette' });
   }
 
   /** Destaque azul nos slides (índices da lista slides + bases). */

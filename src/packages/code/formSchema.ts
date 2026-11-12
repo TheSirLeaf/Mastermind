@@ -53,13 +53,17 @@ export const codeForm: FormSchema = [
     icon: 'design',
     fields: [
       {
-        k: 'variant',
-        label: 'Estilo da janela',
+        k: 'palette',
+        label: 'Cores do bloco',
         type: 'select',
         options: [
-          ['typing', 'Digitação (padrão)'],
-          ['terminal', 'Terminal (linhas numeradas)'],
+          ['default', 'Padrão (vinho e dourado)'],
+          ['slate', 'Grafite'],
+          ['midnight', 'Azul-noite'],
+          ['paper', 'Papel'],
+          ['custom', 'Personalizado'],
         ],
+        help: 'Combine com o fundo do slide. A paleta da aba Slides ajuda a escolher.',
       },
       {
         k: 'theme',
@@ -69,7 +73,9 @@ export const codeForm: FormSchema = [
           ['dark', 'Escuro', 'moon'],
           ['light', 'Claro', 'sun'],
         ],
+        showIf: { k: 'palette', eq: 'default' },
       },
+      { k: 'lineNumbers', label: 'Linhas numeradas', type: 'toggle' },
       {
         type: 'row',
         fields: [
@@ -95,6 +101,36 @@ export const codeForm: FormSchema = [
     ],
   },
   {
+    group: 'Cores personalizadas',
+    icon: 'design',
+    showIf: { k: 'palette', eq: 'custom' },
+    fields: [
+      {
+        type: 'row',
+        fields: [
+          { k: 'cBg', label: 'Fundo', type: 'color' },
+          { k: 'cFg', label: 'Texto', type: 'color' },
+          { k: 'cAc', label: 'Destaque', type: 'color' },
+        ],
+      },
+      {
+        type: 'row',
+        fields: [
+          { k: 'cKw', label: 'Palavras', type: 'color' },
+          { k: 'cStr', label: 'Textos', type: 'color' },
+          { k: 'cNum', label: 'Números', type: 'color' },
+        ],
+      },
+      {
+        type: 'row',
+        fields: [
+          { k: 'cFn', label: 'Funções', type: 'color' },
+          { k: 'cCm', label: 'Comentários', type: 'color' },
+        ],
+      },
+    ],
+  },
+  {
     group: 'Destaque de linhas',
     icon: 'highlight',
     open: false,
@@ -114,6 +150,16 @@ export const codeForm: FormSchema = [
     workspace: 'animation',
     icon: 'play',
     fields: [
+      {
+        k: 'variant',
+        label: 'Animação',
+        type: 'select',
+        options: [
+          ['typing', 'Digitação'],
+          ['terminal', 'Console (linha a linha)'],
+        ],
+        showIf: { k: 'typing', eq: true },
+      },
       { k: 'typing', label: 'Digitar o código', type: 'toggle' },
       { k: 'caret', label: 'Cursor piscando', type: 'toggle' },
       {

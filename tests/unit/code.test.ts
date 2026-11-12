@@ -258,3 +258,60 @@ describe('code package — 5 campos únicos editáveis', () => {
     expect(container.querySelector('.pk-pre')?.textContent).toContain('Console.WriteLine');
   });
 });
+
+describe('code package — cursor, console, cores e numeração', () => {
+  it('o cursor continua no fim depois de digitar (e some ao restaurar)', async () => {
+    const root = rootWith(['ab', 'cd']);
+    const ctrl = codeRuntime(root, { ...defaults, caret: true }, makeApi())!;
+    await ctrl.play();
+    expect(root.querySelectorAll('.pk-caret').length).toBe(1);
+    ctrl.final();
+    expect(root.querySelectorAll('.pk-caret').length).toBe(0);
+  });
+
+  it('sem cursor, nada é inserido', async () => {
+    const root = rootWith(['ab']);
+    await codeRuntime(root, { ...defaults, caret: false }, makeApi())!.play();
+    expect(root.querySelectorAll('.pk-caret').length).toBe(0);
+  });
+
+  it('console revela a linha inteira de uma vez', () => {
+    const root = rootWith(['abc', 'def']);
+    const pre = root.querySelector('pre.pk-pre')!;
+    const calls: number[] = [];
+    const api = makeApi({
+      frame: (fn) => {
+        // 1º quadro (t=0): só a primeira linha; depois tudo.
+        fn(0);
+        calls.push(pre.querySelectorAll('.pk-h').length);
+        for (let ts = 50; ts < 5000; ts += 50) if (fn(ts) === false) break;
+        calls.push(pre.querySelectorAll('.pk-h').length);
+      },
+    });
+    void codeRuntime(root, { ...defaults, variant: 'terminal' }, api)!.play();
+    expect(calls).toEqual([3, 0]);
+  });
+
+  it('renderiza paleta, numeração e o estilo único', () => {
+    const { container } = render(
+      React.createElement(CodeRenderer, {
+        spec: { ...defaults, palette: 'slate', lineNumbers: true, variant: 'terminal' },
+        h: H,
+      })
+    );
+    const box = container.querySelector('.pk-code') as HTMLElement;
+    expect(box.className).toContain('pk-v-typing');
+    expect(box.className).not.toContain('pk-v-terminal');
+    expect(box.className).toContain('pk-nums');
+    expect(box.className).toContain('pk-pal');
+    expect(box.style.getPropertyValue('--pk-bg')).toBe('#1F2128');
+  });
+
+  it('o formulário põe "Animação" na aba Animação e cores/linhas em Aparência', () => {
+    const anim = CodePackage.form.find((g) => g.workspace === 'animation');
+    expect(anim?.fields.some((f) => f.k === 'variant' && f.label === 'Animação')).toBe(true);
+    const look = CodePackage.form.find((g) => g.group === 'Aparência');
+    expect(look?.fields.some((f) => f.k === 'lineNumbers')).toBe(true);
+    expect(look?.fields.some((f) => f.k === 'palette')).toBe(true);
+  });
+});

@@ -26,6 +26,7 @@ export function Stage() {
   // Bases já refletidas nos slides que as usam (a edição vinda do iframe não reenvia a si mesma).
   const lastBasesRef = useRef<string[]>([]);
   const lastPreviewRef = useRef(0);
+  const workspace = useUIStore((state) => state.workspace);
   const previewNonce = useUIStore((state) => state.animationPreviewNonce);
   const [booted, setBooted] = useState(false);
 
@@ -65,6 +66,7 @@ export function Stage() {
         deckState.selectSlide(index);
         deckState.requestSelection(path);
       },
+      onPalette: (colors) => useUIStore.getState().setSlidePalette(colors),
       onPan: (dx, dy) => getStageViewHandlers()?.pan(dx, dy),
     });
     bridgeRef.current = bridge;
@@ -156,8 +158,14 @@ export function Stage() {
     lastIdsRef.current = currentIds;
   }, [deck, booted, currentIndex]);
 
+  // Aba Slides: paleta de cores do slide ativo (espera o DOM assentar depois de cada mudança).
+  useEffect(() => {
+    if (!booted || workspace !== 'slide') return;
+    const timer = window.setTimeout(() => bridgeRef.current?.requestPalette(), 400);
+    return () => window.clearTimeout(timer);
+  }, [booted, workspace, currentIndex, deck]);
+
   // Aba Slides: destaque azul entre um slide base e os slides que o usam.
-  const workspace = useUIStore((state) => state.workspace);
   useEffect(() => {
     if (!booted) return;
     const slideCount = deck.slides.length;
