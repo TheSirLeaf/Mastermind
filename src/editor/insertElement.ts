@@ -1,4 +1,4 @@
-import { useDeckStore } from '@store/deckStore';
+import { itemAt, useDeckStore } from '@store/deckStore';
 
 export type InsertableElement = 'text' | 'image' | 'rect' | 'ellipse' | 'line';
 
@@ -34,7 +34,7 @@ export function insertElement(
 ): InsertElementResult | null {
   const state = useDeckStore.getState();
   const index = state.currentIndex;
-  const slide = state.deck.slides[index];
+  const slide = itemAt(state.deck, index);
   if (!slide) return null;
 
   const doc = new DOMParser().parseFromString(slide.html, 'text/html');

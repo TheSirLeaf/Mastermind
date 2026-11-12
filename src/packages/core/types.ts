@@ -184,6 +184,8 @@ export interface PackageDef<TSpec extends PackageSpec = PackageSpec> {
   icon: string;
   author?: string;
   description?: string;
+  /** Grupo no gerenciador de pacotes (ex.: Código, Dados, Simulação). */
+  category?: string;
   defaults: TSpec;
   presets?: Preset<TSpec>[];
   box?: BoxHint;
@@ -205,6 +207,7 @@ export interface SerializedPackage {
   icon: string;
   author?: string;
   description?: string;
+  category?: string;
   defaults: PackageSpec;
   presets?: Array<{ name: string; desc?: string; spec: PackageSpec }>;
   box?: BoxHint;
@@ -247,6 +250,10 @@ export interface Slide {
 export interface Deck {
   title: string;
   slides: Slide[];
+  /** Slides base (fundos). Não são apresentados. */
+  bases?: Slide[];
+  /** Modelo de origem (ver `models.ts`). */
+  modelId?: string;
 }
 
 /** Dados de seleção reportados pelo iframe do editor. */

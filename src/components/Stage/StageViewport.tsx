@@ -2,7 +2,7 @@
 // Área central: um espaço único com TODOS os slides (nas abas Editor, Animação e Slide).
 // A câmera (zoom/posição) é daqui: escolher um slide no menu da esquerda a leva até ele;
 // scroll dá zoom e o botão do meio move. Na aba Slide os slides podem ser movidos e redimensionados.
-import { slideLayout, SLIDE_H, SLIDE_W } from '@packages/core/deck';
+import { slideLayout, SLIDE_GAP, SLIDE_H, SLIDE_W } from '@packages/core/deck';
 import { useDeckStore } from '@store/deckStore';
 import { clsx } from 'clsx';
 import { Maximize2, ScanSearch } from 'lucide-react';
@@ -39,8 +39,11 @@ export function StageViewport({ highlighted, arrange = false }: StageViewportPro
   const panRef = useRef<{ x: number; y: number } | null>(null);
   const currentIndex = useDeckStore((state) => state.currentIndex);
   const slides = useDeckStore((state) => state.deck.slides);
+  const bases = useDeckStore((state) => state.deck.bases);
   const slidesRef = useRef(slides);
   slidesRef.current = slides;
+  const basesRef = useRef(bases);
+  basesRef.current = bases;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -66,6 +69,10 @@ export function StageViewport({ highlighted, arrange = false }: StageViewportPro
       const boxes = slidesRef.current.map((slide, i) => {
         const l = slideLayout(slide.html, i);
         return { x: l.x, y: l.y, w: SLIDE_W * l.s, h: SLIDE_H * l.s };
+      });
+      // Slides base: uma linha acima dos slides (mesma regra do motor do palco).
+      (basesRef.current ?? []).forEach((_base, k) => {
+        boxes.push({ x: k * (SLIDE_W + SLIDE_GAP), y: -(SLIDE_H + 380), w: SLIDE_W, h: SLIDE_H });
       });
       const picked = index === null ? boxes : boxes.slice(index, index + 1);
       if (picked.length === 0) return;

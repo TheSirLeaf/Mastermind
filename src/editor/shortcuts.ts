@@ -1,6 +1,7 @@
 import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 
+import './clipboard';
 import { saveHTML } from './actions';
 import { getActiveBridge } from './bridgeRef';
 
@@ -22,6 +23,15 @@ export function handleBridgeKey(key: string): void {
       break;
     case 'prev':
       deck.selectSlide(deck.currentIndex - 1);
+      break;
+    case 'delete-slide':
+      deck.deleteSlide(deck.currentIndex);
+      break;
+    case 'copy-slide':
+      deck.copySlide(deck.currentIndex);
+      break;
+    case 'paste-slide':
+      deck.pasteSlide();
       break;
     case 'open-package':
       useUIStore.getState().setInspectorTab('package');
@@ -74,10 +84,28 @@ export function handleGlobalKey(event: KeyboardEvent): void {
     deck.redo();
     return;
   }
+  const hasTextSelection = (window.getSelection()?.toString() ?? '') !== '';
+  if (ctrl && key === 'c' && !hasTextSelection) {
+    event.preventDefault();
+    if (deck.selection && bridge) bridge.command('copy');
+    else deck.copySlide(deck.currentIndex);
+    return;
+  }
+  if (ctrl && key === 'v') {
+    event.preventDefault();
+    if (window.__mmClip?.kind === 'element' && bridge) bridge.command('paste');
+    else deck.pasteSlide();
+    return;
+  }
   if (!bridge) return;
   if (ctrl && key === 'd' && deck.selection) {
     event.preventDefault();
     bridge.command('duplicate');
+    return;
+  }
+  if ((key === 'Delete' || key === 'Backspace') && ui.workspace === 'slide' && !deck.selection) {
+    event.preventDefault();
+    deck.deleteSlide(deck.currentIndex);
     return;
   }
   if ((key === 'Delete' || key === 'Backspace') && deck.selection) {

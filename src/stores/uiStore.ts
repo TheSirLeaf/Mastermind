@@ -22,6 +22,7 @@ interface UIState {
 
   // Modals
   isPackageManagerOpen: boolean;
+  isNewSlideOpen: boolean;
   isWelcomeOpen: boolean;
   /** Há um rascunho salvo neste navegador (carregado no boot). */
   hasDraft: boolean;
@@ -48,6 +49,8 @@ interface UIState {
   setOpenSection: (group: string, id: string) => void;
   replayAnimations: () => void;
   openPackageManager: () => void;
+  openNewSlide: () => void;
+  closeNewSlide: () => void;
   closePackageManager: () => void;
   openWelcome: () => void;
   setHasDraft: (value: boolean) => void;
@@ -108,6 +111,7 @@ export const useUIStore = create<UIState>()(
     animationPreviewNonce: 0,
 
     isPackageManagerOpen: false,
+    isNewSlideOpen: false,
     isWelcomeOpen: readWelcomePref(),
     hasDraft: false,
     isExportModalOpen: false,
@@ -156,6 +160,8 @@ export const useUIStore = create<UIState>()(
       }),
 
     openPackageManager: () => set({ isPackageManagerOpen: true }),
+    openNewSlide: () => set({ isNewSlideOpen: true }),
+    closeNewSlide: () => set({ isNewSlideOpen: false }),
     closePackageManager: () => set({ isPackageManagerOpen: false }),
 
     openWelcome: () => set({ isWelcomeOpen: true }),

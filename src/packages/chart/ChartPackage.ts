@@ -92,6 +92,7 @@ export const ChartPackage: PackageDef<ChartSpec> = {
   name: 'Gráfico',
   version: '1.0.0',
   icon: 'chart',
+  category: 'Dados',
   author: 'Dialcron',
   description:
     'Barras verticais, barras horizontais, linha e rosca, com entrada animada e contagem dos valores.',

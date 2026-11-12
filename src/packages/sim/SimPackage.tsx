@@ -384,6 +384,7 @@ export const SimPackage: PackageDef<SimSpec> = {
   name: 'Tela simulada',
   version: '2.0.0',
   icon: 'monitor-play',
+  category: 'Simulação',
   author: 'Dialcron',
   description:
     'Janela de aplicativo com tabela, formulário, transação, toasts do Windows e cursor animado — com roteiro de código, commit e rollback.',

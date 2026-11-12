@@ -45,6 +45,8 @@ export const BRIDGE_COMMANDS = [
   'parent',
   'edit',
   'nudge',
+  'copy',
+  'paste',
   'format',
 ] as const;
 
@@ -77,6 +79,7 @@ export class IframeBridge {
   private pendingSelect: { path: number[]; edit: boolean } | null = null;
   private mode: StageMode = 'edit';
   private view: StageView | null = null;
+  private highlighted: number[] = [];
   private readonly iframe: HTMLIFrameElement;
   private readonly events: BridgeEvents;
 
@@ -100,6 +103,7 @@ export class IframeBridge {
         // Um documento recarregado volta ao modo padrão: reaplica o modo e a visão.
         if (this.mode !== 'edit') this.send({ type: 'mode', mode: this.mode });
         if (this.view) this.send({ type: 'view', ...this.view });
+        if (this.highlighted.length) this.send({ type: 'highlight', indices: this.highlighted });
         if (this.pendingGoto !== null) {
           const index = this.pendingGoto;
           this.pendingGoto = null;
@@ -174,6 +178,12 @@ export class IframeBridge {
   setMode(mode: StageMode): void {
     this.mode = mode;
     if (this.ready) this.send({ type: 'mode', mode });
+  }
+
+  /** Destaque azul nos slides (índices da lista slides + bases). */
+  highlight(indices: number[]): void {
+    this.highlighted = indices;
+    if (this.ready) this.send({ type: 'highlight', indices });
   }
 
   /** Posição e zoom da visão geral. */

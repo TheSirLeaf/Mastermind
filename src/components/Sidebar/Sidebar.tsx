@@ -2,6 +2,7 @@
 import { useDeckStore } from '@store/deckStore';
 import { Layers } from 'lucide-react';
 
+import { BaseList } from './BaseList';
 import { SlideFooter } from './SlideFooter';
 import { SlideList } from './SlideList';
 
@@ -20,6 +21,7 @@ export function Sidebar() {
         <SlideList />
       </div>
 
+      <BaseList />
       <SlideFooter />
     </div>
   );

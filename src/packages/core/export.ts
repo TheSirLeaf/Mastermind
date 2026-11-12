@@ -1,4 +1,5 @@
 import { ANIMATION_CSS } from './animation';
+import { resolveDeckSlides } from './bases';
 import type { PackageRegistry } from './PackageRegistry';
 import { PKG_HOST_SRC, EDITOR_BRIDGE_SRC } from './pkgHost';
 import type { Deck, Slide } from './types';
@@ -32,6 +33,23 @@ function escapeText(value: string): string {
 
 export function slidesToHTML(slides: Slide[]): string {
   return slides.map((slide) => slide.html).join('\n');
+}
+
+/** Slides com as bases aplicadas; no editor as bases entram depois, como slides extras. */
+export function deckSlidesHTML(deck: Deck, withBases: boolean): string {
+  const parts = resolveDeckSlides(deck);
+  if (withBases) for (const base of deck.bases ?? []) parts.push(base.html);
+  return parts.join('\n');
+}
+
+/** Bases embutidas no HTML exportado, para reabrir o arquivo no editor sem perder o modelo. */
+function basesMeta(deck: Deck): string {
+  if (!deck.bases?.length) return '';
+  const json = JSON.stringify({ bases: deck.bases, modelId: deck.modelId }).replace(
+    /</g,
+    '\\u003c'
+  );
+  return `<script type="application/json" id="mm-bases">${json}</script>`;
 }
 
 /**
@@ -88,7 +106,7 @@ export function buildPresentationHTML(options: BuildPresentationOptions): string
   let html = template;
 
   html = fill(html, '{{TITLE}}', escapeText(deck.title || 'Apresentação'));
-  html = fill(html, '{{SLIDES}}', slidesToHTML(deck.slides));
+  html = fill(html, '{{SLIDES}}', deckSlidesHTML(deck, false));
   html = fill(html, '{{PKG_CSS}}', registry.css());
   html = fill(html, '{{PKG_REGISTRY}}', buildRegistryPayload(registry, packageIds));
   html = fill(html, '{{PKG_HOST}}', PKG_HOST_SRC);
@@ -97,7 +115,7 @@ export function buildPresentationHTML(options: BuildPresentationOptions): string
   if (html.includes('</head>')) {
     html = html.replace(
       '</head>',
-      `<style id="mm-anim">${ANIMATION_CSS}</style>\n<style id="mm-print">${PRINT_CSS}</style>\n</head>`
+      `<style id="mm-anim">${ANIMATION_CSS}</style>\n<style id="mm-print">${PRINT_CSS}</style>\n${basesMeta(deck)}</head>`
     );
   }
 
@@ -114,7 +132,7 @@ export function buildEditorHTML(
   let html = template;
 
   html = fill(html, '{{TITLE}}', escapeText(deck.title || 'Apresentação'));
-  html = fill(html, '{{SLIDES}}', slidesToHTML(deck.slides));
+  html = fill(html, '{{SLIDES}}', deckSlidesHTML(deck, true));
   html = fill(html, '{{PKG_CSS}}', registry.css());
   html = fill(html, '{{PKG_REGISTRY}}', buildRegistryPayload(registry));
   // O host expõe `window.__anim`, usado pelo preview para rodar os runtimes dos pacotes.

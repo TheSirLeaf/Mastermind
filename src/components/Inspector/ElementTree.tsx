@@ -1,4 +1,4 @@
-import { useDeckStore } from '@store/deckStore';
+import { itemAt, useDeckStore } from '@store/deckStore';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
@@ -102,7 +102,7 @@ export function ElementTree() {
   const selection = useDeckStore((state) => state.selection);
   const [open, setOpen] = useState(false);
 
-  const slide = deck.slides[currentIndex];
+  const slide = itemAt(deck, currentIndex);
   if (!slide) return null;
 
   const doc = new DOMParser().parseFromString(slide.html, 'text/html');

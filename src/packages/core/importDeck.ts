@@ -19,7 +19,25 @@ export function parseDeckHTML(html: string, options: ImportDeckOptions = {}): De
   const doc = new DOMParser().parseFromString(html, 'text/html');
 
   // Remove artefatos do editor, caso o arquivo tenha sido salvo pelo iframe.
-  doc.querySelectorAll('#mm-sel, [data-mm-editing]').forEach((node) => node.remove());
+  doc.querySelectorAll('#mm-sel, #mm-grid, [data-mm-editing]').forEach((node) => node.remove());
+
+  // Bases embutidas na exportação e slides base (não apresentados) gravados pelo editor.
+  let bases: Deck['bases'];
+  let modelId: string | undefined;
+  try {
+    const meta = JSON.parse(doc.getElementById('mm-bases')?.textContent ?? 'null') as {
+      bases?: Array<{ id: string; html: string }>;
+      modelId?: string;
+    } | null;
+    if (meta?.bases?.length) {
+      bases = meta.bases.map((b) => ({ id: b.id || newSlideId(), html: b.html }));
+      modelId = meta.modelId;
+    }
+  } catch {
+    bases = undefined;
+  }
+  doc.querySelectorAll('.mm-bgl').forEach((node) => node.remove());
+  doc.querySelectorAll('section.slide[data-base-id]').forEach((node) => node.remove());
 
   let slides = Array.from(doc.querySelectorAll('#deck > section.slide'));
   if (slides.length === 0) slides = Array.from(doc.querySelectorAll('section.slide'));
@@ -34,6 +52,8 @@ export function parseDeckHTML(html: string, options: ImportDeckOptions = {}): De
       id: newSlideId(),
       html: section.outerHTML,
     })),
+    ...(bases ? { bases } : {}),
+    ...(modelId ? { modelId } : {}),
   };
 
   parsed.slides = renumberFooters(parsed.slides);

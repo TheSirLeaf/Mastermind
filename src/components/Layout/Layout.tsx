@@ -3,6 +3,7 @@ import { Toast } from '@components/common/Toast';
 import { WelcomeModal } from '@components/common/WelcomeModal';
 import { Inspector } from '@components/Inspector/Inspector';
 import { PackageManagerModal } from '@components/PackageManager/PackageManagerModal';
+import { NewSlideModal } from '@components/Sidebar/NewSlideModal';
 import { Sidebar } from '@components/Sidebar/Sidebar';
 import { PresentationOverlay } from '@components/Stage/PresentationOverlay';
 import { StageViewport } from '@components/Stage/StageViewport';
@@ -75,6 +76,7 @@ export function Layout() {
       )}
       {isWelcomeOpen && <WelcomeModal />}
       <PackageManagerModal />
+      <NewSlideModal />
       <SettingsModal />
       {toast && <Toast message={toast.message} type={toast.type} onDismiss={hideToast} />}
     </div>

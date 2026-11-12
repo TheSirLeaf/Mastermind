@@ -1,5 +1,6 @@
 import { customAlphabet } from 'nanoid';
 
+import { getModel, DEFAULT_MODEL_ID } from './models';
 import type { Deck, Slide } from './types';
 
 const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 10);
@@ -42,9 +43,14 @@ export function makeSlide(html: string, footer = FOOTER_HTML): Slide {
 
 /** Deck inicial usado quando não há nada salvo. */
 export function createDefaultDeck(): Deck {
-  const cover = makeSlide(DEFAULT_COVER_HTML);
-  const text = makeSlide(DEFAULT_TEXT_HTML);
-  return { title: 'Apresentação sem título', slides: [cover, text] };
+  const model = getModel(DEFAULT_MODEL_ID);
+  const slides = model.slides.slice(0, 2).map((s) => makeSlide(s.html, ''));
+  return {
+    title: 'Apresentação sem título',
+    slides,
+    bases: model.bases(),
+    modelId: model.id,
+  };
 }
 
 /** Renumera os rodapés (`00 / 00`) de todos os slides. */

@@ -1,8 +1,14 @@
 // components/Stage/Stage.tsx
+import {
+  baseIndexForSlide,
+  baseOwnId,
+  resolveDeckSlides,
+  slidesUsingBase,
+} from '@packages/core/bases';
 import { buildEditorHTML } from '@packages/core/export';
 import { IframeBridge } from '@packages/core/iframeBridge';
 import { registry } from '@packages/core/PackageRegistry';
-import { useDeckStore } from '@store/deckStore';
+import { deckItems, useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 import { useRef, useEffect, useState } from 'react';
 
@@ -17,6 +23,8 @@ export function Stage() {
   const bridgeRef = useRef<IframeBridge | null>(null);
   const lastSlidesRef = useRef<string[]>([]);
   const lastIdsRef = useRef<string[]>([]);
+  // Bases já refletidas nos slides que as usam (a edição vinda do iframe não reenvia a si mesma).
+  const lastBasesRef = useRef<string[]>([]);
   const lastPreviewRef = useRef(0);
   const previewNonce = useUIStore((state) => state.animationPreviewNonce);
   const [booted, setBooted] = useState(false);
@@ -63,8 +71,10 @@ export function Stage() {
     setActiveBridge(bridge);
 
     const initialDeck = useDeckStore.getState().deck;
-    lastSlidesRef.current = initialDeck.slides.map((slide) => slide.html);
-    lastIdsRef.current = initialDeck.slides.map((slide) => slide.id);
+    const initialItems = deckItems(initialDeck);
+    lastSlidesRef.current = initialItems.map((slide) => slide.html);
+    lastIdsRef.current = initialItems.map((slide) => slide.id);
+    lastBasesRef.current = (initialDeck.bases ?? []).map((base) => base.html);
     bridge.load(buildEditorHTML(initialDeck, registry));
     // O `goto` é enfileirado até o iframe anunciar `ready`; sem isso o primeiro
     // slide nunca recebe `.active` e o palco abre em branco.
@@ -99,9 +109,10 @@ export function Stage() {
     const bridge = bridgeRef.current;
     if (!bridge || !booted) return;
     const previous = lastSlidesRef.current;
-    const current = deck.slides.map((slide) => slide.html);
+    const items = deckItems(deck);
+    const current = items.map((slide) => slide.html);
     const previousIds = lastIdsRef.current;
-    const currentIds = deck.slides.map((slide) => slide.id);
+    const currentIds = items.map((slide) => slide.id);
     const structural =
       previous.length !== current.length ||
       previousIds.length !== currentIds.length ||
@@ -112,18 +123,56 @@ export function Stage() {
       bridge.goto(currentIndex);
       lastSlidesRef.current = current;
       lastIdsRef.current = currentIds;
+      lastBasesRef.current = (deck.bases ?? []).map((base) => base.html);
       return;
     }
 
-    // Updates to specific slide HTML without reloading iframe
+    // Updates to specific slide HTML without reloading iframe. Uma base alterada
+    // também atualiza (com a camada nova) todos os slides que a usam.
+    const resolved = resolveDeckSlides(deck);
+    const slideCount = deck.slides.length;
+    const toSend = new Set<number>();
     current.forEach((html, index) => {
-      if (previous[index] !== html && previous.length === current.length) {
-        bridge.setSlideHTML(index, html);
+      if (previous[index] === html || previous.length !== current.length) return;
+      toSend.add(index);
+      if (index >= slideCount) {
+        const id = baseOwnId(html);
+        if (id) slidesUsingBase(deck, id).forEach((i) => toSend.add(i));
       }
+    });
+    (deck.bases ?? []).forEach((base, k) => {
+      if (lastBasesRef.current[k] === base.html) return;
+      const id = baseOwnId(base.html);
+      if (id) slidesUsingBase(deck, id).forEach((i) => toSend.add(i));
+    });
+    lastBasesRef.current = (deck.bases ?? []).map((base) => base.html);
+    toSend.forEach((index) => {
+      bridge.setSlideHTML(
+        index,
+        index < slideCount ? (resolved[index] ?? '') : (current[index] ?? '')
+      );
     });
     lastSlidesRef.current = current;
     lastIdsRef.current = currentIds;
   }, [deck, booted, currentIndex]);
+
+  // Aba Slides: destaque azul entre um slide base e os slides que o usam.
+  const workspace = useUIStore((state) => state.workspace);
+  useEffect(() => {
+    if (!booted) return;
+    const slideCount = deck.slides.length;
+    let indices: number[] = [];
+    if (workspace === 'slide') {
+      if (currentIndex >= slideCount) {
+        const id = baseOwnId(deck.bases?.[currentIndex - slideCount]?.html ?? '');
+        indices = id ? slidesUsingBase(deck, id) : [];
+      } else {
+        const base = baseIndexForSlide(deck, currentIndex);
+        indices = base === null ? [] : [base];
+      }
+    }
+    bridgeRef.current?.highlight(indices);
+  }, [booted, workspace, currentIndex, deck]);
 
   // Depois de inserir um elemento, o store pede a seleção dele. Este efeito
   // fica após o efeito do deck para que o `set-slide` já tenha sido enviado.

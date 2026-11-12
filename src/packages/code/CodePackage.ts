@@ -69,6 +69,7 @@ export const CodePackage: PackageDef<CodeSpec> = {
   name: 'Caixa de código',
   version: '1.0.0',
   icon: 'code',
+  category: 'Código',
   author: 'Dialcron',
   description: 'Janela de código com realce de sintaxe, linhas destacadas e animação de digitação.',
   defaults: codeDefaults,

@@ -1,6 +1,6 @@
 import { registry } from '@packages/core/PackageRegistry';
 import type { PackageSpec } from '@packages/core/types';
-import { useDeckStore } from '@store/deckStore';
+import { itemAt, useDeckStore } from '@store/deckStore';
 
 export interface InsertPackageResult {
   slideIndex: number;
@@ -19,7 +19,7 @@ export function insertPackage(id: string, presetIndex = -1): InsertPackageResult
 
   const store = useDeckStore.getState();
   const slideIndex = store.currentIndex;
-  const slide = store.deck.slides[slideIndex];
+  const slide = itemAt(store.deck, slideIndex);
   if (!slide) return null;
 
   const doc = new DOMParser().parseFromString(slide.html, 'text/html');

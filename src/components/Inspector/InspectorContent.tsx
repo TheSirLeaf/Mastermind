@@ -1,8 +1,11 @@
 // components/Inspector/InspectorContent.tsx
 import type { SelectionInfo } from '@packages/core/types';
+import { useDeckStore } from '@store/deckStore';
 import type { InspectorTab, Workspace } from '@stores/uiStore';
 
+
 import { AnimationTab } from './AnimationTab';
+import { BaseFxButtons } from './BaseBlocks';
 import { ContentTab } from './ContentTab';
 import { CounterSection } from './CounterSection';
 import { ElementActions } from './ElementActions';
@@ -22,6 +25,8 @@ export function InspectorContent({
   selection,
   workspace = 'editor',
 }: InspectorContentProps) {
+  const isBase = useDeckStore((state) => state.currentIndex >= state.deck.slides.length);
+
   if (activeTab === 'slide') {
     return <SlideTab />;
   }
@@ -34,7 +39,19 @@ export function InspectorContent({
   }
 
   if (!selection) {
-    return <EmptyState message="Clique em um elemento do slide para selecioná-lo" icon="layout" />;
+    return (
+      <>
+        <EmptyState message="Clique em um elemento do slide para selecioná-lo" icon="layout" />
+        {isBase ? (
+          <div className="px-4 pb-4">
+            <div className="mb-2 text-[10px] uppercase tracking-widest text-sky-400">
+              Slide base — adicionar ao fundo
+            </div>
+            <BaseFxButtons />
+          </div>
+        ) : null}
+      </>
+    );
   }
 
   return (

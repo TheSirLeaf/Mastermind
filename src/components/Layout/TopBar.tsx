@@ -36,7 +36,7 @@ const WORKSPACES: WorkspaceDef[] = [
   },
   {
     id: 'slide',
-    label: 'Slide',
+    label: 'Slides',
     icon: LayoutGrid,
     description: 'Veja todos os slides juntos e ajuste notas e fundo de cada um.',
   },

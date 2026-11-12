@@ -47,7 +47,7 @@ const LABELS: Record<InspectorTab, string> = {
   content: 'Conteúdo',
   package: 'Pacote',
   animation: 'Animação',
-  slide: 'Slide',
+  slide: 'Slides',
 };
 
 /** Cada área de trabalho mostra só o seu inspetor. */

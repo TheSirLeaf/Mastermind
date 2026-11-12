@@ -13,7 +13,7 @@ import {
   type ElementAnimation,
 } from '@packages/core/animation';
 import type { SelectionInfo } from '@packages/core/types';
-import { useDeckStore } from '@store/deckStore';
+import { itemAt, useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -50,7 +50,7 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
   const path = selection.path;
   const pathKey = path.join('.');
   const slideIndex = path[0];
-  const slide = typeof slideIndex === 'number' ? deck.slides[slideIndex] : undefined;
+  const slide = typeof slideIndex === 'number' ? itemAt(deck, slideIndex) : undefined;
   const html = slide?.html ?? '';
   const selectedElement = readSelectedElement(selection);
   const current = selectedElement ? readAnimation(selectedElement) : null;

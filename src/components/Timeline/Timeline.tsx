@@ -9,7 +9,7 @@ import {
   type AnimationKind,
   type ElementAnimation,
 } from '@packages/core/animation';
-import { useDeckStore } from '@store/deckStore';
+import { itemAt, useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 import { clsx } from 'clsx';
 import { Play, Plus, Square } from 'lucide-react';
@@ -124,7 +124,7 @@ export function Timeline() {
   const dragRef = useRef<DragState | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  const slide = deck.slides[currentIndex];
+  const slide = itemAt(deck, currentIndex);
   const html = slide?.html ?? '';
   const selectedKey = selection ? selection.path.join('.') : null;
 

@@ -1,5 +1,5 @@
 import type { SelectionInfo } from '@packages/core/types';
-import { useDeckStore } from '@store/deckStore';
+import { itemAt, useDeckStore } from '@store/deckStore';
 
 /** Índice do slide no path reportado pelo iframe. */
 export function slideIndexFromSelection(selection: SelectionInfo): number | null {
@@ -16,7 +16,7 @@ export function slideIndexFromSelection(selection: SelectionInfo): number | null
 export function readSelectedElement(selection: SelectionInfo): Element | null {
   const index = slideIndexFromSelection(selection);
   if (index === null) return null;
-  const slide = useDeckStore.getState().deck.slides[index];
+  const slide = itemAt(useDeckStore.getState().deck, index);
   if (!slide) return null;
 
   const doc = new DOMParser().parseFromString(slide.html, 'text/html');
@@ -40,7 +40,7 @@ export function mutateSelectedElement(
 ): void {
   const index = slideIndexFromSelection(selection);
   if (index === null) return;
-  const slide = useDeckStore.getState().deck.slides[index];
+  const slide = itemAt(useDeckStore.getState().deck, index);
   if (!slide) return;
 
   const doc = new DOMParser().parseFromString(slide.html, 'text/html');
