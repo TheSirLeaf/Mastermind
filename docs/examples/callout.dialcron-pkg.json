@@ -1,0 +1,64 @@
+{
+  "format": "dialcron-package",
+  "spec": 1,
+  "packages": [
+    {
+      "id": "callout",
+      "name": "Destaque",
+      "version": "1.0.0",
+      "icon": "sparkles",
+      "author": "Seu nome",
+      "category": "Texto",
+      "description": "Caixa de destaque com título e texto, que entra com um fade.",
+      "defaults": { "title": "Atenção", "text": "Escreva aqui a mensagem.", "tone": "gold" },
+      "presets": [
+        { "name": "Aviso", "desc": "Tom vermelho", "spec": { "title": "Cuidado", "tone": "red" } },
+        { "name": "Dica", "desc": "Tom verde", "spec": { "title": "Dica", "tone": "green" } }
+      ],
+      "box": { "w": 900 },
+      "css": ".callout{border-left:8px solid var(--c,#F7D98B);padding:28px 36px;border-radius:12px;background:rgba(255,255,255,.06)}.callout b{display:block;font-size:36px;margin-bottom:8px;color:var(--c,#F7D98B)}.callout p{margin:0;font-size:28px;line-height:1.4}",
+      "form": [
+        {
+          "group": "Conteúdo",
+          "icon": "edit",
+          "open": true,
+          "fields": [
+            { "k": "title", "type": "text", "label": "Título" },
+            { "k": "text", "type": "textarea", "label": "Texto", "rows": 4 }
+          ]
+        },
+        {
+          "group": "Aparência",
+          "icon": "design",
+          "fields": [
+            {
+              "k": "tone",
+              "type": "select",
+              "label": "Cor",
+              "options": [
+                ["gold", "Dourado"],
+                ["red", "Vermelho"],
+                ["green", "Verde"]
+              ]
+            }
+          ]
+        }
+      ],
+      "render": {
+        "$fn": "function (spec, h) { var c = { gold: '#F7D98B', red: '#C95C62', green: '#72A68A' }[spec.tone] || '#F7D98B'; return '<div class=\"callout\" style=\"--c:' + c + '\"><b>' + h.esc(spec.title) + '</b><p>' + h.esc(spec.text) + '</p></div>'; }"
+      },
+      "runtime": {
+        "$fn": "function (root, spec, api) { var box = root.querySelector('.callout'); if (!box || api.reduced) return null; return { play: function () { box.style.opacity = '0'; box.style.transition = 'opacity .8s'; api.frame(function () { box.style.opacity = '1'; return false; }); }, final: function () { box.style.opacity = '1'; } }; }"
+      },
+      "duration": { "$fn": "function () { return 800; }" },
+      "transitions": [
+        {
+          "id": "fade-up",
+          "name": "Subir e aparecer",
+          "description": "O novo slide sobe suavemente.",
+          "css": ".t-out{animation:coOut .5s ease both}.t-in{animation:coIn .6s ease both}@keyframes coOut{to{opacity:0}}@keyframes coIn{from{opacity:0;transform:translateY(60px)}to{opacity:1;transform:none}}"
+        }
+      ]
+    }
+  ]
+}

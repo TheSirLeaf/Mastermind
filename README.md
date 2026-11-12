@@ -66,6 +66,9 @@ da apresentação (`src/packages/core/pkgHost.ts`).
 Formato do arquivo: `{ format: 'dialcron-package', spec: 1, packages: [...] }`,
 funções como `{ $fn: "..." }` — compatível com o editor antigo.
 
+- **Criar um pacote:** [`docs/PACKAGES.md`](docs/PACKAGES.md) (com um exemplo pronto em `docs/examples/`).
+- **Deploy no Cloudflare Pages e CI/CD:** [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
 ## Fluxo de agentes
 
 Ver `AGENTS_CONTRACT.md` e `ARCHITECTURE.md`. Branches:
