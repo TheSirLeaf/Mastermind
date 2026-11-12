@@ -39,10 +39,35 @@
     handles[name] = h;
   });
   deck.appendChild(sel);
+  var grid = document.createElement('div');
+  grid.id = 'mm-grid';
+  deck.appendChild(grid);
+  /* pontos do grid: espaçamento cresce ao afastar para manter a densidade na tela */
+  function updateGrid() {
+    var step = 80;
+    while (step * scale < 28) step *= 2;
+    var r = Math.max(1.2, 1.7 / scale);
+    var off = 200000 % step;
+    grid.style.backgroundImage =
+      'radial-gradient(circle, #34343d ' +
+      r.toFixed(2) +
+      'px, transparent ' +
+      (r + 0.6 / scale).toFixed(2) +
+      'px)';
+    grid.style.backgroundSize = step + 'px ' + step + 'px';
+    grid.style.backgroundPosition = step / 2 - off + 'px ' + (step / 2 - off) + 'px';
+  }
 
   var style = document.createElement('style');
   style.textContent = [
     'html,body{overflow:hidden}',
+    'html,body,#stage{background:#17171b!important}',
+    '#mm-grid{position:absolute;left:-200000px;top:-200000px;width:400000px;height:400000px;z-index:0;pointer-events:none}',
+    /* elementos podem ser arrastados para fora do slide (grid); a apresentação continua cortando */
+    'body.mm-canvas:not(.mm-preview) .slide{overflow:visible!important}',
+    'body.mm-canvas:not(.mm-preview) .slide.light::before{clip-path:inset(300px 260px 0 0)}',
+    'body.mm-canvas:not(.mm-preview) .slide::after{clip-path:inset(0 70px 110px 0)}',
+    'body.mm-lift #deck>.slide.active{z-index:2000000!important}',
     '#stage{display:block}',
     '#deck{left:0;top:0;transform-origin:0 0;-webkit-user-select:none;user-select:none}',
     '.slide{transition:none!important}',
@@ -82,38 +107,70 @@
   var previewing = false;
   var previewTimer = null;
 
-  /* modo "canvas": todos os slides lado a lado; o editor controla zoom/posição */
-  var mode = 'slide';
-  var CANVAS_GAP = 160;
+  /* Mundo: cada slide tem posição (data-x/data-y) e escala (data-s) no espaço; o editor
+     controla a câmera (zoom/pan) e o modo ('edit' ou 'arrange' = mover/redimensionar slides). */
+  var mode = 'edit';
+  var SLIDE_W = 1920;
+  var SLIDE_H = 1080;
+  var GAP = 160;
+  document.body.classList.add('mm-canvas');
   var canvasStyle = document.createElement('style');
   canvasStyle.id = 'mm-canvas-style';
   document.head.appendChild(canvasStyle);
 
+  function layoutOf(slide, index) {
+    var sc = parseFloat(slide.getAttribute('data-s'));
+    var x = parseFloat(slide.getAttribute('data-x'));
+    var y = parseFloat(slide.getAttribute('data-y'));
+    return {
+      x: isNaN(x) ? index * (SLIDE_W + GAP) : x,
+      y: isNaN(y) ? 0 : y,
+      s: sc > 0 ? sc : 1,
+    };
+  }
+  function slideIndexOf(slide) {
+    return Array.prototype.indexOf.call(slideList(), slide);
+  }
+  /* escala do slide que contém o elemento (a câmera já está em `scale`) */
+  function esOf(el) {
+    var sl = slideOf(el);
+    return sl ? layoutOf(sl, slideIndexOf(sl)).s : 1;
+  }
+
   function buildCanvasCss() {
-    var count = Array.prototype.filter.call(deck.children, function (c) {
-      return c.classList && c.classList.contains('slide');
-    }).length;
+    var list = slideList();
     var css = [
-      'body.mm-canvas .slide{inset:auto!important;top:0!important;opacity:1!important;visibility:visible!important;transform:none!important;transition:none!important;pointer-events:auto!important;cursor:pointer}',
-      'body.mm-canvas .slide.active{box-shadow:0 0 0 10px ' + GOLD + '}',
-      'body.mm-canvas .slide *{pointer-events:none!important}',
+      'body.mm-canvas .slide{inset:auto!important;opacity:1!important;visibility:visible!important;transition:none!important;pointer-events:auto!important;transform-origin:0 0!important}',
+      'body.mm-canvas .slide:not(.active) *{pointer-events:none!important}',
+      'body.mm-canvas .slide:not(.active){cursor:pointer}',
+      'body.mm-canvas .slide.active{box-shadow:0 0 0 ' + 6 + 'px rgba(247,217,139,.4)}',
+      'body.mm-arrange .slide *{pointer-events:none!important}',
+      'body.mm-arrange .slide{cursor:move}',
+      'body.mm-arrange .slide.active{box-shadow:0 0 0 8px ' + GOLD + '}',
+      '.mm-arr .mm-h[data-h=e],.mm-arr .mm-h[data-h=s]{display:none}',
     ];
-    for (var i = 0; i < count; i++) {
+    list.forEach(function (sl, i) {
+      var l = layoutOf(sl, i);
       css.push(
         'body.mm-canvas #deck>.slide:nth-child(' +
           (i + 1) +
           '){left:' +
-          i * (1920 + CANVAS_GAP) +
-          'px!important}'
+          l.x +
+          'px!important;top:' +
+          l.y +
+          'px!important;transform:scale(' +
+          l.s +
+          ')!important;z-index:' +
+          Math.round(100 / l.s) +
+          '!important}'
       );
-    }
+    });
     canvasStyle.textContent = css.join('\n');
   }
+  buildCanvasCss();
 
   function fit() {
-    if (mode === 'canvas') return;
-    scale = (stage.clientWidth || 1920) / 1920;
-    deck.style.transform = 'scale(' + scale + ')';
+    /* a câmera é controlada pelo editor (mensagem 'view') */
   }
   fit();
   window.addEventListener('resize', function () {
@@ -326,13 +383,23 @@
       px(2) +
       ';border-radius:' +
       px(4);
-    tag.textContent =
-      (isLocked(el) ? '🔒 ' : '') +
-      labelOf(el) +
-      ' · ' +
-      Math.round(r.width) +
-      '×' +
-      Math.round(r.height);
+    if (el.classList.contains('slide')) {
+      tag.textContent =
+        'Slide ' +
+        (slideIndexOf(el) + 1) +
+        ' · ' +
+        Math.round(layoutOf(el, slideIndexOf(el)).s * 100) +
+        '%';
+    } else {
+      var esz = esOf(el);
+      tag.textContent =
+        (isLocked(el) ? '🔒 ' : '') +
+        labelOf(el) +
+        ' · ' +
+        Math.round(r.width / esz) +
+        '×' +
+        Math.round(r.height / esz);
+    }
     var inside = r.top * scale < 34;
     tag.style.fontSize = (12 / scale).toFixed(2) + 'px';
     tag.style.padding = px(3) + ' ' + px(8);
@@ -522,7 +589,7 @@
     if (p && p !== deck && !p.classList.contains('slide')) select(p);
   }
   function nudge(dx, dy) {
-    if (!selected || isLocked(selected)) return;
+    if (!selected || isLocked(selected) || mode === 'arrange') return;
     var t = getTrans(selected);
     setTrans(selected, t.x + dx, t.y + dy);
     drawSelection(selected);
@@ -597,10 +664,8 @@
     'pointerdown',
     function (e) {
       if (e.button !== 0 || previewing) return;
-      if (mode === 'canvas') {
-        /* visão geral: clicar num slide só o torna o atual */
-        var hit = e.target instanceof Element ? slideOf(e.target) : null;
-        if (hit) post({ type: 'slide-click', index: slideList().indexOf(hit) });
+      if (mode === 'arrange') {
+        arrangeDown(e);
         return;
       }
       var t = e.target;
@@ -620,8 +685,8 @@
           el: selected,
           sx: e.clientX,
           sy: e.clientY,
-          w0: r.width,
-          h0: r.height,
+          w0: r.width / esOf(selected),
+          h0: r.height / esOf(selected),
           on: false,
           id: e.pointerId,
         };
@@ -630,6 +695,13 @@
       }
       if (!deck.contains(t)) return;
       if (editing) endEdit(true);
+      var clicked = slideOf(t);
+      if (clicked && clicked !== activeSlide()) {
+        /* clicar noutro slide só o torna o atual (a câmera não se move) */
+        select(null);
+        post({ type: 'slide-click', index: slideIndexOf(clicked) });
+        return;
+      }
       var el = pick(t);
       select(el);
       if (!el || isLocked(el)) return;
@@ -663,9 +735,11 @@
         if (Math.hypot(dx, dy) < 4) return;
         drag.on = true;
         document.body.classList.add('mm-dragging');
+        if (drag.mode === 'move') document.body.classList.add('mm-lift');
       }
-      var ax = dx / scale;
-      var ay = dy / scale;
+      var es = scale * esOf(drag.el);
+      var ax = dx / es;
+      var ay = dy / es;
       if (drag.mode === 'move') {
         if (e.shiftKey) {
           if (Math.abs(ax) > Math.abs(ay)) ay = 0;
@@ -691,7 +765,120 @@
     },
     true
   );
-  function endDrag() {
+  /* ---------- arranjo dos slides (aba Slide) ---------- */
+  var arr = null;
+  function setLayout(slide, l) {
+    slide.setAttribute('data-x', String(Math.round(l.x)));
+    slide.setAttribute('data-y', String(Math.round(l.y)));
+    if (Math.abs(l.s - 1) < 0.0005) slide.removeAttribute('data-s');
+    else slide.setAttribute('data-s', l.s.toFixed(3));
+    buildCanvasCss();
+  }
+  function arrangeDown(e) {
+    var t = e.target;
+    if (!(t instanceof Element)) return;
+    var handle = t.closest ? t.closest('.mm-h') : null;
+    if (handle && selected && handle.getAttribute('data-h') === 'se') {
+      arr = {
+        mode: 'scale',
+        el: selected,
+        sx: e.clientX,
+        sy: e.clientY,
+        l: layoutOf(selected, slideIndexOf(selected)),
+        on: false,
+        id: e.pointerId,
+      };
+      capture(e);
+      return;
+    }
+    var sl = slideOf(t);
+    if (!sl) return;
+    post({ type: 'slide-click', index: slideIndexOf(sl) });
+    select(sl, true);
+    arr = {
+      mode: 'move',
+      el: sl,
+      sx: e.clientX,
+      sy: e.clientY,
+      l: layoutOf(sl, slideIndexOf(sl)),
+      on: false,
+      id: e.pointerId,
+    };
+    capture(e);
+  }
+  function arrangeMove(e) {
+    if (!arr) return;
+    if (!arr.on) {
+      if (Math.hypot(e.clientX - arr.sx, e.clientY - arr.sy) < 4) return;
+      arr.on = true;
+      document.body.classList.add('mm-dragging');
+    }
+    var dx = (e.clientX - arr.sx) / scale;
+    var dy = (e.clientY - arr.sy) / scale;
+    if (arr.mode === 'move') {
+      if (e.shiftKey) {
+        if (Math.abs(dx) > Math.abs(dy)) dy = 0;
+        else dx = 0;
+      }
+      setLayout(arr.el, { x: arr.l.x + dx, y: arr.l.y + dy, s: arr.l.s });
+    } else {
+      var ns = Math.max(0.05, Math.min(4, arr.l.s + Math.max(dx / SLIDE_W, dy / SLIDE_H)));
+      setLayout(arr.el, { x: arr.l.x, y: arr.l.y, s: ns });
+    }
+    drawSelection(arr.el);
+  }
+  function arrangeEnd() {
+    if (!arr) return false;
+    var a = arr;
+    arr = null;
+    document.body.classList.remove('mm-dragging');
+    try {
+      document.documentElement.releasePointerCapture(a.id);
+    } catch (err) {
+      /* ignore */
+    }
+    if (a.on) commit('', a.el);
+    return true;
+  }
+  document.addEventListener('pointermove', arrangeMove, true);
+
+  /* Slide mais "por cima" sob o ponteiro (menor escala = mais por cima; empate: o último). */
+  function slideAtPoint(e) {
+    var dr = deck.getBoundingClientRect();
+    var px = (e.clientX - dr.left) / scale;
+    var py = (e.clientY - dr.top) / scale;
+    var best = null;
+    var bestScale = Infinity;
+    slideList().forEach(function (sl, i) {
+      var l = layoutOf(sl, i);
+      if (px < l.x || py < l.y || px > l.x + SLIDE_W * l.s || py > l.y + SLIDE_H * l.s) return;
+      if (l.s <= bestScale) {
+        best = sl;
+        bestScale = l.s;
+      }
+    });
+    return best;
+  }
+  /* Soltar o elemento sobre outro slide passa o elemento para ele, na mesma posição visual. */
+  function dropIntoOtherSlide(el, e) {
+    var from = slideOf(el);
+    var target = slideAtPoint(e);
+    if (!from || !target || target === from) return false;
+    var before = rectOf(el);
+    target.appendChild(el);
+    setTrans(el, 0, 0);
+    var now = rectOf(el);
+    var ts = layoutOf(target, slideIndexOf(target)).s;
+    setTrans(el, (before.left - now.left) / ts, (before.top - now.top) / ts);
+    el.style.zIndex = '';
+    post({ type: 'slide-html', index: slideIndexOf(from), html: serialize(from), key: '' });
+    post({ type: 'slide-html', index: slideIndexOf(target), html: serialize(target), key: '' });
+    post({ type: 'element-moved', index: slideIndexOf(target), path: pathOf(el) });
+    return true;
+  }
+
+  function endDrag(e) {
+    if (arrangeEnd()) return;
     if (!drag) return;
     var d = drag;
     drag = null;
@@ -701,6 +888,8 @@
     } catch (err) {
       /* ignore */
     }
+    document.body.classList.remove('mm-lift');
+    if (d.on && d.mode === 'move' && dropIntoOtherSlide(d.el, e)) return;
     if (d.on) {
       commit('');
       post({
@@ -728,16 +917,17 @@
   document.addEventListener(
     'dblclick',
     function (e) {
-      if (mode === 'canvas') {
-        var over = document.elementFromPoint(e.clientX, e.clientY);
-        var target = over instanceof Element ? slideOf(over) : null;
-        if (target) post({ type: 'slide-open', index: slideList().indexOf(target) });
-        return;
-      }
       if (previewing) return;
       /* com pointer capture o alvo do evento é o <html>; resolve pelo ponto real */
       var t = document.elementFromPoint(e.clientX, e.clientY) || e.target;
       if (!t || !(t instanceof Element) || !deck.contains(t)) return;
+      var dslide = slideOf(t);
+      if (mode === 'arrange' || (dslide && dslide !== activeSlide())) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (dslide) post({ type: 'slide-open', index: slideIndexOf(dslide) });
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       var el = pick(t);
@@ -867,7 +1057,7 @@
       }
       if (k.indexOf('Arrow') === 0) {
         e.preventDefault();
-        if (selected) {
+        if (selected && mode !== 'arrange') {
           var st = e.shiftKey ? 10 : 1;
           if (k === 'ArrowLeft') nudge(-st, 0);
           if (k === 'ArrowRight') nudge(st, 0);
@@ -936,7 +1126,7 @@
       if (editing) endEdit(true);
       if (previewing) stopPreview();
       var active = setActive(data.index);
-      select(null, true);
+      select(mode === 'arrange' ? active : null, true);
       if (active) {
         window.scrollTo(0, 0);
         post({ type: 'slide', index: data.index });
@@ -958,6 +1148,7 @@
       var wasEditing = editing && old.contains(editing);
       if (wasEditing) editing = null;
       old.replaceWith(next);
+      buildCanvasCss();
       if (wasActive) {
         next.classList.add('active');
         if (!previewing) next.classList.add('mm-static');
@@ -999,23 +1190,18 @@
     } else if (data.type === 'mode') {
       if (editing) endEdit(true);
       if (previewing) stopPreview();
+      mode = data.mode === 'arrange' ? 'arrange' : 'edit';
+      document.body.classList.toggle('mm-arrange', mode === 'arrange');
+      sel.classList.toggle('mm-arr', mode === 'arrange');
       select(null, true);
-      mode = data.mode === 'canvas' ? 'canvas' : 'slide';
-      document.body.classList.toggle('mm-canvas', mode === 'canvas');
-      if (mode === 'canvas') {
-        buildCanvasCss();
-        deck.style.transition = 'none';
-      } else {
-        deck.style.transition = 'none';
-        fit();
-      }
-      drawSelection(null);
+      if (mode === 'arrange') select(activeSlide(), true);
     } else if (data.type === 'view') {
-      if (mode !== 'canvas') return;
       scale = data.zoom || 1;
-      deck.style.transition = data.animate ? 'transform .45s cubic-bezier(.2,.8,.2,1)' : 'none';
+      deck.style.transition = data.animate ? 'transform .55s cubic-bezier(.4,0,.2,1)' : 'none';
       deck.style.transform =
         'translate(' + (data.x || 0) + 'px,' + (data.y || 0) + 'px) scale(' + scale + ')';
+      updateGrid();
+      drawSelection(selected);
     } else if (data.type === 'fit') {
       fit();
       drawSelection(selected);

@@ -220,19 +220,159 @@ export const NAV_SCRIPT = `(function(){
   var idx = 0;
   if (!slides.length) return;
 
+  var reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var started = false, moving = false, GAP = 160;
+
+  /* Posição e escala de cada slide no "mundo" (data-x, data-y, data-s) — usadas na transição Mover. */
+  function lay(i){
+    var el = slides[i];
+    var sc = parseFloat(el.getAttribute('data-s')); if(!(sc > 0)) sc = 1;
+    var x = parseFloat(el.getAttribute('data-x')); if(isNaN(x)) x = i*(1920+GAP);
+    var y = parseFloat(el.getAttribute('data-y')); if(isNaN(y)) y = 0;
+    return {x:x, y:y, s:sc};
+  }
+  function camFor(i){
+    var l = lay(i), W = window.innerWidth, H = window.innerHeight;
+    var z = Math.min(W/(1920*l.s), H/(1080*l.s));
+    return {z:z, tx:(W - 1920*l.s*z)/2 - l.x*z, ty:(H - 1080*l.s*z)/2 - l.y*z};
+  }
+  function place(c){ deck.style.transform = 'translate(' + c.tx + 'px,' + c.ty + 'px) scale(' + c.z + ')'; }
+
+  var css = ['body.mm-world .slide{inset:auto!important;opacity:1;visibility:visible;transition:opacity .35s ease!important;transform-origin:0 0!important}',
+    '#deck.mm-notrans .slide{transition:none!important}',
+    '.slide.mm-nest{inset:auto!important;opacity:1!important;visibility:visible!important;transition:none!important;transform-origin:0 0!important;pointer-events:none}',
+    '.slide.t-instant{transition:none!important}',
+    '.slide.t-leave{visibility:visible!important;opacity:1!important;transition:none!important;z-index:1!important;pointer-events:none}',
+    '.slide.t-in-slide{animation:mmTrIn .7s cubic-bezier(.65,0,.35,1) both}.slide.t-out-slide{animation:mmTrOut .7s cubic-bezier(.65,0,.35,1) both}',
+    '.slide.t-in-slide-r{animation:mmTrInR .7s cubic-bezier(.65,0,.35,1) both}.slide.t-out-slide-r{animation:mmTrOutR .7s cubic-bezier(.65,0,.35,1) both}',
+    '.slide.t-in-zoom{animation:mmZIn .7s cubic-bezier(.2,.8,.2,1) both}.slide.t-out-zoom{animation:mmZOut .7s cubic-bezier(.2,.8,.2,1) both}',
+    '.slide.t-in-zoom-r{animation:mmZInR .7s cubic-bezier(.2,.8,.2,1) both}.slide.t-out-zoom-r{animation:mmZOutR .7s cubic-bezier(.2,.8,.2,1) both}',
+    '@keyframes mmTrIn{from{transform:translateX(100%)}to{transform:none}}@keyframes mmTrOut{from{transform:none}to{transform:translateX(-100%)}}',
+    '@keyframes mmTrInR{from{transform:translateX(-100%)}to{transform:none}}@keyframes mmTrOutR{from{transform:none}to{transform:translateX(100%)}}',
+    '@keyframes mmZIn{from{opacity:0;transform:scale(.82)}to{opacity:1;transform:none}}@keyframes mmZOut{from{opacity:1;transform:none}to{opacity:0;transform:scale(1.2)}}',
+    '@keyframes mmZInR{from{opacity:0;transform:scale(1.2)}to{opacity:1;transform:none}}@keyframes mmZOutR{from{opacity:1;transform:none}to{opacity:0;transform:scale(.82)}}'];
+  var kids = [];
+  slides.forEach(function(el, i){
+    el.setAttribute('data-mm-i', i);
+    var l = lay(i);
+    css.push('body.mm-world .slide[data-mm-i="' + i + '"]{left:' + l.x + 'px!important;top:' + l.y + 'px!important;transform:scale(' + l.s + ')!important;z-index:' + Math.round(100/l.s) + '!important}');
+    kids[i] = [];
+  });
+  /* Slide dentro de outro: a caixa dele está inteira sobre a do outro (e é menor). */
+  slides.forEach(function(el, j){
+    var b = lay(j);
+    slides.forEach(function(el2, i){
+      if(i === j) return;
+      var a = lay(i);
+      if(b.s < a.s - 0.0001 && b.x >= a.x - 1 && b.y >= a.y - 1 &&
+         b.x + 1920*b.s <= a.x + 1920*a.s + 1 && b.y + 1080*b.s <= a.y + 1080*a.s + 1) kids[i].push(j);
+    });
+  });
+  var tstyle = document.createElement('style');
+  tstyle.textContent = css.join(' ');
+  document.head.appendChild(tstyle);
+
+  /* Mostra, dentro do slide ativo, os slides que estão sobre ele (na posição e escala do layout). */
+  function nest(a){
+    slides.forEach(function(el){
+      if(el.classList.contains('mm-nest')){
+        el.classList.remove('mm-nest');
+        ['left','top','transform','z-index'].forEach(function(p){ el.style.removeProperty(p); });
+      }
+    });
+    var la = lay(a);
+    kids[a].forEach(function(j){
+      var l = lay(j), el = slides[j], rel = l.s / la.s;
+      el.classList.add('mm-nest');
+      el.style.setProperty('left', ((l.x - la.x)/la.s) + 'px', 'important');
+      el.style.setProperty('top', ((l.y - la.y)/la.s) + 'px', 'important');
+      el.style.setProperty('transform', 'scale(' + rel + ')', 'important');
+      el.style.setProperty('z-index', String(3 + Math.round(10/rel)), 'important');
+    });
+  }
+
   function fit(){
+    if(moving) return;
     var s = Math.min(window.innerWidth/1920, window.innerHeight/1080);
     var dx = (window.innerWidth - 1920*s)/2, dy = (window.innerHeight - 1080*s)/2;
     deck.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + s + ')';
   }
+  function quiet(){
+    deck.classList.add('mm-notrans');
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ deck.classList.remove('mm-notrans'); }); });
+  }
+  /* Mover: a câmera viaja pelo mundo (zoom em escala logarítmica) até o slide de destino. */
+  function travel(from, n){
+    moving = true;
+    var W = window.innerWidth, H = window.innerHeight;
+    var a = lay(from), b = lay(n);
+    var za = camFor(from).z, zb = camFor(n).z;
+    var ax = a.x + 960*a.s, ay = a.y + 540*a.s, bx = b.x + 960*b.s, by = b.y + 540*b.s;
+    deck.style.transition = 'none';
+    document.body.classList.add('mm-world');
+    var t0 = null, DUR = 1300;
+    function ease(t){ return t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2; }
+    function frame(ts){
+      if(t0 === null) t0 = ts;
+      var t = Math.min(1, (ts - t0)/DUR), u = ease(t);
+      var z = za * Math.pow(zb/za, u);
+      var cx = ax + (bx - ax)*u, cy = ay + (by - ay)*u;
+      place({z:z, tx:W/2 - cx*z, ty:H/2 - cy*z});
+      if(t < 1){ requestAnimationFrame(frame); return; }
+      /* chegada: volta ao modo normal sem salto visível */
+      deck.classList.add('mm-notrans');
+      slides[from].classList.remove('active');
+      slides[n].classList.add('active');
+      nest(n);
+      document.body.classList.remove('mm-world');
+      moving = false;
+      fit();
+      quiet();
+      if(window.__anim) window.__anim(slides[n]);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function clean(list){
+    list.forEach(function(el){
+      Array.prototype.slice.call(el.classList).forEach(function(c){
+        if(c === 't-leave' || c === 't-instant' || c.indexOf('t-in-') === 0 || c.indexOf('t-out-') === 0) el.classList.remove(c);
+      });
+    });
+  }
   function show(n, push){
     n = Math.max(0, Math.min(slides.length-1, n));
+    if(moving) return;
     if(n === idx && slides[n].classList.contains('active')) return;
-    slides[idx].classList.remove('active');
+    var from = idx, prev = slides[from];
+    var s = slides[n];
+    var tr = (!started || reduced || !prev.classList.contains('active')) ? 'default' : (s.getAttribute('data-transition') || 'default');
+    var rev = n < from ? '-r' : '';
+    started = true;
     idx = n;
-    var s = slides[idx];
-    s.classList.add('active');
-    if(window.__anim) window.__anim(s);
+    if(tr === 'move' && n !== from){ travel(from, n); }
+    else {
+      var pk = tr.indexOf('pkg:') === 0 ? tr.slice(4).replace(':', '-') : '';
+      prev.classList.remove('active');
+      s.classList.add('active');
+      nest(n);
+      if(tr === 'instant'){
+        prev.classList.add('t-instant'); s.classList.add('t-instant');
+        setTimeout(function(){ clean([prev, s]); }, 80);
+      } else if(tr === 'slide' || tr === 'zoom' || pk){
+        var key = pk ? 'pk-' + pk : tr;
+        prev.classList.add('t-leave', 't-out-' + key + rev);
+        s.classList.add('t-in-' + key + rev);
+        var d = 700;
+        try{
+          var v = window.getComputedStyle(s).animationDuration || '';
+          var f = parseFloat(v);
+          if(f > 0) d = v.indexOf('ms') > 0 ? f : f*1000;
+        }catch(e){}
+        setTimeout(function(){ clean([prev, s]); }, d + 60);
+      }
+      if(window.__anim) window.__anim(s);
+    }
     if(bar) bar.style.width = ((idx+1)/slides.length*100).toFixed(2) + '%';
     if(notesEl) notesEl.textContent = s.getAttribute('data-notes') || '';
     if(push !== false){ try{ history.replaceState(null,'','#'+(idx+1)); }catch(e){} }

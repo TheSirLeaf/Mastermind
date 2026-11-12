@@ -49,7 +49,7 @@ export function Layout() {
             <IntegrationPlaceholder />
           ) : (
             <>
-              <StageViewport highlighted={isPreviewMode} canvas={workspace === 'slide'} />
+              <StageViewport highlighted={isPreviewMode} arrange={workspace === 'slide'} />
               {workspace === 'animation' ? (
                 <Timeline />
               ) : workspace === 'slide' ? null : (

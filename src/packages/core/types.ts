@@ -164,6 +164,17 @@ export type PackageRuntime<TSpec extends PackageSpec = PackageSpec> = (
   api: RuntimeAPI
 ) => RuntimeController | null;
 
+/**
+ * Transição de slide oferecida por um pacote. O CSS usa as classes `.t-in` (slide que entra)
+ * e `.t-out` (slide que sai), com variantes `.t-in-r`/`.t-out-r` para voltar; a duração é a da `animation`.
+ */
+export interface PackageTransition {
+  id: string;
+  name: string;
+  description?: string;
+  css: string;
+}
+
 export interface PackageDef<TSpec extends PackageSpec = PackageSpec> {
   /** kebab-case único. */
   id: string;
@@ -182,6 +193,8 @@ export interface PackageDef<TSpec extends PackageSpec = PackageSpec> {
   runtime?(root: HTMLElement, spec: TSpec, api: RuntimeAPI): RuntimeController | null;
   duration?(spec: TSpec): number;
   adopt?: AdoptRules<TSpec>;
+  /** Transições de slide próprias do pacote (aparecem em Slide → Transição → Pacote). */
+  transitions?: PackageTransition[];
 }
 
 /** Pacote serializado: funções viram `{ $fn: "..." }`. */
@@ -197,6 +210,7 @@ export interface SerializedPackage {
   box?: BoxHint;
   form: FormSchema;
   css?: string;
+  transitions?: PackageTransition[];
   /** Formato legado usado pelo editor monolítico. */
   render?: { $fn: string } | string;
   runtime?: { $fn: string } | string;

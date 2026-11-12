@@ -178,3 +178,89 @@ export function slideBackground(html: string): string {
   const section = doc.body.firstElementChild as HTMLElement | null;
   return section?.style.getPropertyValue('background') ?? '';
 }
+
+/* -------------------------------------------------------------------------- */
+/* Layout no espaço e transição                                               */
+/* -------------------------------------------------------------------------- */
+
+/** Medidas do slide e do espaço entre slides no "mundo" do editor e da apresentação. */
+export const SLIDE_W = 1920;
+export const SLIDE_H = 1080;
+export const SLIDE_GAP = 160;
+
+export interface SlideLayout {
+  x: number;
+  y: number;
+  /** Escala do slide no mundo (1 = tamanho natural, 0,5 = metade). */
+  s: number;
+}
+
+/** Posição padrão: os slides ficam lado a lado, na ordem do deck. */
+export function defaultSlideLayout(index: number): SlideLayout {
+  return { x: index * (SLIDE_W + SLIDE_GAP), y: 0, s: 1 };
+}
+
+function parseNumber(value: string | null): number | null {
+  if (value === null || value.trim() === '') return null;
+  const n = Number.parseFloat(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Layout do slide (atributos `data-x`, `data-y`, `data-s`; o que faltar usa o padrão). */
+export function slideLayout(html: string, index: number): SlideLayout {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const section = doc.body.firstElementChild;
+  const base = defaultSlideLayout(index);
+  if (!section) return base;
+  const scale = parseNumber(section.getAttribute('data-s'));
+  return {
+    x: parseNumber(section.getAttribute('data-x')) ?? base.x,
+    y: parseNumber(section.getAttribute('data-y')) ?? base.y,
+    s: scale !== null && scale > 0 ? scale : 1,
+  };
+}
+
+/** Grava o layout do slide; `null` volta ao padrão (remove os atributos). */
+export function withSlideLayout(html: string, layout: Partial<SlideLayout> | null): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const section = doc.body.firstElementChild;
+  if (!section) return html;
+  if (layout === null) {
+    section.removeAttribute('data-x');
+    section.removeAttribute('data-y');
+    section.removeAttribute('data-s');
+    return section.outerHTML;
+  }
+  if (layout.x !== undefined) section.setAttribute('data-x', String(Math.round(layout.x)));
+  if (layout.y !== undefined) section.setAttribute('data-y', String(Math.round(layout.y)));
+  if (layout.s !== undefined) {
+    if (layout.s === 1) section.removeAttribute('data-s');
+    else section.setAttribute('data-s', layout.s.toFixed(3));
+  }
+  return section.outerHTML;
+}
+
+/** Como o slide ENTRA na apresentação. */
+export const SLIDE_TRANSITIONS = ['default', 'instant', 'move', 'slide', 'zoom'] as const;
+/** Transição embutida, ou `pkg:<pacote>:<transição>` quando vem de um pacote. */
+export type SlideTransition = (typeof SLIDE_TRANSITIONS)[number] | `pkg:${string}`;
+
+const PKG_TRANSITION = /^pkg:[a-z0-9-]+:[a-z0-9-]+$/i;
+
+export function slideTransition(html: string): SlideTransition {
+  const match = /<section[^>]*\sdata-transition="([^"]*)"/.exec(html);
+  const value = match?.[1] ?? 'default';
+  if (PKG_TRANSITION.test(value)) return value as SlideTransition;
+  return (SLIDE_TRANSITIONS as readonly string[]).includes(value)
+    ? (value as SlideTransition)
+    : 'default';
+}
+
+export function withSlideTransition(html: string, transition: SlideTransition): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const section = doc.body.firstElementChild;
+  if (!section) return html;
+  if (transition === 'default') section.removeAttribute('data-transition');
+  else section.setAttribute('data-transition', transition);
+  return section.outerHTML;
+}

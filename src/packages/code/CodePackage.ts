@@ -76,6 +76,14 @@ export const CodePackage: PackageDef<CodeSpec> = {
   box: { w: 900 },
   form: codeForm,
   css: codeCss,
+  transitions: [
+    {
+      id: 'glitch',
+      name: 'Glitch',
+      description: 'O slide treme e se desfaz em cores antes do próximo aparecer.',
+      css: '.t-out{animation:pkGlitchOut .6s steps(12,end) both}.t-in{animation:pkGlitchIn .6s steps(12,end) both}@keyframes pkGlitchOut{0%{transform:none;filter:none}30%{transform:translateX(-30px) skewX(6deg);filter:hue-rotate(90deg)}60%{transform:translateX(24px);filter:hue-rotate(200deg) contrast(1.4)}100%{transform:translateX(-10px);opacity:0}}@keyframes pkGlitchIn{0%{opacity:0;transform:translateX(30px) skewX(-6deg);filter:hue-rotate(-90deg)}60%{opacity:1;transform:translateX(-12px);filter:hue-rotate(-40deg)}100%{transform:none;filter:none}}',
+    },
+  ],
   render: (spec, h: HelperAPI) => createElement(CodeRenderer, { spec, h }),
   duration: (spec) =>
     spec.typing

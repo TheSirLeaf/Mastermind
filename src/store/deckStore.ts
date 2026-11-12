@@ -12,6 +12,10 @@ import {
   slideTemplateHTML,
   withSlideBackground,
   withSlideClass,
+  withSlideLayout,
+  withSlideTransition,
+  type SlideLayout,
+  type SlideTransition,
   type SlideTemplateKind,
 } from '../packages/core/deck';
 import { HistoryManager } from '../packages/core/history';
@@ -51,6 +55,10 @@ export interface DeckState {
   setSlideTheme: (index: number, theme: 'dark' | 'light') => void;
   /** Define (ou remove, com `null`) o fundo CSS do slide. */
   setSlideBackground: (index: number, background: string | null) => void;
+  /** Posição/escala do slide no espaço; `null` volta ao padrão. */
+  setSlideLayout: (index: number, layout: Partial<SlideLayout> | null) => void;
+  /** Como o slide entra na apresentação. */
+  setSlideTransition: (index: number, transition: SlideTransition) => void;
   /** Cria um slide a partir de um modelo, logo depois do slide atual. */
   addSlideFromTemplate: (kind: SlideTemplateKind) => void;
   undo: () => void;
@@ -247,6 +255,18 @@ export const useDeckStore = create<DeckState>()((set, get) => {
       const slide = get().deck.slides[index];
       if (!slide) return;
       get().updateSlideHTML(index, withSlideBackground(slide.html, background), `bg:${index}`);
+    },
+
+    setSlideLayout: (index, layout) => {
+      const slide = get().deck.slides[index];
+      if (!slide) return;
+      get().updateSlideHTML(index, withSlideLayout(slide.html, layout), `layout:${index}`);
+    },
+
+    setSlideTransition: (index, transition) => {
+      const slide = get().deck.slides[index];
+      if (!slide) return;
+      get().updateSlideHTML(index, withSlideTransition(slide.html, transition), `trans:${index}`);
     },
 
     addSlideFromTemplate: (kind) => {

@@ -9,7 +9,7 @@ import { useRef, useEffect, useState } from 'react';
 import { handleDroppedFile } from '../../editor/actions';
 import { setActiveBridge } from '../../editor/bridgeRef';
 import { handleBridgeKey } from '../../editor/shortcuts';
-import { getStageViewHandlers } from '../../editor/stageView';
+import { getStageViewHandlers, markCanvasClick } from '../../editor/stageView';
 
 export function Stage() {
   const { deck, currentIndex, pendingSelection, pendingEdit } = useDeckStore();
@@ -41,10 +41,21 @@ export function Stage() {
       onKey: (key) => handleBridgeKey(key),
       onDropFile: (file) => handleDroppedFile(file),
       onWheel: (dy, x, y) => getStageViewHandlers()?.wheel(dy, x, y),
-      onSlideClick: (index) => useDeckStore.getState().selectSlide(index),
+      onSlideClick: (index) => {
+        const deckState = useDeckStore.getState();
+        // Clique direto no slide: troca o atual, mas a câmera fica onde está.
+        if (index !== deckState.currentIndex) markCanvasClick();
+        deckState.selectSlide(index);
+      },
       onSlideOpen: (index) => {
         useDeckStore.getState().selectSlide(index);
         useUIStore.getState().setWorkspace('editor');
+      },
+      onElementMoved: (index, path) => {
+        const deckState = useDeckStore.getState();
+        if (index !== deckState.currentIndex) markCanvasClick();
+        deckState.selectSlide(index);
+        deckState.requestSelection(path);
       },
       onPan: (dx, dy) => getStageViewHandlers()?.pan(dx, dy),
     });

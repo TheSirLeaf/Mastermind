@@ -18,6 +18,22 @@ import type {
   SerializedPackage,
 } from './types';
 
+const SAFE_ID = /^[a-z0-9-]+$/i;
+
+/** CSS das transições do pacote, com `.t-in`/`.t-out` trocados pelas classes únicas usadas na apresentação. */
+function transitionsCss(def: PackageDef): string {
+  return (def.transitions ?? [])
+    .filter((t) => SAFE_ID.test(def.id) && SAFE_ID.test(t.id))
+    .map((t) =>
+      t.css.replace(
+        /\.t-(in|out)(-r)?(?![\w-])/g,
+        (_m, dir: string, rev: string | undefined) =>
+          `.slide.t-${dir}-pk-${def.id}-${t.id}${rev ?? ''}`
+      )
+    )
+    .join('\n');
+}
+
 export interface RegisterOptions {
   /** Sobrescreve um pacote existente (usado por pacotes customizados). */
   replace?: boolean;
@@ -108,10 +124,23 @@ export class PackageRegistry {
     return renderToStaticMarkup(out as ReactElement);
   }
 
+  /** Transições de slide oferecidas pelos pacotes instalados. */
+  listTransitions(): Array<{ value: `pkg:${string}`; label: string; description: string }> {
+    return this.list().flatMap((def) =>
+      (def.transitions ?? [])
+        .filter((t) => SAFE_ID.test(def.id) && SAFE_ID.test(t.id))
+        .map((t) => ({
+          value: `pkg:${def.id}:${t.id}` as const,
+          label: t.name,
+          description: `${def.name}${t.description ? ' — ' + t.description : ''}`,
+        }))
+    );
+  }
+
   /** CSS de todos os pacotes, na ordem de registro. */
   css(): string {
     return this.list()
-      .map((def) => def.css ?? '')
+      .map((def) => [def.css ?? '', transitionsCss(def)].filter(Boolean).join('\n'))
       .filter(Boolean)
       .join('\n');
   }

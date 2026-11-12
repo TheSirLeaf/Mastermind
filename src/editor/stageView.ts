@@ -15,3 +15,20 @@ export function setStageViewHandlers(next: StageViewHandlers | null): void {
 export function getStageViewHandlers(): StageViewHandlers | null {
   return handlers;
 }
+
+/**
+ * Clicar num slide dentro do espaço o torna o atual SEM mover a câmera. A seleção
+ * pelo menu da esquerda, ao contrário, leva a câmera até ele.
+ */
+let canvasClick = false;
+
+export function markCanvasClick(): void {
+  canvasClick = true;
+}
+
+/** `true` (uma vez) quando a mudança de slide veio de um clique no espaço. */
+export function consumeCanvasClick(): boolean {
+  const was = canvasClick;
+  canvasClick = false;
+  return was;
+}

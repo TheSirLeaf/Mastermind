@@ -20,9 +20,12 @@ export interface BridgeEvents {
   onSlideClick?: (index: number) => void;
   /** Visão geral: duplo clique num slide (abrir no Editor). */
   onSlideOpen?: (index: number) => void;
+  /** Elemento solto em outro slide: o slide e o caminho do elemento já no novo lugar. */
+  onElementMoved?: (index: number, path: number[]) => void;
 }
 
-export type StageMode = 'slide' | 'canvas';
+/** `edit`: edita os elementos do slide atual. `arrange`: move/redimensiona os slides. */
+export type StageMode = 'edit' | 'arrange';
 
 export interface StageView {
   x: number;
@@ -58,7 +61,8 @@ type DeckMessage =
   | { __mm: 'deck'; type: 'wheel'; dy: number; x: number; y: number }
   | { __mm: 'deck'; type: 'pan'; dx: number; dy: number }
   | { __mm: 'deck'; type: 'slide-click'; index: number }
-  | { __mm: 'deck'; type: 'slide-open'; index: number };
+  | { __mm: 'deck'; type: 'slide-open'; index: number }
+  | { __mm: 'deck'; type: 'element-moved'; index: number; path: number[] };
 
 /**
  * Ponte com o iframe do palco.
@@ -71,7 +75,7 @@ export class IframeBridge {
   private ready = false;
   private pendingGoto: number | null = null;
   private pendingSelect: { path: number[]; edit: boolean } | null = null;
-  private mode: StageMode = 'slide';
+  private mode: StageMode = 'edit';
   private view: StageView | null = null;
   private readonly iframe: HTMLIFrameElement;
   private readonly events: BridgeEvents;
@@ -94,7 +98,7 @@ export class IframeBridge {
         this.ready = true;
         this.events.onReady?.(data.count);
         // Um documento recarregado volta ao modo padrão: reaplica o modo e a visão.
-        if (this.mode !== 'slide') this.send({ type: 'mode', mode: this.mode });
+        if (this.mode !== 'edit') this.send({ type: 'mode', mode: this.mode });
         if (this.view) this.send({ type: 'view', ...this.view });
         if (this.pendingGoto !== null) {
           const index = this.pendingGoto;
@@ -138,6 +142,9 @@ export class IframeBridge {
         break;
       case 'slide-open':
         this.events.onSlideOpen?.(data.index);
+        break;
+      case 'element-moved':
+        this.events.onElementMoved?.(data.index, data.path);
         break;
       default:
         break;
