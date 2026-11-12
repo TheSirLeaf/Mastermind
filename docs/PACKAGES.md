@@ -27,6 +27,7 @@ rápido de começar é importá-lo, abrir o arquivo e ir mudando.
 | `runtime`               | não         | Animação que roda na apresentação                                                     |
 | `duration`              | não         | Duração da animação em ms (para a linha do tempo)                                     |
 | `transitions`           | não         | Transições de slide próprias (aparecem em Slides → Transição → Pacote)                |
+| `timeline`              | não         | Eventos do pacote na linha do tempo da aba Animação (veja abaixo)                     |
 
 ## O arquivo
 
@@ -107,6 +108,16 @@ Cada transição tem `id`, `name`, `description` e um `css` com as classes:
 
 A duração é a da própria `animation`. O Mastermind renomeia as classes para ficarem únicas por pacote,
 então use sempre esses nomes. Para usar: em **Slides**, escolha o slide, **Transição → Pacote** e a transição.
+
+### `timeline` — eventos na linha do tempo
+
+Para o pacote aparecer na linha do tempo (com barras que o usuário arrasta), declare duas funções:
+
+- `events(spec)` devolve a lista de eventos `{ id, label, start, duration, color?, resizable? }`, com tempos em segundos
+- `move(spec, id, { start?, duration? })` devolve as mudanças do `spec` (ex.: `{ "delay": 1200 }`) quando o evento `id`
+  é movido ou redimensionado, ou `null` para ignorar
+
+O pacote de código usa isso para a digitação e para os destaques de linha (`src/packages/code/codeTimeline.ts`).
 
 ## Instalar e testar
 

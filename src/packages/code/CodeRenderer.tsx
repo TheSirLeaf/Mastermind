@@ -2,6 +2,8 @@ import type { CSSProperties } from 'react';
 
 import type { HelperAPI, PackageSpec } from '../core/types';
 
+import { finalHighlighted } from './codeTimeline';
+
 export interface CodeRendererProps {
   spec: CodeSpec;
   h: HelperAPI;
@@ -26,6 +28,8 @@ export interface CodeSpec extends PackageSpec {
   w: number;
   /** Animação: `typing` (caractere a caractere) ou `terminal` (console: linha a linha). */
   variant?: 'typing' | 'terminal';
+  /** Destaques de linha: aparecem `at` segundos depois da digitação (ou do atraso, sem digitação). */
+  highlights?: CodeHighlight[];
   /** Mostra a numeração das linhas. */
   lineNumbers?: boolean;
   /** Esquema de cores do bloco (`default` segue o tema escuro/claro). */
@@ -38,6 +42,15 @@ export interface CodeSpec extends PackageSpec {
   cNum?: string;
   cFn?: string;
   cCm?: string;
+}
+
+export interface CodeHighlight {
+  /** Linhas, ex.: `2, 4-6`. */
+  lines: string;
+  /** Segundos depois do fim da digitação. */
+  at: number;
+  /** Mantém os destaques anteriores em vez de trocá-los. */
+  keep?: boolean;
 }
 
 export type CodePaletteId = 'default' | 'slate' | 'midnight' | 'paper' | 'custom';
@@ -105,7 +118,8 @@ function paletteColors(spec: CodeSpec): CodeColors | null {
 
 export function CodeRenderer({ spec, h }: CodeRendererProps): JSX.Element {
   const lines = h.hl(spec.code, spec.lang, 'tk-');
-  const highlighted = h.range(spec.hl);
+  // Estado final: depois de todos os eventos (durante a animação o runtime os aplica no tempo certo).
+  const highlighted = finalHighlighted(spec);
   const colors = paletteColors(spec);
   const vars = colors
     ? ({

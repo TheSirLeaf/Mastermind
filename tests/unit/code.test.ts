@@ -6,6 +6,7 @@ import { CodePackage } from '../../src/packages/code/CodePackage';
 import { CodeRenderer } from '../../src/packages/code/CodeRenderer';
 import type { CodeSpec } from '../../src/packages/code/CodeRenderer';
 import { codeRuntime } from '../../src/packages/code/CodeRuntime';
+import { codeTimeline, typingEnd, typingSeconds } from '../../src/packages/code/codeTimeline';
 import { buildRegistryPayload } from '../../src/packages/core/export';
 import { H } from '../../src/packages/core/helper';
 import { PackageRegistry } from '../../src/packages/core/PackageRegistry';
@@ -313,5 +314,121 @@ describe('code package — cursor, console, cores e numeração', () => {
     const look = CodePackage.form.find((g) => g.group === 'Aparência');
     expect(look?.fields.some((f) => f.k === 'lineNumbers')).toBe(true);
     expect(look?.fields.some((f) => f.k === 'palette')).toBe(true);
+  });
+});
+
+describe('code package — destaques de linha na animação', () => {
+  /** Quadros controlados: devolve `step(ms)` que roda o loop no instante pedido. */
+  function manualApi() {
+    let loop: ((ts: number) => boolean | void) | null = null;
+    const api = makeApi({
+      frame: (fn) => {
+        loop = fn;
+      },
+    });
+    return { api, step: (ts: number) => loop?.(ts) };
+  }
+  const lit = (root: HTMLElement) =>
+    Array.from(root.querySelectorAll('.pk-ln.pk-hl')).map((l) => l.textContent);
+
+  it('nenhuma linha começa destacada; os eventos entram depois de digitar, no tempo marcado', () => {
+    const root = rootWith(['aa', 'bb', 'cc']);
+    root.querySelectorAll('.pk-ln').forEach((l) => l.classList.add('pk-hl')); // estado final renderizado
+    const spec: CodeSpec = {
+      ...defaults,
+      cps: 1000,
+      delay: 0,
+      highlights: [
+        { lines: '2', at: 1, keep: false },
+        { lines: '3', at: 6, keep: true },
+      ],
+    };
+    const { api, step } = manualApi();
+    const ctrl = codeRuntime(root, spec, api)!;
+    expect(lit(root)).toEqual([]); // antes de digitar, sem destaque
+    void ctrl.play();
+    step(0);
+    step(500); // digitação já terminou (cps alto), mas o 1º evento é em +1s
+    expect(lit(root)).toEqual([]);
+    step(1500);
+    expect(lit(root)).toEqual(['bb']);
+    step(5000);
+    expect(lit(root)).toEqual(['bb']);
+    expect(step(7000)).toBe(false); // último evento: acabou a animação
+    expect(lit(root)).toEqual(['bb', 'cc']); // "manter" acumula
+  });
+
+  it('sem digitação, os destaques contam a partir do atraso', () => {
+    const root = rootWith(['aa', 'bb']);
+    const spec: CodeSpec = {
+      ...defaults,
+      typing: false,
+      delay: 200,
+      highlights: [{ lines: '1', at: 0.5 }],
+    };
+    const { api, step } = manualApi();
+    const ctrl = codeRuntime(root, spec, api)!;
+    void ctrl.play();
+    step(0);
+    step(500);
+    expect(lit(root)).toEqual([]);
+    expect(step(800)).toBe(false);
+    expect(lit(root)).toEqual(['aa']);
+  });
+
+  it('o campo antigo "hl" vira um destaque logo depois da digitação', () => {
+    const root = rootWith(['aa', 'bb']);
+    const { api, step } = manualApi();
+    const ctrl = codeRuntime(root, { ...defaults, hl: '2', delay: 0, cps: 1000 }, api)!;
+    void ctrl.play();
+    step(0);
+    step(100);
+    expect(lit(root)).toEqual(['bb']);
+  });
+
+  it('o estado final (renderizado) mostra o resultado dos eventos', async () => {
+    const { finalHighlighted } = await import('../../src/packages/code/codeTimeline');
+    const spec: CodeSpec = {
+      ...defaults,
+      highlights: [
+        { lines: '1', at: 0 },
+        { lines: '3-4', at: 2, keep: true },
+        { lines: '2', at: 5 },
+      ],
+    };
+    expect(Object.keys(finalHighlighted(spec))).toEqual(['2']);
+    expect(
+      Object.keys(finalHighlighted({ ...spec, highlights: spec.highlights!.slice(0, 2) }))
+    ).toEqual(['1', '3', '4']);
+  });
+
+  it('a duração da linha do tempo bate com o ritmo real da digitação', () => {
+    const spec: CodeSpec = { ...defaults, code: 'ab\n  cd\n\nef', cps: 40, delay: 0 };
+    const root = rootWith(['ab', '  cd', ' ', 'ef']);
+    let last = 0;
+    const api = makeApi({
+      frame: (fn) => {
+        for (let ts = 0; ts < 20000; ts += 10) {
+          last = ts;
+          if (fn(ts) === false) return;
+        }
+      },
+    });
+    void codeRuntime(root, spec, api)!.play();
+    expect(Math.abs(last / 1000 - typingSeconds(spec))).toBeLessThan(0.05);
+  });
+
+  it('a linha do tempo move destaques e converte a duração em velocidade', () => {
+    const spec: CodeSpec = {
+      ...defaults,
+      delay: 0,
+      highlights: [{ lines: '1', at: 2 }],
+    };
+    const end = typingEnd(spec);
+    const moved = codeTimeline.move(spec, 'hl-0', { start: end + 5 });
+    expect(moved).toEqual({ highlights: [{ lines: '1', at: 5, keep: false }] });
+    const slower = codeTimeline.move(spec, 'typing', { duration: typingSeconds(spec) * 2 });
+    expect((slower as { cps: number }).cps).toBeLessThan(spec.cps);
+    expect(codeTimeline.events(spec).map((e) => e.id)).toEqual(['typing', 'hl-0']);
   });
 });

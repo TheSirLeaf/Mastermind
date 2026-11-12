@@ -1,13 +1,13 @@
 // components/Inspector/PackageTab.tsx
 import { FormGenerator } from '@components/Inspector/forms/FormGenerator';
 import { usePackageRegistry } from '@hooks/usePackageRegistry';
-import { registry } from '@packages/core/PackageRegistry';
 import type { SelectionInfo } from '@packages/core/types';
 import { useMemo } from 'react';
 
-import { mutateSelectedElement, readSelectedElement } from './elementSelection';
+import { readSelectedElement } from './elementSelection';
 import { EmptyState } from './EmptyState';
 import { PackagePicker } from './PackagePicker';
+import { getElementSpec, updatePackageSpec } from './packageSpec';
 
 interface PackageTabProps {
   selection: SelectionInfo | null;
@@ -94,32 +94,4 @@ function PackageEditor({
       />
     </div>
   );
-}
-
-function getElementSpec(element: Element | null): Record<string, unknown> {
-  const specAttr = element?.getAttribute('data-spec');
-  if (!specAttr) return {};
-  try {
-    const parsed: unknown = JSON.parse(specAttr);
-    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
-  } catch {
-    return {};
-  }
-}
-
-/**
- * Grava o novo `data-spec` e redesenha o conteúdo do elemento com o `render`
- * do pacote — sem isso o formulário mudava só o atributo e o slide não reagia.
- */
-function updatePackageSpec(selection: SelectionInfo, newSpec: Record<string, unknown>): void {
-  mutateSelectedElement(selection, (element) => {
-    element.setAttribute('data-spec', JSON.stringify(newSpec));
-    const id = element.getAttribute('data-pkg');
-    if (!id || !registry.has(id)) return;
-    try {
-      element.innerHTML = registry.toHTML(id, newSpec);
-    } catch {
-      // Spec inválida no meio da edição: mantém o último desenho válido.
-    }
-  });
 }

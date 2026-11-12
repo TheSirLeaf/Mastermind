@@ -9,6 +9,8 @@ import {
   type AnimationKind,
   type ElementAnimation,
 } from '@packages/core/animation';
+import { registry } from '@packages/core/PackageRegistry';
+import type { PackageDef, PackageTimelineEvent } from '@packages/core/types';
 import { itemAt, useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 import { clsx } from 'clsx';
@@ -22,6 +24,7 @@ import {
 } from 'react';
 
 import { Tooltip } from '../common/Tooltip';
+import { getElementSpec, updatePackageSpec } from '../Inspector/packageSpec';
 
 interface Track {
   path: number[];
@@ -29,6 +32,15 @@ interface Track {
   label: string;
   depth: number;
   animation: ElementAnimation | null;
+}
+
+/** Pacote com eventos próprios (digitação, destaques…) na linha do tempo. */
+interface PackageTrack {
+  path: number[];
+  key: string;
+  label: string;
+  def: PackageDef;
+  spec: Record<string, unknown>;
 }
 
 type Scope = 'slide' | 'selection';
@@ -92,6 +104,41 @@ function collectTracks(html: string, slideIndex: number): Track[] {
   return out;
 }
 
+function collectPackageTracks(html: string, slideIndex: number): PackageTrack[] {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const root = doc.body.firstElementChild;
+  if (!root) return [];
+  const out: PackageTrack[] = [];
+  const walk = (element: Element, path: number[]): void => {
+    Array.from(element.children).forEach((child, index) => {
+      if (child.id === 'mm-sel') return;
+      const childPath = [...path, index];
+      const id = child.getAttribute('data-pkg');
+      const def = id ? registry.get(id) : undefined;
+      if (def?.timeline) {
+        out.push({
+          path: childPath,
+          key: childPath.join('.'),
+          label: labelOf(child),
+          def,
+          spec: getElementSpec(child),
+        });
+      }
+      walk(child, childPath);
+    });
+  };
+  walk(root, [slideIndex]);
+  return out;
+}
+
+function packageEvents(track: PackageTrack, spec: Record<string, unknown>): PackageTimelineEvent[] {
+  try {
+    return track.def.timeline?.events(spec) ?? [];
+  } catch {
+    return [];
+  }
+}
+
 function elementAt(html: string, path: number[]): Element | null {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   let node: Element | null = doc.body.firstElementChild;
@@ -104,6 +151,13 @@ function elementAt(html: string, path: number[]): Element | null {
 
 const round = (value: number): number => Math.round(value / SNAP) * SNAP;
 const fmt = (seconds: number): string => `${seconds.toFixed(2).replace(/\.?0+$/, '')}s`;
+
+interface PackageDrag {
+  track: PackageTrack;
+  event: PackageTimelineEvent;
+  mode: 'move' | 'resize';
+  startX: number;
+}
 
 interface DragState {
   key: string;
@@ -122,6 +176,8 @@ export function Timeline() {
   const [draft, setDraft] = useState<Record<string, ElementAnimation>>({});
   const trackAreaRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
+  const pkgDragRef = useRef<PackageDrag | null>(null);
+  const [pkgDraft, setPkgDraft] = useState<Record<string, Record<string, unknown>>>({});
   const rafRef = useRef<number | null>(null);
 
   const slide = itemAt(deck, currentIndex);
@@ -152,9 +208,30 @@ export function Timeline() {
     ];
   }, [allTracks, scope, selection, html]);
 
+  const allPkgTracks = useMemo(
+    () => collectPackageTracks(html, currentIndex),
+    [html, currentIndex]
+  );
+  const pkgTracks = useMemo(() => {
+    if (scope === 'slide' || !selection) return allPkgTracks;
+    const prefix = selection.path.join('.');
+    return allPkgTracks.filter((t) => t.key === prefix || t.key.startsWith(`${prefix}.`));
+  }, [allPkgTracks, scope, selection]);
+  const specOf = (track: PackageTrack): Record<string, unknown> =>
+    pkgDraft[track.key] ?? track.spec;
+
   const effective = (track: Track): ElementAnimation | null => draft[track.key] ?? track.animation;
 
-  const total = Math.max(0, ...tracks.map((track) => animationDuration(effective(track)) / 1000));
+  const pkgEnd = Math.max(
+    0,
+    ...pkgTracks.flatMap((track) =>
+      packageEvents(track, specOf(track)).map((e) => e.start + e.duration)
+    )
+  );
+  const total = Math.max(
+    pkgEnd,
+    ...tracks.map((track) => animationDuration(effective(track)) / 1000)
+  );
   const span = Math.max(3, Math.ceil((total + 0.4) * 2) / 2);
 
   useEffect(
@@ -168,6 +245,7 @@ export function Timeline() {
   useEffect(() => {
     setTime(null);
     setDraft({});
+    setPkgDraft({});
   }, [currentIndex]);
 
   const stop = (): void => {
@@ -247,6 +325,45 @@ export function Timeline() {
     }
   };
 
+  const beginPkgDrag = (
+    event: ReactPointerEvent,
+    track: PackageTrack,
+    item: PackageTimelineEvent,
+    mode: PackageDrag['mode']
+  ): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    pkgDragRef.current = { track, event: item, mode, startX: event.clientX };
+  };
+
+  const movePkgDrag = (event: ReactPointerEvent): void => {
+    const drag = pkgDragRef.current;
+    const area = trackAreaRef.current;
+    if (!drag || !area || !drag.track.def.timeline) return;
+    const seconds = ((event.clientX - drag.startX) / area.clientWidth) * span;
+    const change =
+      drag.mode === 'move'
+        ? { start: round(Math.max(0, drag.event.start + seconds)) }
+        : { duration: round(Math.max(SNAP, drag.event.duration + seconds)) };
+    const base = drag.track.spec;
+    const patch = drag.track.def.timeline.move(base, drag.event.id, change);
+    if (patch) setPkgDraft((prev) => ({ ...prev, [drag.track.key]: { ...base, ...patch } }));
+  };
+
+  const endPkgDrag = (): void => {
+    const drag = pkgDragRef.current;
+    pkgDragRef.current = null;
+    if (!drag) return;
+    const next = pkgDraft[drag.track.key];
+    setPkgDraft((prev) => {
+      const rest = { ...prev };
+      delete rest[drag.track.key];
+      return rest;
+    });
+    if (next) updatePackageSpec({ path: drag.track.path }, next);
+  };
+
   const ticks: number[] = [];
   for (let t = 0; t <= span + 1e-6; t += 0.5) ticks.push(t);
 
@@ -265,7 +382,7 @@ export function Timeline() {
             type="button"
             aria-label={time !== null ? 'Parar' : 'Reproduzir'}
             onClick={play}
-            disabled={tracks.every((track) => !effective(track))}
+            disabled={tracks.every((track) => !effective(track)) && pkgTracks.length === 0}
             className="grid h-7 w-7 place-items-center rounded-md bg-accent/15 text-accent transition hover:bg-accent/25 disabled:pointer-events-none disabled:opacity-35"
           >
             {time !== null ? <Square className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
@@ -304,8 +421,8 @@ export function Timeline() {
         </div>
 
         <span className="ml-auto truncate text-[11px] text-payday-textDim">
-          Slide {currentIndex + 1} · {allTracks.length} animaç
-          {allTracks.length === 1 ? 'ão' : 'ões'}
+          Slide {currentIndex + 1} · {allTracks.length + allPkgTracks.length} animaç
+          {allTracks.length + allPkgTracks.length === 1 ? 'ão' : 'ões'}
           {' · '}arraste a barra para o atraso, a ponta para a duração
         </span>
       </div>
@@ -329,7 +446,7 @@ export function Timeline() {
           </div>
         </div>
 
-        {tracks.length === 0 ? (
+        {tracks.length === 0 && pkgTracks.length === 0 ? (
           <div className="grid h-[calc(100%-24px)] place-items-center px-6 text-center text-xs text-payday-textDim">
             Nenhum elemento animado neste slide. Selecione um elemento e use “Animar” — ou escolha
             “Seleção” para ver só o que está selecionado.
@@ -419,6 +536,85 @@ export function Timeline() {
             );
           })
         )}
+
+        {pkgTracks.map((track) => {
+          const events = packageEvents(track, specOf(track));
+          const selected = selectedKey === track.key;
+          return (
+            <div
+              key={`pkg-${track.key}`}
+              className={clsx(
+                'flex h-8 border-b border-payday-border/40',
+                selected && 'bg-accent/[0.07]'
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => useDeckStore.getState().requestSelection(track.path)}
+                className={clsx(
+                  'w-[190px] shrink-0 truncate border-r border-payday-border pl-3 pr-2 text-left text-[11px] transition hover:text-payday-text',
+                  selected ? 'text-accent' : 'text-payday-textMuted'
+                )}
+                title={track.label}
+              >
+                {track.label}
+              </button>
+              <div className="relative min-w-0 flex-1">
+                {ticks.map((t) => (
+                  <span
+                    key={t}
+                    className="absolute top-0 h-full border-l border-payday-border/30"
+                    style={{ left: `${(t / span) * 100}%` }}
+                  />
+                ))}
+                {events.map((item) => (
+                  <div
+                    key={item.id}
+                    className="absolute top-1.5 h-5"
+                    style={{
+                      left: `${(item.start / span) * 100}%`,
+                      width: `${Math.max(1.6, (item.duration / span) * 100)}%`,
+                    }}
+                  >
+                    <Tooltip
+                      title={`${item.label} · começa em ${fmt(item.start)}`}
+                      description={
+                        item.resizable
+                          ? 'Arraste a barra para o atraso e a ponta para a duração.'
+                          : 'Arraste a barra para mudar o momento do destaque.'
+                      }
+                      side="top"
+                      className="h-full w-full"
+                    >
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${item.label} de ${track.label}`}
+                        onPointerDown={(event) => beginPkgDrag(event, track, item, 'move')}
+                        onPointerMove={movePkgDrag}
+                        onPointerUp={endPkgDrag}
+                        onPointerCancel={endPkgDrag}
+                        className="relative flex h-full w-full cursor-grab touch-none items-center overflow-hidden rounded-[5px] border border-black/30 px-1.5 text-[10px] font-medium text-black/70 active:cursor-grabbing"
+                        style={{ background: item.color ?? '#F7D98B' }}
+                      >
+                        <span className="truncate">{item.label}</span>
+                        {item.resizable ? (
+                          <span
+                            aria-hidden="true"
+                            onPointerDown={(event) => beginPkgDrag(event, track, item, 'resize')}
+                            onPointerMove={movePkgDrag}
+                            onPointerUp={endPkgDrag}
+                            className="absolute inset-y-0 right-0 w-2 cursor-ew-resize bg-black/25"
+                          />
+                        ) : null}
+                      </div>
+                    </Tooltip>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
 
         {time !== null ? (
           <div className="pointer-events-none absolute bottom-0 left-[190px] right-0 top-0">

@@ -175,6 +175,28 @@ export interface PackageTransition {
   css: string;
 }
 
+/** Evento de animação de um pacote, mostrado e editável na linha do tempo (tempos em segundos). */
+export interface PackageTimelineEvent {
+  id: string;
+  label: string;
+  start: number;
+  duration: number;
+  color?: string;
+  /** A ponta da barra altera a duração (senão só dá para mover). */
+  resizable?: boolean;
+}
+
+export interface PackageTimeline<TSpec extends PackageSpec = PackageSpec> {
+  /** Eventos do pacote, na ordem em que aparecem. */
+  events(spec: TSpec): PackageTimelineEvent[];
+  /** Devolve as mudanças do `spec` quando o evento `id` é movido (`start`) ou redimensionado (`duration`). */
+  move(
+    spec: TSpec,
+    id: string,
+    change: { start?: number; duration?: number }
+  ): Partial<TSpec> | null;
+}
+
 export interface PackageDef<TSpec extends PackageSpec = PackageSpec> {
   /** kebab-case único. */
   id: string;
@@ -197,6 +219,8 @@ export interface PackageDef<TSpec extends PackageSpec = PackageSpec> {
   adopt?: AdoptRules<TSpec>;
   /** Transições de slide próprias do pacote (aparecem em Slide → Transição → Pacote). */
   transitions?: PackageTransition[];
+  /** Eventos que aparecem na linha do tempo da aba Animação. */
+  timeline?: PackageTimeline<TSpec>;
 }
 
 /** Pacote serializado: funções viram `{ $fn: "..." }`. */

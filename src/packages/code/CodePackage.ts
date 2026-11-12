@@ -5,6 +5,7 @@ import type { HelperAPI, PackageDef, Preset } from '../core/types';
 import { codeCss } from './code.css';
 import { CodeRenderer, type CodeSpec } from './CodeRenderer';
 import { codeRuntime } from './CodeRuntime';
+import { codeTimeline, codeTotalMs } from './codeTimeline';
 import { codeForm } from './formSchema';
 
 export type { CodeSpec };
@@ -29,6 +30,7 @@ export const codeDefaults: CodeSpec = {
   variant: 'typing',
   lineNumbers: false,
   palette: 'default',
+  highlights: [],
 };
 
 export const codePresets: Preset<CodeSpec>[] = [
@@ -69,7 +71,7 @@ export const codePresets: Preset<CodeSpec>[] = [
 export const CodePackage: PackageDef<CodeSpec> = {
   id: 'code',
   name: 'Caixa de código',
-  version: '1.0.0',
+  version: '1.1.0',
   icon: 'code',
   category: 'Código',
   author: 'Dialcron',
@@ -88,12 +90,8 @@ export const CodePackage: PackageDef<CodeSpec> = {
     },
   ],
   render: (spec, h: HelperAPI) => createElement(CodeRenderer, { spec, h }),
-  duration: (spec) =>
-    spec.typing
-      ? (spec.delay ?? 0) +
-        (spec.code.replace(/\s+/g, ' ').length * 1000) / Math.max(5, spec.cps || 48) +
-        1200
-      : 0,
+  duration: codeTotalMs,
+  timeline: codeTimeline,
   // Referência direta (não wrapper): o runtime é serializado via String() no
   // export e precisa reviver autossuficiente no host do HTML standalone.
   runtime: codeRuntime,

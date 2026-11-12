@@ -131,21 +131,6 @@ export const codeForm: FormSchema = [
     ],
   },
   {
-    group: 'Destaque de linhas',
-    icon: 'highlight',
-    open: false,
-    fields: [
-      {
-        k: 'hl',
-        label: 'Linhas em destaque',
-        type: 'text',
-        placeholder: '2, 4-6',
-        help: 'Números de linha separados por vírgula; intervalos com hífen.',
-      },
-      { k: 'lineGlow', label: 'Realçar a linha digitada', type: 'toggle' },
-    ],
-  },
-  {
     group: 'Animação',
     workspace: 'animation',
     icon: 'play',
@@ -161,7 +146,13 @@ export const codeForm: FormSchema = [
         showIf: { k: 'typing', eq: true },
       },
       { k: 'typing', label: 'Digitar o código', type: 'toggle' },
-      { k: 'caret', label: 'Cursor piscando', type: 'toggle' },
+      { k: 'caret', label: 'Cursor piscando', type: 'toggle', showIf: { k: 'typing', eq: true } },
+      {
+        k: 'lineGlow',
+        label: 'Realçar a linha digitada',
+        type: 'toggle',
+        showIf: { k: 'typing', eq: true },
+      },
       {
         k: 'cps',
         label: 'Velocidade',
@@ -181,6 +172,35 @@ export const codeForm: FormSchema = [
         step: 50,
         unit: ' ms',
         showIf: { k: 'typing', eq: true },
+      },
+    ],
+  },
+  {
+    group: 'Destaque de linhas',
+    workspace: 'animation',
+    icon: 'highlight',
+    fields: [
+      {
+        type: 'info',
+        text: 'Cada destaque entra depois da digitação (ou do atraso, se não houver digitação). Arraste-os também na linha do tempo.',
+      },
+      {
+        k: 'highlights',
+        type: 'list',
+        addLabel: 'Adicionar destaque',
+        item: [
+          { k: 'lines', type: 'text', placeholder: 'Linhas: 2, 4-6', w: '1fr' },
+          {
+            k: 'at',
+            type: 'number',
+            title: 'Segundos depois da digitação',
+            min: 0,
+            step: 0.5,
+            w: '64px',
+          },
+          { k: 'keep', type: 'check', title: 'Manter os destaques anteriores', w: '24px' },
+        ],
+        itemDefault: { lines: '1', at: 0, keep: false },
       },
     ],
   },
