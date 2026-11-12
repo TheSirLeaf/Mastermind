@@ -11,16 +11,16 @@ beforeEach(() => {
 });
 
 describe('Inspector tabs', () => {
-  it('marca a aba ativa e abre o painel de pacotes', () => {
+  it('marca a aba ativa e abre o seletor de pacotes quando nada está selecionado', () => {
     render(<Inspector />);
 
     expect(screen.getByRole('button', { name: 'Estilo' })).toHaveAttribute('aria-pressed', 'true');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Pacotes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Pacote' }));
 
-    expect(screen.getByRole('button', { name: 'Pacotes' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Pacote' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Estilo' })).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getByText('Inserir elemento')).toBeInTheDocument();
+    expect(screen.getByText('Adicionar pacote')).toBeInTheDocument();
   });
 
   it('volta ao estado vazio quando muda para uma aba sem seleção', () => {

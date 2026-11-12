@@ -6,6 +6,7 @@ import { useRef, type ReactNode } from 'react';
 import { readImage } from '../../editor/actions';
 
 import { mutateSelectedElement, readSelectedElement } from './elementSelection';
+import { InspectorSection } from './InspectorSection';
 
 const TEXT_TAGS = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'div']);
 
@@ -23,12 +24,14 @@ export function ContentTab({ selection }: { selection: SelectionInfo }) {
     const alt = element.getAttribute('alt') ?? '';
     return (
       <div className="space-y-4">
-        <details className="group open" open>
-          <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-payday-textDim/50">
-            <Icon path="M3 3h18v18H3zM8.5 8.5h.01M21 15l-5-5L5 21" />
-            Imagem
-          </summary>
-          <div className="space-y-3 px-3 pb-3 pt-2">
+        <InspectorSection
+          id="img"
+          group="content"
+          title="Imagem"
+          icon={<Icon path="M3 3h18v18H3zM8.5 8.5h.01M21 15l-5-5L5 21" />}
+          defaultOpen
+        >
+          <div className="space-y-3">
             <input
               ref={fileRef}
               type="file"
@@ -51,7 +54,7 @@ export function ContentTab({ selection }: { selection: SelectionInfo }) {
             />
             <button
               type="button"
-              className="w-full rounded border border-gold-DEFAULT/40 bg-gold-DEFAULT/10 px-2 py-1.5 text-xs text-gold-DEFAULT transition hover:bg-gold-DEFAULT/20"
+              className="w-full rounded border border-accent/40 bg-accent/10 px-2 py-1.5 text-xs text-accent transition hover:bg-accent/20"
               onClick={() => fileRef.current?.click()}
             >
               Trocar imagem…
@@ -95,7 +98,7 @@ export function ContentTab({ selection }: { selection: SelectionInfo }) {
               />
             ) : null}
           </div>
-        </details>
+        </InspectorSection>
       </div>
     );
   }
@@ -120,12 +123,14 @@ export function ContentTab({ selection }: { selection: SelectionInfo }) {
 
     return (
       <div className="space-y-4">
-        <details className="group open" open>
-          <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-payday-textDim/50">
-            <Icon path="M4 7V4h16v3M9 20h6M12 4v16" />
-            Conteúdo do texto
-          </summary>
-          <div className="px-3 pb-3 pt-2">
+        <InspectorSection
+          id="text"
+          group="content"
+          title="Conteúdo do texto"
+          icon={<Icon path="M4 7V4h16v3M9 20h6M12 4v16" />}
+          defaultOpen
+        >
+          <div className="">
             <textarea
               className={`${inputClass} min-h-[140px] resize-y font-mono`}
               value={element.textContent ?? ''}
@@ -138,7 +143,7 @@ export function ContentTab({ selection }: { selection: SelectionInfo }) {
               spellCheck
             />
           </div>
-        </details>
+        </InspectorSection>
       </div>
     );
   }
@@ -153,7 +158,7 @@ export function ContentTab({ selection }: { selection: SelectionInfo }) {
 }
 
 const inputClass =
-  'w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-xs text-payday-text outline-none focus:border-gold-DEFAULT/40';
+  'w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-xs text-payday-text outline-none focus:border-accent/40';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -177,7 +182,7 @@ function Hint({ children }: { children: ReactNode }) {
 function Icon({ path }: { path: string }) {
   return (
     <svg
-      className="h-4 w-4 text-gold-DEFAULT"
+      className="h-4 w-4 text-accent"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

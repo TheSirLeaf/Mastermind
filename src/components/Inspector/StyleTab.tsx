@@ -2,7 +2,9 @@
 import type { SelectionInfo } from '@packages/core/types';
 import type { ReactNode } from 'react';
 
+import { AppearanceSection } from './AppearanceSection';
 import { mutateSelectedElement, readInlineStyle, readSelectedElement } from './elementSelection';
+import { InspectorSection } from './InspectorSection';
 
 export function StyleTab({ selection }: { selection: SelectionInfo }) {
   const element = readSelectedElement(selection);
@@ -37,13 +39,15 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
   const underline = (current['text-decoration'] ?? '').includes('underline');
 
   return (
-    <div className="space-y-4">
-      <details className="group open" open>
-        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-payday-textDim/50">
-          <Icon path="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3-3M2 12h20M12 2v20" />
-          Posição e tamanho
-        </summary>
-        <div className="grid grid-cols-2 gap-2 px-3 pb-3 pt-2">
+    <div>
+      <InspectorSection
+        id="pos"
+        group="style"
+        title="Posição e tamanho"
+        icon={<Icon path="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3-3M2 12h20M12 2v20" />}
+        defaultOpen
+      >
+        <div className="grid grid-cols-2 gap-2">
           <Field label="X">
             <input
               type="number"
@@ -81,33 +85,39 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
             />
           </Field>
         </div>
-      </details>
+      </InspectorSection>
 
-      <details className="group open" open>
-        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-payday-textDim/50">
+      <InspectorSection
+        id="vis"
+        group="style"
+        title="Visibilidade e trava"
+        icon={
           <Icon path="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-          Visibilidade
-        </summary>
-        <div className="space-y-2 px-3 pb-3 pt-2">
+        }
+      >
+        <div className="space-y-2">
           <Toggle
             label="Visível"
             checked={current.display !== 'none'}
             onChange={(checked) => setStyle('display', checked ? null : 'none')}
           />
           <Toggle
-            label="Travado (sem interação)"
+            label="Travado"
             checked={current['pointer-events'] === 'none'}
             onChange={(checked) => setStyle('pointer-events', checked ? 'none' : null)}
           />
         </div>
-      </details>
+      </InspectorSection>
 
-      <details className="group open" open>
-        <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-payday-textDim/50">
+      <InspectorSection
+        id="typo"
+        group="style"
+        title="Tipografia"
+        icon={
           <Icon path="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" />
-          Tipografia
-        </summary>
-        <div className="space-y-2 px-3 pb-3 pt-2">
+        }
+      >
+        <div className="space-y-2">
           <Field label="Cor">
             <input
               type="color"
@@ -196,17 +206,14 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
             </Field>
           </div>
         </div>
-      </details>
-
-      <div className="rounded border border-payday-border p-3 text-[11px] leading-relaxed text-payday-textDim/50">
-        Estilos inline são persistidos no HTML do slide e entram no undo/redo.
-      </div>
+      </InspectorSection>
+      <AppearanceSection selection={selection} />
     </div>
   );
 }
 
 const inputClass =
-  'w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-xs text-payday-text outline-none focus:border-gold-DEFAULT/40';
+  'w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-xs text-payday-text outline-none focus:border-accent/40';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -230,7 +237,7 @@ function Toggle({
     <label className="flex cursor-pointer items-center gap-2 text-sm text-payday-text">
       <input
         type="checkbox"
-        className="accent-gold-DEFAULT"
+        className="accent-accent"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
       />
@@ -242,7 +249,7 @@ function Toggle({
 function Icon({ path }: { path: string }) {
   return (
     <svg
-      className="h-4 w-4 text-gold-DEFAULT"
+      className="h-4 w-4 text-accent"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -272,7 +279,7 @@ function FormatButton({
       onClick={onClick}
       className={`h-8 w-8 rounded border text-xs font-semibold transition ${
         active
-          ? 'border-gold-DEFAULT/60 bg-gold-DEFAULT/15 text-gold-DEFAULT'
+          ? 'border-accent/60 bg-accent/15 text-accent'
           : 'border-payday-border text-payday-textMuted hover:border-white/25 hover:text-payday-text'
       }`}
     >

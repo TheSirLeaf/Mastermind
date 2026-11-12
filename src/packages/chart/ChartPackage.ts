@@ -31,6 +31,11 @@ export const chartDefaults: ChartSpec = {
   countUp: true,
   delay: 0.3,
   w: 900,
+  colorMode: 'single',
+  animStyle: 'grow',
+  animDuration: 0.8,
+  stagger: 0.08,
+  animEase: 'cubic-bezier(.2,.8,.2,1)',
 };
 
 export const chartPresets: Preset<ChartSpec>[] = [
@@ -71,6 +76,7 @@ export const chartPresets: Preset<ChartSpec>[] = [
     desc: 'Proporção entre categorias',
     spec: {
       kind: 'donut',
+      colorMode: 'palette',
       w: 760,
       rows: [
         { label: 'Aprovados', val: '137', hl: true },
@@ -95,7 +101,12 @@ export const ChartPackage: PackageDef<ChartSpec> = {
   form: chartForm,
   css: chartCss,
   render: (spec, h: HelperAPI) => createElement(ChartRenderer, { spec, h }),
-  duration: (spec) => (spec.animate ? spec.delay * 1000 + 900 : 0),
+  duration: (spec) =>
+    spec.animate
+      ? spec.delay * 1000 +
+        (spec.animDuration ?? 0.8) * 1000 +
+        (spec.stagger ?? 0.08) * 1000 * Math.max(0, (spec.rows?.length ?? 1) - 1)
+      : 0,
   // Referência direta (não wrapper): o runtime é serializado via String() no
   // export e precisa reviver autossuficiente no host do HTML standalone.
   runtime: chartRuntime,

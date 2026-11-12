@@ -48,13 +48,13 @@ function Row({
     <div>
       <div
         className={`flex items-center gap-1 rounded px-1 py-0.5 text-[11px] ${
-          active ? 'bg-[#F7D98B]/15 text-[#F7D98B]' : 'text-[#F3E6E2]/70 hover:bg-white/5'
+          active ? 'bg-accent/15 text-accent' : 'text-payday-text/70 hover:bg-white/5'
         }`}
         style={{ paddingLeft: 4 + depth * 12 }}
       >
         <button
           type="button"
-          className="flex h-4 w-4 shrink-0 items-center justify-center text-[#F3E6E2]/40"
+          className="flex h-4 w-4 shrink-0 items-center justify-center text-payday-text/40"
           onClick={() => setOpen((value) => !value)}
           aria-label={open ? 'Recolher' : 'Expandir'}
           aria-expanded={open}
@@ -100,7 +100,7 @@ export function ElementTree() {
   const deck = useDeckStore((state) => state.deck);
   const currentIndex = useDeckStore((state) => state.currentIndex);
   const selection = useDeckStore((state) => state.selection);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const slide = deck.slides[currentIndex];
   if (!slide) return null;
@@ -114,7 +114,7 @@ export function ElementTree() {
     <div className="border-b border-white/10 bg-black/10">
       <button
         type="button"
-        className="flex w-full items-center justify-between px-3 py-2 text-[10px] uppercase tracking-widest text-[#F3E6E2]/45 transition hover:text-[#F7D98B]"
+        className="flex w-full items-center justify-between px-3 py-2 text-[10px] uppercase tracking-widest text-payday-text/45 transition hover:text-accent"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
       >
@@ -122,7 +122,7 @@ export function ElementTree() {
         {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
       </button>
       {open ? (
-        <div className="max-h-56 overflow-auto px-2 pb-2">
+        <div className="max-h-40 overflow-auto px-2 pb-2">
           <Row node={tree} depth={0} selectedPath={selection ? selection.path.join('.') : null} />
         </div>
       ) : null}

@@ -330,6 +330,7 @@ export const simForm: FormSchema = [
   },
   {
     group: 'Roteiro',
+    workspace: 'animation',
     icon: 'play',
     open: false,
     fields: [

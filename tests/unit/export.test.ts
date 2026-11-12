@@ -172,12 +172,17 @@ describe('export', () => {
     expect(slide).not.toBeNull();
     animate(slide!);
 
+    // O bloco nasce vazio: todos os caracteres escondidos antes de a digitação começar.
+    const total =
+      document.querySelectorAll('span.pk-ln').length > 0 ? 'linha umlinha dois'.length : 0;
+    expect(document.querySelectorAll('.pk-h').length, 'o código não pode aparecer pronto').toBe(
+      total
+    );
+
     await vi.waitFor(
       () => {
-        const firstLine = document.querySelector('span.pk-ln');
-        expect(firstLine?.textContent ?? '', 'a digitação deveria ter começado').not.toBe(
-          'linha um'
-        );
+        const hidden = document.querySelectorAll('.pk-h').length;
+        expect(hidden, 'a digitação deveria ter começado').toBeLessThan(total);
       },
       { timeout: 3000 }
     );

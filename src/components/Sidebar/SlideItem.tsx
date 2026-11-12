@@ -50,7 +50,7 @@ export function SlideItem({
       style={style}
       className={clsx(
         'flex w-full items-start gap-2 rounded-md px-2 py-2 text-left transition',
-        isActive ? 'bg-gold-DEFAULT/15 text-payday-text' : 'text-payday-textMuted'
+        isActive ? 'bg-accent/15 text-payday-text' : 'text-payday-textMuted'
       )}
       onClick={onSelect}
       {...attributes}

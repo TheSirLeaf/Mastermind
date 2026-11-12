@@ -1,6 +1,7 @@
 import { StyleTab } from '@components/Inspector/StyleTab';
 import type { SelectionInfo } from '@packages/core/types';
 import { useDeckStore } from '@store/deckStore';
+import { useUIStore } from '@stores/uiStore';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -34,6 +35,7 @@ describe('StyleTab', () => {
   });
 
   it('preserva a unidade da fonte', () => {
+    useUIStore.getState().setOpenSection('style', 'typo');
     render(<StyleTab selection={selection} />);
 
     fireEvent.change(screen.getByLabelText('Tamanho da fonte'), {
@@ -45,6 +47,7 @@ describe('StyleTab', () => {
   });
 
   it('aplica negrito, itálico, sublinhado, família e espaçamentos', () => {
+    useUIStore.getState().setOpenSection('style', 'typo');
     render(<StyleTab selection={selection} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Negrito' }));

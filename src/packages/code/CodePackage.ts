@@ -26,6 +26,7 @@ export const codeDefaults: CodeSpec = {
   delay: 900,
   caret: true,
   w: 900,
+  variant: 'typing',
 };
 
 export const codePresets: Preset<CodeSpec>[] = [
@@ -77,7 +78,11 @@ export const CodePackage: PackageDef<CodeSpec> = {
   css: codeCss,
   render: (spec, h: HelperAPI) => createElement(CodeRenderer, { spec, h }),
   duration: (spec) =>
-    spec.typing ? spec.delay + (spec.code.length / Math.max(1, spec.cps)) * 1000 : 0,
+    spec.typing
+      ? (spec.delay ?? 0) +
+        (spec.code.replace(/\s+/g, ' ').length * 1000) / Math.max(5, spec.cps || 48) +
+        1200
+      : 0,
   // Referência direta (não wrapper): o runtime é serializado via String() no
   // export e precisa reviver autossuficiente no host do HTML standalone.
   runtime: codeRuntime,

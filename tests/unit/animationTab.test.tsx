@@ -2,6 +2,7 @@ import { AnimationTab } from '@components/Inspector/AnimationTab';
 import { createDefaultDeck } from '@packages/core/deck';
 import type { SelectionInfo } from '@packages/core/types';
 import { useDeckStore } from '@store/deckStore';
+import { useUIStore } from '@stores/uiStore';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -25,6 +26,7 @@ describe('AnimationTab', () => {
   });
 
   it('aplica um preset e permite remover a animação', () => {
+    useUIStore.getState().setOpenSection('animation', 'presets');
     render(<AnimationTab selection={selection} />);
 
     fireEvent.click(screen.getByRole('button', { name: /Sutil/ }));

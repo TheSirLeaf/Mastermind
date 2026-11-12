@@ -102,7 +102,7 @@ export default function App() {
     return (
       <div className="flex h-full items-center justify-center bg-payday-bg">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gold-DEFAULT border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-payday-textMuted">Carregando Mastermind...</p>
         </div>
       </div>

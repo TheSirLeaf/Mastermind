@@ -12,7 +12,7 @@ const BACKGROUNDS: Array<[string, string]> = [
 ];
 
 const inputClass =
-  'w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-xs text-payday-text outline-none focus:border-gold-DEFAULT/40';
+  'w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-xs text-payday-text outline-none focus:border-accent/40';
 
 /** Tema, fundo e notas do apresentador do slide atual. */
 export function SlideTab() {
@@ -30,7 +30,7 @@ export function SlideTab() {
   return (
     <div className="space-y-5 p-4">
       <section>
-        <h3 className="mb-2 text-[10px] uppercase tracking-widest text-gold-DEFAULT">Tema</h3>
+        <h3 className="mb-2 text-[10px] uppercase tracking-widest text-accent">Tema</h3>
         <div className="flex gap-1 rounded-lg border border-payday-border bg-payday-bg p-0.5">
           {(
             [
@@ -45,7 +45,7 @@ export function SlideTab() {
               onClick={() => setSlideTheme(index, value)}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition ${
                 theme === value
-                  ? 'bg-gold-DEFAULT/20 text-gold-DEFAULT'
+                  ? 'bg-accent/20 text-accent'
                   : 'text-payday-textMuted hover:bg-white/5'
               }`}
             >
@@ -57,7 +57,7 @@ export function SlideTab() {
       </section>
 
       <section>
-        <h3 className="mb-2 text-[10px] uppercase tracking-widest text-gold-DEFAULT">Fundo</h3>
+        <h3 className="mb-2 text-[10px] uppercase tracking-widest text-accent">Fundo</h3>
         <div className="flex flex-wrap gap-1.5">
           {BACKGROUNDS.map(([name, css]) => (
             <button
@@ -66,7 +66,7 @@ export function SlideTab() {
               title={name}
               aria-label={`Fundo ${name}`}
               onClick={() => setSlideBackground(index, css)}
-              className="h-7 w-9 rounded-md border border-white/15 transition hover:border-gold-DEFAULT"
+              className="h-7 w-9 rounded-md border border-white/15 transition hover:border-accent"
               style={{ background: css }}
             />
           ))}
@@ -75,7 +75,7 @@ export function SlideTab() {
             title="Fundo original do tema"
             aria-label="Restaurar fundo do tema"
             onClick={() => setSlideBackground(index, null)}
-            className="h-7 w-9 rounded-md border border-payday-border text-xs text-payday-textMuted hover:border-gold-DEFAULT"
+            className="h-7 w-9 rounded-md border border-payday-border text-xs text-payday-textMuted hover:border-accent"
           >
             ↺
           </button>
@@ -95,7 +95,7 @@ export function SlideTab() {
       </section>
 
       <section>
-        <h3 className="mb-2 text-[10px] uppercase tracking-widest text-gold-DEFAULT">
+        <h3 className="mb-2 text-[10px] uppercase tracking-widest text-accent">
           Notas do apresentador
         </h3>
         <textarea

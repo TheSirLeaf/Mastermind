@@ -7,6 +7,7 @@ export const chartCss = `
 .pk-chart .pk-gr{stroke:var(--pk-line);stroke-width:1;stroke-dasharray:4 6}
 .pk-chart .pk-cv{fill:var(--pk-fg);font:700 16px 'DM Sans',system-ui,sans-serif}
 .pk-chart .pk-cl{fill:var(--pk-mut);font:14px 'DM Sans',system-ui,sans-serif}
+[data-pk-item]{transform-box:fill-box;transform-origin:50% 50%}
 .pk-chart .pk-b{transform-box:fill-box;transform-origin:50% 100%}
 .pk-chart .pk-ar{opacity:.16}
 .pk-chart .pk-hr{display:grid;grid-template-columns:150px 1fr 90px;gap:18px;align-items:center;margin:14px 0}

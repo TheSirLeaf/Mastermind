@@ -9,6 +9,7 @@ import { useRef, useEffect, useState } from 'react';
 import { handleDroppedFile } from '../../editor/actions';
 import { setActiveBridge } from '../../editor/bridgeRef';
 import { handleBridgeKey } from '../../editor/shortcuts';
+import { getStageViewHandlers } from '../../editor/stageView';
 
 export function Stage() {
   const { deck, currentIndex, pendingSelection, pendingEdit } = useDeckStore();
@@ -39,6 +40,13 @@ export function Stage() {
       },
       onKey: (key) => handleBridgeKey(key),
       onDropFile: (file) => handleDroppedFile(file),
+      onWheel: (dy, x, y) => getStageViewHandlers()?.wheel(dy, x, y),
+      onSlideClick: (index) => useDeckStore.getState().selectSlide(index),
+      onSlideOpen: (index) => {
+        useDeckStore.getState().selectSlide(index);
+        useUIStore.getState().setWorkspace('editor');
+      },
+      onPan: (dx, dy) => getStageViewHandlers()?.pan(dx, dy),
     });
     bridgeRef.current = bridge;
     setActiveBridge(bridge);

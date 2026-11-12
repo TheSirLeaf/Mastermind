@@ -2,9 +2,18 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 
-export type InspectorTab = 'style' | 'content' | 'package' | 'animation' | 'slide' | 'packages';
+export type InspectorTab = 'style' | 'content' | 'package' | 'animation' | 'slide';
+
+export type Workspace = 'editor' | 'animation' | 'slide' | 'integration' | 'presentation';
 
 interface UIState {
+  // Workspace (abas do topo)
+  workspace: Workspace;
+  showLeftPanel: boolean;
+  showRightPanel: boolean;
+  /** Seção aberta por grupo do inspetor (acordeão). `''` = todas fechadas. */
+  openSections: Record<string, string>;
+
   // Panels
   leftPanelWidth: number;
   rightPanelWidth: number;
@@ -17,6 +26,9 @@ interface UIState {
   /** Há um rascunho salvo neste navegador (carregado no boot). */
   hasDraft: boolean;
   isExportModalOpen: boolean;
+  isSettingsOpen: boolean;
+  /** Tooltips ricos ligados (Configurações). */
+  tooltipsEnabled: boolean;
 
   // Preview mode
   isPreviewMode: boolean;
@@ -30,6 +42,10 @@ interface UIState {
   setLeftPanelWidth: (width: number) => void;
   setRightPanelWidth: (width: number) => void;
   setInspectorTab: (tab: InspectorTab) => void;
+  setWorkspace: (workspace: Workspace) => void;
+  toggleLeftPanel: () => void;
+  toggleRightPanel: () => void;
+  setOpenSection: (group: string, id: string) => void;
   replayAnimations: () => void;
   openPackageManager: () => void;
   closePackageManager: () => void;
@@ -38,6 +54,10 @@ interface UIState {
   closeWelcome: (remember?: boolean) => void;
   openExportModal: () => void;
   closeExportModal: () => void;
+  openSettings: () => void;
+  closeSettings: () => void;
+  setTooltipsEnabled: (value: boolean) => void;
+  setWelcomeOnStart: (value: boolean) => void;
   setPreviewMode: (enabled: boolean) => void;
   setPresenting: (enabled: boolean) => void;
   showToast: (message: string, type?: 'info' | 'success' | 'error') => void;
@@ -45,6 +65,20 @@ interface UIState {
 }
 
 const WELCOME_KEY = 'mastermind:welcome';
+
+const TOOLTIP_KEY = 'mastermind:tooltips';
+
+function readTooltipPref(): boolean {
+  try {
+    return window.localStorage.getItem(TOOLTIP_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+export function readWelcomeOnStart(): boolean {
+  return readWelcomePref();
+}
 
 function readWelcomePref(): boolean {
   try {
@@ -64,6 +98,10 @@ function writeWelcomePref(show: boolean): void {
 
 export const useUIStore = create<UIState>()(
   immer((set) => ({
+    workspace: 'editor',
+    showLeftPanel: true,
+    showRightPanel: true,
+    openSections: {},
     leftPanelWidth: 248,
     rightPanelWidth: 344,
     inspectorActiveTab: 'style',
@@ -73,6 +111,8 @@ export const useUIStore = create<UIState>()(
     isWelcomeOpen: readWelcomePref(),
     hasDraft: false,
     isExportModalOpen: false,
+    isSettingsOpen: false,
+    tooltipsEnabled: readTooltipPref(),
 
     isPreviewMode: false,
     isPresenting: false,
@@ -85,6 +125,31 @@ export const useUIStore = create<UIState>()(
     setRightPanelWidth: (width) => set({ rightPanelWidth: Math.max(280, Math.min(500, width)) }),
 
     setInspectorTab: (tab) => set({ inspectorActiveTab: tab }),
+    setWorkspace: (workspace) =>
+      set((state) => {
+        state.workspace = workspace;
+        state.isPreviewMode = false;
+        state.isPresenting = workspace === 'presentation';
+        // Cada área de trabalho tem o seu inspetor: Estilo no Editor, Animação na Animação.
+        const tab = state.inspectorActiveTab;
+        if (workspace === 'slide') state.inspectorActiveTab = 'slide';
+        else if (workspace === 'animation' && tab !== 'package')
+          state.inspectorActiveTab = 'animation';
+        else if (workspace !== 'animation' && (tab === 'animation' || tab === 'slide'))
+          state.inspectorActiveTab = 'style';
+      }),
+    toggleLeftPanel: () =>
+      set((state) => {
+        state.showLeftPanel = !state.showLeftPanel;
+      }),
+    toggleRightPanel: () =>
+      set((state) => {
+        state.showRightPanel = !state.showRightPanel;
+      }),
+    setOpenSection: (group, id) =>
+      set((state) => {
+        state.openSections[group] = id;
+      }),
     replayAnimations: () =>
       set((state) => {
         state.animationPreviewNonce += 1;
@@ -102,9 +167,25 @@ export const useUIStore = create<UIState>()(
 
     openExportModal: () => set({ isExportModalOpen: true }),
     closeExportModal: () => set({ isExportModalOpen: false }),
+    openSettings: () => set({ isSettingsOpen: true }),
+    closeSettings: () => set({ isSettingsOpen: false }),
+    setTooltipsEnabled: (value) => {
+      try {
+        window.localStorage.setItem(TOOLTIP_KEY, value ? 'on' : 'off');
+      } catch {
+        // Sem localStorage: vale só nesta sessão.
+      }
+      set({ tooltipsEnabled: value });
+    },
+    setWelcomeOnStart: (value) => writeWelcomePref(value),
 
     setPreviewMode: (enabled) => set({ isPreviewMode: enabled }),
-    setPresenting: (enabled) => set({ isPresenting: enabled }),
+    setPresenting: (enabled) =>
+      set((state) => {
+        state.isPresenting = enabled;
+        // Sair da apresentação devolve o usuário à aba de edição.
+        if (!enabled && state.workspace === 'presentation') state.workspace = 'editor';
+      }),
 
     showToast: (message, type = 'info') => set({ toast: { message, type } }),
     hideToast: () => set({ toast: null }),

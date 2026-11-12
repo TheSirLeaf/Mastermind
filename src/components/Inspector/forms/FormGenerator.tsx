@@ -1,10 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { BarChart3, Code2, Palette, Play, Plus, Table2, Trash2, Type } from 'lucide-react';
+import { useCallback, useMemo } from 'react';
 import { useForm, type FieldErrors } from 'react-hook-form';
 import { z, type ZodTypeAny } from 'zod';
 
 import type { FormField, FormGroup, FormOption, FormSchema } from '../../../packages/core/types';
+import { InspectorSection } from '../InspectorSection';
 
 interface FormGeneratorProps {
   schema: FormSchema;
@@ -42,6 +43,28 @@ function buildZodSchema(schema: FormSchema): ZodTypeAny {
     }
   }
   return z.object(shape);
+}
+
+const ICON_CLASS = 'h-4 w-4 text-accent';
+
+/** Ícone do grupo, a partir do nome usado nos esquemas dos pacotes. */
+function groupIcon(name: string | undefined): JSX.Element | null {
+  switch (name) {
+    case 'chart':
+      return <BarChart3 className={ICON_CLASS} />;
+    case 'table':
+      return <Table2 className={ICON_CLASS} />;
+    case 'design':
+      return <Palette className={ICON_CLASS} />;
+    case 'play':
+      return <Play className={ICON_CLASS} />;
+    case 'code':
+      return <Code2 className={ICON_CLASS} />;
+    case 'text':
+      return <Type className={ICON_CLASS} />;
+    default:
+      return null;
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -101,7 +124,7 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
       // Tab insere 4 espaços na posição do cursor.
       return (
         <textarea
-          className="w-full rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-cream outline-none focus:border-gold/40 transition font-mono min-h-[320px] resize-y"
+          className="w-full rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-cream outline-none focus:border-accent/40 transition font-mono min-h-[320px] resize-y"
           rows={rows ?? 4}
           spellCheck={false}
           placeholder={placeholder ?? undefined}
@@ -125,7 +148,7 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
     default: {
       return (
         <input
-          className="w-full rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-cream outline-none focus:border-gold/40 transition"
+          className="w-full rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-cream outline-none focus:border-accent/40 transition"
           type={type === 'color' ? 'color' : 'text'}
           placeholder={placeholder ?? undefined}
           value={String(value ?? '')}
@@ -136,7 +159,7 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
     case 'textarea': {
       return (
         <textarea
-          className="w-full rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-cream outline-none focus:border-gold/40 transition"
+          className="w-full rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-cream outline-none focus:border-accent/40 transition"
           placeholder={placeholder ?? undefined}
           value={String(value ?? '')}
           rows={rows ?? 4}
@@ -147,7 +170,7 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
     case 'number': {
       return (
         <input
-          className="w-full rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-cream outline-none focus:border-gold/40 transition"
+          className="w-full rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-cream outline-none focus:border-accent/40 transition"
           type="number"
           min={min ?? undefined}
           max={max ?? undefined}
@@ -174,7 +197,7 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
             </span>
           </div>
           <input
-            className="w-full accent-gold h-1.5"
+            className="w-full accent-accent h-1.5"
             type="range"
             min={min ?? 0}
             max={max ?? 100}
@@ -192,7 +215,7 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
     case 'select': {
       return (
         <select
-          className="w-full rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-cream outline-none focus:border-gold/40 transition"
+          className="w-full rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-cream outline-none focus:border-accent/40 transition"
           value={String(value ?? '')}
           onChange={(event) => set(event.target.value)}
         >
@@ -208,14 +231,14 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
       return (
         <button
           className={`flex items-center justify-between rounded-md border px-2 py-1.5 text-xs transition ${
-            value ? 'border-gold/60 bg-gold/10 text-gold' : 'border-white/10 text-cream/50'
+            value ? 'border-accent/60 bg-accent/10 text-accent' : 'border-white/10 text-cream/50'
           }`}
           onClick={() => set(!value)}
           role="switch"
           aria-checked={!!value}
         >
           <span>{value ? 'Ligado' : 'Desligado'}</span>
-          <span className={`block w-4 h-2 rounded-full ${value ? 'bg-gold' : 'bg-white/10'}`} />
+          <span className={`block w-4 h-2 rounded-full ${value ? 'bg-accent' : 'bg-white/10'}`} />
         </button>
       );
     }
@@ -223,7 +246,7 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
       return (
         <button
           className={`rounded-md border px-1.5 py-1 text-xs transition ${
-            value ? 'border-gold/60 bg-gold/10 text-gold' : 'border-white/10 text-cream/50'
+            value ? 'border-accent/60 bg-accent/10 text-accent' : 'border-white/10 text-cream/50'
           }`}
           onClick={() => set(!value)}
           role="checkbox"
@@ -243,7 +266,7 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
                 key={optionValue(option)}
                 className={`rounded-md border px-2 py-1 text-[10px] font-medium transition ${
                   active
-                    ? 'border-gold/60 bg-gold/10 text-gold'
+                    ? 'border-accent/60 bg-accent/10 text-accent'
                     : 'border-white/10 text-cream/50 hover:bg-white/5'
                 }`}
                 onClick={() => set(optionValue(option))}
@@ -294,42 +317,43 @@ function ListItemInput({ field, items, onItemsChange }: ListItemInputProps): JSX
     [items, onItemsChange]
   );
 
+  const columns = [...itemFields.filter((f) => f.k).map((f) => f.w ?? '1fr'), '22px'].join(' ');
+
   return (
-    <div className="space-y-2">
-      {items.map((item, index) => (
-        <div key={index} className="rounded-md border border-white/10 bg-black/20 p-2">
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-[10px] text-cream/40 uppercase">Item {index + 1}</span>
+    <div className="space-y-1.5">
+      <div className="max-h-72 space-y-1 overflow-y-auto pr-0.5">
+        {items.map((item, index) => (
+          <div
+            key={index}
+            className="grid items-center gap-1.5 rounded-md border border-white/10 bg-black/20 px-1.5 py-1"
+            style={{ gridTemplateColumns: columns }}
+          >
+            {itemFields.map((f) => {
+              const fk = f.k;
+              if (!fk || !fieldVisible(f, item)) return fk ? <span key={fk} /> : null;
+              return (
+                <FieldInput
+                  key={fk}
+                  field={f}
+                  value={item[fk]}
+                  onChange={(value) => setItemField(index, fk, value)}
+                />
+              );
+            })}
             <button
-              className="p-1 text-cream/40 hover:text-gold transition"
+              type="button"
+              className="grid h-5 w-5 place-items-center text-cream/40 transition hover:text-accent"
               onClick={removeItem(index)}
-              aria-label="Remover item"
+              aria-label={`Remover item ${index + 1}`}
             >
               <Trash2 size={12} />
             </button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {itemFields.map((f) => {
-              const fk = f.k;
-              if (!fk) return null;
-              const visible = fieldVisible(f, item);
-              if (!visible) return null;
-              return (
-                <div key={fk} className="flex flex-col gap-0.5">
-                  {f.label && <span className="text-[10px] text-cream/40">{f.label}</span>}
-                  <FieldInput
-                    field={f}
-                    value={item[fk]}
-                    onChange={(value) => setItemField(index, fk, value)}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
       <button
-        className="flex items-center gap-1.5 rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-[10px] text-cream/50 hover:text-gold hover:border-gold/40 transition"
+        type="button"
+        className="flex items-center gap-1.5 rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-[10px] text-cream/50 hover:text-accent hover:border-accent/40 transition"
         onClick={addItem}
       >
         <Plus size={12} /> {field.addLabel ?? 'Adicionar item'}
@@ -344,6 +368,8 @@ function ListItemInput({ field, items, onItemsChange }: ListItemInputProps): JSX
 
 interface FormGroupSectionProps {
   group: FormGroup;
+  /** O primeiro grupo começa aberto; os demais, recolhidos (acordeão). */
+  first: boolean;
   allValues: Record<string, unknown>;
   handleFieldChange: (k: string, value: unknown) => void;
   handleListChange: (k: string, items: Record<string, unknown>[]) => void;
@@ -354,6 +380,7 @@ interface FormGroupSectionProps {
 
 function FormGroupSection({
   group,
+  first,
   allValues,
   handleFieldChange,
   handleListChange,
@@ -361,136 +388,119 @@ function FormGroupSection({
   spec,
   errors,
 }: FormGroupSectionProps): JSX.Element | null {
-  const [isOpen, setIsOpen] = useState(group.open ?? true);
   const visibleFieldsList = group.fields.filter((f) => fieldVisible(f, allValues));
   if (visibleFieldsList.length === 0) return null;
   return (
-    <div
-      key={group.group}
-      className="rounded-md border border-white/10 bg-black/20 overflow-hidden"
+    <InspectorSection
+      id={group.group}
+      group="pkg-form"
+      title={group.group}
+      icon={groupIcon(group.icon)}
+      defaultOpen={group.open ?? first}
     >
-      <button
-        onClick={() => setIsOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-cream/60 hover:bg-white/5 transition"
-        aria-expanded={isOpen}
-      >
-        <span className="flex items-center gap-1.5">
-          {group.icon && <span className="text-cream/50">{group.icon}</span>}
-          {group.group}
-        </span>
-        {isOpen ? (
-          <ChevronDown size={12} className="text-cream/40" />
-        ) : (
-          <ChevronRight size={12} className="text-cream/40" />
-        )}
-      </button>
-      {isOpen && (
-        <div className="divide-y divide-white/5">
-          {visibleFieldsList.map((field) => {
-            if (!field.k) {
-              // row / info / buttons: layout-only fields
-              if (field.type === 'row') {
-                return (
-                  <div key={field.label ?? field.type} className="p-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {field.fields?.map((f) => {
-                        const fk = f.k;
-                        if (!fk || !fieldVisible(f, allValues)) return null;
-                        return (
-                          <div key={fk} className="flex flex-col gap-0.5">
-                            {f.label && (
-                              <span className="text-[10px] text-cream/40">{f.label}</span>
-                            )}
-                            <FieldInput
-                              field={f}
-                              value={getValues(fk)}
-                              onChange={(value) => handleFieldChange(fk, value)}
-                            />
-                            {f.type === 'range' && f.unit && (
-                              <span className="text-[9px] text-cream/40">{f.unit}</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              }
-              if (field.type === 'info') {
-                return (
-                  <div
-                    key={field.label ?? field.type}
-                    className="p-3 text-xs text-cream/40 leading-relaxed"
-                  >
-                    {field.text ?? ''}
-                  </div>
-                );
-              }
-              if (field.type === 'buttons') {
-                return (
-                  <div key={field.label ?? field.type} className="p-3">
-                    <div className="flex gap-2">
-                      {(field.items ?? []).map((action) => (
-                        <button
-                          key={action.label}
-                          type="button"
-                          className="flex items-center gap-1.5 rounded-md border border-white/10 bg-black/20 px-3 py-1.5 text-[10px] text-cream/50 hover:bg-white/5 hover:text-gold transition"
-                          onClick={() => action.do(spec)}
-                        >
-                          {action.icon && <span className="text-cream/50">{action.icon}</span>}
-                          {action.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              }
-              return null;
-            }
-
-            const visible = fieldVisible(field, allValues);
-            if (!visible) return null;
-
-            const fk = field.k;
-            if (!fk) return null;
-            if (field.type === 'list') {
+      <div className="space-y-2">
+        {visibleFieldsList.map((field, position) => {
+          if (!field.k) {
+            // row / info / buttons: layout-only fields
+            if (field.type === 'row') {
               return (
-                <div key={fk} className="p-3">
-                  <span className="text-[10px] uppercase tracking-widest text-cream/40 mb-1 block">
-                    {field.label ?? fk}
-                  </span>
-                  <ListItemInput
-                    field={field}
-                    items={(getValues(fk) as Record<string, unknown>[]) ?? []}
-                    onItemsChange={(items) => handleListChange(fk, items)}
-                  />
+                <div key={`${field.type}-${position}`}>
+                  <div className="grid grid-cols-2 gap-2">
+                    {field.fields?.map((f) => {
+                      const fk = f.k;
+                      if (!fk || !fieldVisible(f, allValues)) return null;
+                      return (
+                        <div key={fk} className="flex flex-col gap-0.5">
+                          {f.label && <span className="text-[10px] text-cream/40">{f.label}</span>}
+                          <FieldInput
+                            field={f}
+                            value={getValues(fk)}
+                            onChange={(value) => handleFieldChange(fk, value)}
+                          />
+                          {f.type === 'range' && f.unit && (
+                            <span className="text-[9px] text-cream/40">{f.unit}</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               );
             }
+            if (field.type === 'info') {
+              return (
+                <div
+                  key={`${field.type}-${position}`}
+                  className="text-xs text-cream/40 leading-relaxed"
+                >
+                  {field.text ?? ''}
+                </div>
+              );
+            }
+            if (field.type === 'buttons') {
+              return (
+                <div key={`${field.type}-${position}`}>
+                  <div className="flex gap-2">
+                    {(field.items ?? []).map((action) => (
+                      <button
+                        key={action.label}
+                        type="button"
+                        className="flex items-center gap-1.5 rounded-md border border-white/10 bg-black/20 px-3 py-1.5 text-[10px] text-cream/50 hover:bg-white/5 hover:text-accent transition"
+                        onClick={() => action.do(spec)}
+                      >
+                        {action.icon && <span className="text-cream/50">{action.icon}</span>}
+                        {action.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          }
 
+          const visible = fieldVisible(field, allValues);
+          if (!visible) return null;
+
+          const fk = field.k;
+          if (!fk) return null;
+          if (field.type === 'list') {
             return (
-              <div key={fk} className="p-3 flex flex-col gap-0.5">
-                {field.label && (
-                  <span className="text-[10px] font-medium text-cream/60">{field.label}</span>
-                )}
-                {field.help && <span className="text-[9px] text-cream/40">{field.help}</span>}
-                <FieldInput
+              <div key={fk}>
+                <span className="text-[10px] uppercase tracking-widest text-cream/40 mb-1 block">
+                  {field.label ?? fk}
+                </span>
+                <ListItemInput
                   field={field}
-                  value={getValues(fk)}
-                  onChange={(value) => handleFieldChange(fk, value)}
+                  items={(getValues(fk) as Record<string, unknown>[]) ?? []}
+                  onItemsChange={(items) => handleListChange(fk, items)}
                 />
-                {field.unit && field.type === 'range' && (
-                  <span className="text-[9px] text-cream/40">{field.unit}</span>
-                )}
-                {errors[fk] && (
-                  <span className="text-[9px] text-red/70">{String(errors[fk]?.message)}</span>
-                )}
               </div>
             );
-          })}
-        </div>
-      )}
-    </div>
+          }
+
+          return (
+            <div key={fk} className="flex flex-col gap-0.5">
+              {field.label && (
+                <span className="text-[10px] font-medium text-cream/60">{field.label}</span>
+              )}
+              {field.help && <span className="text-[9px] text-cream/40">{field.help}</span>}
+              <FieldInput
+                field={field}
+                value={getValues(fk)}
+                onChange={(value) => handleFieldChange(fk, value)}
+              />
+              {field.unit && field.type === 'range' && (
+                <span className="text-[9px] text-cream/40">{field.unit}</span>
+              )}
+              {errors[fk] && (
+                <span className="text-[9px] text-red/70">{String(errors[fk]?.message)}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </InspectorSection>
   );
 }
 
@@ -514,20 +524,14 @@ export function FormGenerator({ schema, spec, onChange }: FormGeneratorProps): J
     formState: { errors },
   } = methods;
 
-  const allValues = useMemo(() => {
-    const values: Record<string, unknown> = {};
-    for (const group of schema) {
-      for (const field of group.fields) {
-        if (!field.k) continue;
-        if (field.type === 'list') {
-          values[field.k] = getValues(field.k) ?? [];
-        } else {
-          values[field.k] = getValues(field.k);
-        }
-      }
+  // Recalculado a cada render: a visibilidade (showIf) depende dos valores atuais do formulário.
+  const allValues: Record<string, unknown> = {};
+  for (const group of schema) {
+    for (const field of group.fields) {
+      if (!field.k) continue;
+      allValues[field.k] = field.type === 'list' ? (getValues(field.k) ?? []) : getValues(field.k);
     }
-    return values;
-  }, [schema, getValues]);
+  }
 
   const handleFieldChange = useCallback(
     (k: string, value: unknown) => {
@@ -547,12 +551,13 @@ export function FormGenerator({ schema, spec, onChange }: FormGeneratorProps): J
     [setValue, getValues, onChange]
   );
 
-  const visibleGroups = useMemo(() => visibleFields(schema, allValues), [schema, allValues]);
+  const visibleGroups = visibleFields(schema, allValues);
 
   return (
     <div className="space-y-4">
-      {visibleGroups.map((group) => (
+      {visibleGroups.map((group, index) => (
         <FormGroupSection
+          first={index === 0}
           key={group.group}
           group={group}
           allValues={allValues}

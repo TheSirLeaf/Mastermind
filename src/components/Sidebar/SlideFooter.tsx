@@ -4,7 +4,7 @@ import { ChevronDown, ChevronUp, Copy, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 const buttonClass =
-  'flex items-center justify-center gap-1 rounded px-2 py-1.5 text-[11px] text-payday-textMuted transition hover:bg-payday-panel hover:text-gold-DEFAULT disabled:pointer-events-none disabled:opacity-30';
+  'flex items-center justify-center gap-1 rounded px-2 py-1.5 text-[11px] text-payday-textMuted transition hover:bg-payday-panel hover:text-accent disabled:pointer-events-none disabled:opacity-30';
 
 export function SlideFooter() {
   const { addSlideFromTemplate, duplicateSlide, deleteSlide, moveSlide, currentIndex, deck } =
@@ -35,14 +35,14 @@ export function SlideFooter() {
       {menuOpen ? (
         <div
           role="menu"
-          className="absolute bottom-full left-2 z-30 mb-1 w-52 rounded-xl border border-[#F7D98B]/35 bg-payday-surface p-1.5 shadow-2xl"
+          className="absolute bottom-full left-2 z-30 mb-1 w-52 rounded-xl border border-accent/35 bg-payday-surface p-1.5 shadow-2xl"
         >
           {(Object.keys(SLIDE_TEMPLATES) as SlideTemplateKind[]).map((kind) => (
             <button
               key={kind}
               type="button"
               role="menuitem"
-              className="block w-full rounded-md px-3 py-1.5 text-left text-xs text-payday-text transition hover:bg-[#F7D98B]/15"
+              className="block w-full rounded-md px-3 py-1.5 text-left text-xs text-payday-text transition hover:bg-accent/15"
               onClick={() => {
                 setMenuOpen(false);
                 addSlideFromTemplate(kind);

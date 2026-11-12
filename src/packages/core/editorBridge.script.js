@@ -48,6 +48,9 @@
     '.slide{transition:none!important}',
     '.slide:not(.active){opacity:0;visibility:hidden;pointer-events:none}',
     '.notes-panel,.hint,.progress,.lightbox{display:none!important}',
+    /* "Travado" vale só no export/apresentação; no editor o elemento continua selecionável */
+    'body:not(.mm-preview) .slide.active [style*="pointer-events: none"],body:not(.mm-preview) .slide.active [style*="pointer-events:none"]{pointer-events:auto!important}',
+    '.mm-locked-sel .mm-h{display:none}',
     'body:not(.mm-preview) .slide .pkg *,body:not(.mm-preview) .slide .pk-wrap *{animation:none!important}',
     'body:not(.mm-preview) .slide.active .chart .bar,body:not(.mm-preview) .slide.active .chart .cv,body:not(.mm-preview) .slide.active .sw-chip,body:not(.mm-preview) .slide.active .tbar-track i,body:not(.mm-preview) .slide.active .branch-svg .draw,body:not(.mm-preview) .slide.active .branch-svg .pop{animation:none!important}',
     'body:not(.mm-preview) .branch-svg .draw{stroke-dashoffset:0!important}',
@@ -79,7 +82,36 @@
   var previewing = false;
   var previewTimer = null;
 
+  /* modo "canvas": todos os slides lado a lado; o editor controla zoom/posição */
+  var mode = 'slide';
+  var CANVAS_GAP = 160;
+  var canvasStyle = document.createElement('style');
+  canvasStyle.id = 'mm-canvas-style';
+  document.head.appendChild(canvasStyle);
+
+  function buildCanvasCss() {
+    var count = Array.prototype.filter.call(deck.children, function (c) {
+      return c.classList && c.classList.contains('slide');
+    }).length;
+    var css = [
+      'body.mm-canvas .slide{inset:auto!important;top:0!important;opacity:1!important;visibility:visible!important;transform:none!important;transition:none!important;pointer-events:auto!important;cursor:pointer}',
+      'body.mm-canvas .slide.active{box-shadow:0 0 0 10px ' + GOLD + '}',
+      'body.mm-canvas .slide *{pointer-events:none!important}',
+    ];
+    for (var i = 0; i < count; i++) {
+      css.push(
+        'body.mm-canvas #deck>.slide:nth-child(' +
+          (i + 1) +
+          '){left:' +
+          i * (1920 + CANVAS_GAP) +
+          'px!important}'
+      );
+    }
+    canvasStyle.textContent = css.join('\n');
+  }
+
   function fit() {
+    if (mode === 'canvas') return;
     scale = (stage.clientWidth || 1920) / 1920;
     deck.style.transform = 'scale(' + scale + ')';
   }
@@ -235,11 +267,15 @@
       height: r.height / scale,
     };
   }
+  function isLocked(el) {
+    return !!el && !!el.style && el.style.pointerEvents === 'none';
+  }
   function drawSelection(el) {
     if (!el || !el.isConnected || previewing) {
       sel.style.display = 'none';
       return;
     }
+    sel.classList.toggle('mm-locked-sel', isLocked(el));
     var r = rectOf(el);
     var px = function (n) {
       return Math.max(1, n / scale).toFixed(2) + 'px';
@@ -290,7 +326,13 @@
       px(2) +
       ';border-radius:' +
       px(4);
-    tag.textContent = labelOf(el) + ' · ' + Math.round(r.width) + '×' + Math.round(r.height);
+    tag.textContent =
+      (isLocked(el) ? '🔒 ' : '') +
+      labelOf(el) +
+      ' · ' +
+      Math.round(r.width) +
+      '×' +
+      Math.round(r.height);
     var inside = r.top * scale < 34;
     tag.style.fontSize = (12 / scale).toFixed(2) + 'px';
     tag.style.padding = px(3) + ' ' + px(8);
@@ -335,7 +377,7 @@
     return true;
   }
   function beginEdit(el, all) {
-    if (!isTextElement(el)) return;
+    if (!isTextElement(el) || isLocked(el)) return;
     if (editing) endEdit(true);
     editing = el;
     editingOriginal = el.innerHTML;
@@ -480,7 +522,7 @@
     if (p && p !== deck && !p.classList.contains('slide')) select(p);
   }
   function nudge(dx, dy) {
-    if (!selected) return;
+    if (!selected || isLocked(selected)) return;
     var t = getTrans(selected);
     setTrans(selected, t.x + dx, t.y + dy);
     drawSelection(selected);
@@ -497,10 +539,70 @@
     },
     true
   );
+  /* botão do meio: movimenta a visualização; scroll: zoom (o editor aplica) */
+  var panning = null;
+  document.addEventListener(
+    'pointerdown',
+    function (e) {
+      if (e.button !== 1) return;
+      e.preventDefault();
+      panning = { x: e.screenX, y: e.screenY, id: e.pointerId };
+      try {
+        document.documentElement.setPointerCapture(e.pointerId);
+      } catch (err) {
+        /* ignore */
+      }
+    },
+    true
+  );
+  document.addEventListener(
+    'pointermove',
+    function (e) {
+      if (!panning) return;
+      /* screenX/Y não mudam quando o iframe se move junto com o pan */
+      post({ type: 'pan', dx: e.screenX - panning.x, dy: e.screenY - panning.y });
+      panning.x = e.screenX;
+      panning.y = e.screenY;
+    },
+    true
+  );
+  function endPan() {
+    if (!panning) return;
+    try {
+      document.documentElement.releasePointerCapture(panning.id);
+    } catch (err) {
+      /* ignore */
+    }
+    panning = null;
+  }
+  document.addEventListener('pointerup', endPan, true);
+  document.addEventListener('pointercancel', endPan, true);
+  document.addEventListener(
+    'auxclick',
+    function (e) {
+      if (e.button === 1) e.preventDefault();
+    },
+    true
+  );
+  document.addEventListener(
+    'wheel',
+    function (e) {
+      e.preventDefault();
+      post({ type: 'wheel', dy: e.deltaY, x: e.clientX, y: e.clientY });
+    },
+    { capture: true, passive: false }
+  );
+
   document.addEventListener(
     'pointerdown',
     function (e) {
       if (e.button !== 0 || previewing) return;
+      if (mode === 'canvas') {
+        /* visão geral: clicar num slide só o torna o atual */
+        var hit = e.target instanceof Element ? slideOf(e.target) : null;
+        if (hit) post({ type: 'slide-click', index: slideList().indexOf(hit) });
+        return;
+      }
       var t = e.target;
       if (!(t instanceof Element)) return;
       if (editing && editing.contains(t)) return;
@@ -530,7 +632,7 @@
       if (editing) endEdit(true);
       var el = pick(t);
       select(el);
-      if (!el) return;
+      if (!el || isLocked(el)) return;
       drag = {
         mode: 'move',
         el: el,
@@ -626,6 +728,12 @@
   document.addEventListener(
     'dblclick',
     function (e) {
+      if (mode === 'canvas') {
+        var over = document.elementFromPoint(e.clientX, e.clientY);
+        var target = over instanceof Element ? slideOf(over) : null;
+        if (target) post({ type: 'slide-open', index: slideList().indexOf(target) });
+        return;
+      }
       if (previewing) return;
       /* com pointer capture o alvo do evento é o <html>; resolve pelo ponto real */
       var t = document.elementFromPoint(e.clientX, e.clientY) || e.target;
@@ -834,7 +942,8 @@
         post({ type: 'slide', index: data.index });
       }
     } else if (data.type === 'select') {
-      select(elAt(data.path), true);
+      /* não silencioso: o inspetor, a linha do tempo e o dock precisam saber da seleção */
+      select(elAt(data.path));
       if (selected && data.edit) beginEdit(selected, true);
     } else if (data.type === 'set-slide') {
       list = slideList();
@@ -887,6 +996,26 @@
       playPreview();
     } else if (data.type === 'stop-preview') {
       stopPreview();
+    } else if (data.type === 'mode') {
+      if (editing) endEdit(true);
+      if (previewing) stopPreview();
+      select(null, true);
+      mode = data.mode === 'canvas' ? 'canvas' : 'slide';
+      document.body.classList.toggle('mm-canvas', mode === 'canvas');
+      if (mode === 'canvas') {
+        buildCanvasCss();
+        deck.style.transition = 'none';
+      } else {
+        deck.style.transition = 'none';
+        fit();
+      }
+      drawSelection(null);
+    } else if (data.type === 'view') {
+      if (mode !== 'canvas') return;
+      scale = data.zoom || 1;
+      deck.style.transition = data.animate ? 'transform .45s cubic-bezier(.2,.8,.2,1)' : 'none';
+      deck.style.transform =
+        'translate(' + (data.x || 0) + 'px,' + (data.y || 0) + 'px) scale(' + scale + ')';
     } else if (data.type === 'fit') {
       fit();
       drawSelection(selected);

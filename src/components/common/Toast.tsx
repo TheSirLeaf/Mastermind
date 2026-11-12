@@ -16,7 +16,7 @@ export function Toast({ message, type, onDismiss }: ToastProps) {
   };
 
   const colors = {
-    info: 'text-[#F7D98B]',
+    info: 'text-accent',
     success: 'text-[#72A68A]',
     error: 'text-[#C77C8A]',
   };

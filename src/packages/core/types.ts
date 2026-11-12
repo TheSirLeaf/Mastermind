@@ -86,6 +86,8 @@ export interface FormGroup {
   group: string;
   icon?: string;
   open?: boolean;
+  /** Onde o grupo aparece no inspetor: aba Estilo (padrão) ou Animação. */
+  workspace?: 'style' | 'animation';
   showIf?: ShowIf;
   fields: FormField[];
 }

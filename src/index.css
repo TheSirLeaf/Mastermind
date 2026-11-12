@@ -3,8 +3,37 @@
 @tailwind utilities;
 
 @layer base {
+  /*
+   * Tokens de tema (canais RGB). O tema escuro é o padrão; o claro fica pronto em
+   * [data-theme='light'] — basta definir o atributo em <html> para ativá-lo.
+   * `--c-on-accent` é o texto sobre superfícies de destaque (botões dourados).
+   */
   :root {
     color-scheme: dark;
+    --c-bg: 10 10 10;
+    --c-surface: 20 20 20;
+    --c-panel: 30 30 30;
+    --c-border: 42 42 42;
+    --c-text: 255 255 255;
+    --c-text-muted: 176 176 176;
+    --c-text-dim: 128 128 128;
+    --c-accent: 247 217 139;
+    --c-accent-dark: 214 168 79;
+    --c-on-accent: 42 14 26;
+  }
+
+  :root[data-theme='light'] {
+    color-scheme: light;
+    --c-bg: 250 247 245;
+    --c-surface: 255 255 255;
+    --c-panel: 243 238 235;
+    --c-border: 224 216 212;
+    --c-text: 42 14 26;
+    --c-text-muted: 90 78 82;
+    --c-text-dim: 130 120 123;
+    --c-accent: 142 59 82;
+    --c-accent-dark: 110 40 62;
+    --c-on-accent: 255 255 255;
   }
 
   html,
@@ -24,5 +53,54 @@
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: rgba(247, 217, 139, 0.25) transparent;
+  }
+}
+
+@keyframes mmTipIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mmMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mmSubmenuIn {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.mm-menu-in {
+  transform-origin: top left;
+  animation: mmMenuIn 150ms cubic-bezier(0.16, 0.84, 0.24, 1);
+}
+
+.mm-submenu-in {
+  animation: mmSubmenuIn 140ms cubic-bezier(0.16, 0.84, 0.24, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mm-menu-in,
+  .mm-submenu-in {
+    animation: none;
   }
 }

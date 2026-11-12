@@ -30,10 +30,10 @@ export function CounterSection({ selection }: { selection: SelectionInfo }) {
   };
 
   return (
-    <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-gold-DEFAULT/25 bg-gold-DEFAULT/10 p-3 text-xs text-payday-text">
+    <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-accent/25 bg-accent/10 p-3 text-xs text-payday-text">
       <input
         type="checkbox"
-        className="mt-0.5 accent-gold-DEFAULT"
+        className="mt-0.5 accent-accent"
         checked={enabled}
         onChange={(event) => toggle(event.target.checked)}
       />

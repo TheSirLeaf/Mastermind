@@ -44,9 +44,7 @@ export function WelcomeModal() {
         className="relative w-full max-w-md rounded-2xl border border-payday-border bg-payday-surface p-8 text-center"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 className="mb-2 font-serif text-3xl font-bold text-gold-DEFAULT">
-          Bem-vindo ao Mastermind
-        </h2>
+        <h2 className="mb-2 font-serif text-3xl font-bold text-accent">Bem-vindo ao Mastermind</h2>
         <p className="mb-6 text-payday-textMuted">
           Editor de apresentações com sistema de pacotes extensível
         </p>
@@ -55,7 +53,7 @@ export function WelcomeModal() {
           {hasDraft ? (
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-gold-DEFAULT to-gold-dark px-4 py-2.5 text-sm font-semibold text-payday-bg transition hover:brightness-110"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-accent to-accent-dark px-4 py-2.5 text-sm font-semibold text-accent-fg transition hover:brightness-110"
               onClick={close}
             >
               <History className="h-5 w-5" /> Continuar rascunho ({slideCount} slides
@@ -67,7 +65,7 @@ export function WelcomeModal() {
             className={
               hasDraft
                 ? 'flex w-full items-center justify-center gap-2 rounded-lg border border-payday-border bg-payday-surface px-4 py-2.5 text-sm text-payday-text transition hover:bg-payday-panel'
-                : 'flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-gold-DEFAULT to-gold-dark px-4 py-2.5 text-sm font-semibold text-payday-bg transition hover:brightness-110'
+                : 'flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-accent to-accent-dark px-4 py-2.5 text-sm font-semibold text-accent-fg transition hover:brightness-110'
             }
             onClick={() => {
               if (hasDraft) newDeck();
@@ -88,7 +86,7 @@ export function WelcomeModal() {
         <label className="mx-auto flex cursor-pointer items-center justify-center gap-3 text-sm text-payday-textMuted">
           <input
             type="checkbox"
-            className="accent-gold-DEFAULT"
+            className="accent-accent"
             checked={remember}
             onChange={(event) => setRemember(event.target.checked)}
           />
@@ -97,7 +95,7 @@ export function WelcomeModal() {
 
         <button
           type="button"
-          className="absolute right-4 top-4 rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-gold-DEFAULT"
+          className="absolute right-4 top-4 rounded p-1.5 text-payday-textMuted transition hover:bg-payday-surface hover:text-accent"
           onClick={close}
           aria-label="Fechar"
         >

@@ -30,14 +30,22 @@ const defaults: CodeSpec = {
   w: 900,
 };
 
+/** `frame` síncrono: avança o relógio em passos de 50 ms até a animação terminar. */
 function makeApi(overrides: Partial<RuntimeAPI> = {}): RuntimeAPI {
-  return {
+  const api = {
     reduced: false,
     alive: () => true,
     wait: vi.fn().mockResolvedValue(undefined),
-    frame: vi.fn(),
+    frame: (fn: (ts: number) => boolean | void) => {
+      let ts = 0;
+      for (let guard = 0; guard < 100000 && api.alive(); guard++) {
+        if (fn(ts) === false) return;
+        ts += 50;
+      }
+    },
     ...overrides,
   } as RuntimeAPI;
+  return api;
 }
 
 function rootWith(lines: string[]): HTMLElement {
@@ -60,7 +68,7 @@ describe('code runtime', () => {
     expect(codeRuntime(root, defaults, makeApi())).toBeNull();
   });
 
-  it('types code into each line and final restores original HTML', async () => {
+  it('esconde o código assim que monta (bloco vazio) e revela ao digitar', async () => {
     const api = makeApi();
     const root = rootWith(['ab', 'cd']);
     const pre = root.querySelector('pre.pk-pre')!;
@@ -68,10 +76,13 @@ describe('code runtime', () => {
 
     const ctrl = codeRuntime(root, defaults, api);
     expect(ctrl).not.toBeNull();
+    // Antes de começar a digitar, nenhum caractere pode estar visível.
+    expect(pre.querySelectorAll('.pk-h').length).toBe(4);
+
     await ctrl!.play();
 
     expect(pre.textContent).toBe('abcd');
-    expect(api.wait).toHaveBeenCalled();
+    expect(pre.querySelectorAll('.pk-h').length).toBe(0);
 
     ctrl!.final();
     expect(pre.innerHTML).toBe(original);
@@ -88,7 +99,7 @@ describe('code runtime', () => {
     await ctrl!.play();
 
     expect(pre.innerHTML).toBe(original);
-    expect(api.wait).not.toHaveBeenCalled();
+    expect(pre.querySelectorAll('.pk-h').length).toBe(0);
   });
 
   it('stops typing when api.alive becomes false', async () => {
@@ -99,11 +110,10 @@ describe('code runtime', () => {
 
     const ctrl = codeRuntime(root, { ...defaults, typing: true, cps: 1 }, api);
     expect(ctrl).not.toBeNull();
-    const playPromise = ctrl!.play();
     alive = false;
-    await playPromise;
+    await ctrl!.play();
 
-    expect(pre.textContent.length).toBeLessThan('abcdef'.length);
+    expect(pre.querySelectorAll('.pk-h').length).toBe('abcdef'.length);
   });
 
   it('play does nothing and final restores when typing is disabled', async () => {

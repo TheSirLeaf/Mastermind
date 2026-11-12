@@ -12,6 +12,24 @@ export interface BridgeEvents {
   onKey?: (key: string) => void;
   /** Arquivo solto sobre o palco (imagem, .html ou pacote .json). */
   onDropFile?: (file: File) => void;
+  /** Scroll sobre o palco (zoom). Coordenadas do ponteiro dentro do iframe. */
+  onWheel?: (deltaY: number, x: number, y: number) => void;
+  /** Arrasto com o botão do meio (movimentar a visualização), em px do iframe. */
+  onPan?: (dx: number, dy: number) => void;
+  /** Visão geral: clique num slide (torna-o o atual). */
+  onSlideClick?: (index: number) => void;
+  /** Visão geral: duplo clique num slide (abrir no Editor). */
+  onSlideOpen?: (index: number) => void;
+}
+
+export type StageMode = 'slide' | 'canvas';
+
+export interface StageView {
+  x: number;
+  y: number;
+  zoom: number;
+  /** Anima a transição (movimento programático); `false` acompanha o mouse. */
+  animate?: boolean;
 }
 
 /** Comandos executados pelo iframe sobre o elemento selecionado. */
@@ -36,7 +54,11 @@ type DeckMessage =
   | { __mm: 'deck'; type: 'slide'; index: number }
   | { __mm: 'deck'; type: 'slide-html'; index: number; html: string; key?: string }
   | { __mm: 'deck'; type: 'key'; key: string }
-  | { __mm: 'deck'; type: 'drop'; file: File };
+  | { __mm: 'deck'; type: 'drop'; file: File }
+  | { __mm: 'deck'; type: 'wheel'; dy: number; x: number; y: number }
+  | { __mm: 'deck'; type: 'pan'; dx: number; dy: number }
+  | { __mm: 'deck'; type: 'slide-click'; index: number }
+  | { __mm: 'deck'; type: 'slide-open'; index: number };
 
 /**
  * Ponte com o iframe do palco.
@@ -49,6 +71,8 @@ export class IframeBridge {
   private ready = false;
   private pendingGoto: number | null = null;
   private pendingSelect: { path: number[]; edit: boolean } | null = null;
+  private mode: StageMode = 'slide';
+  private view: StageView | null = null;
   private readonly iframe: HTMLIFrameElement;
   private readonly events: BridgeEvents;
 
@@ -69,6 +93,9 @@ export class IframeBridge {
       case 'ready':
         this.ready = true;
         this.events.onReady?.(data.count);
+        // Um documento recarregado volta ao modo padrão: reaplica o modo e a visão.
+        if (this.mode !== 'slide') this.send({ type: 'mode', mode: this.mode });
+        if (this.view) this.send({ type: 'view', ...this.view });
         if (this.pendingGoto !== null) {
           const index = this.pendingGoto;
           this.pendingGoto = null;
@@ -100,6 +127,18 @@ export class IframeBridge {
       case 'drop':
         this.events.onDropFile?.(data.file);
         break;
+      case 'wheel':
+        this.events.onWheel?.(data.dy, data.x, data.y);
+        break;
+      case 'pan':
+        this.events.onPan?.(data.dx, data.dy);
+        break;
+      case 'slide-click':
+        this.events.onSlideClick?.(data.index);
+        break;
+      case 'slide-open':
+        this.events.onSlideOpen?.(data.index);
+        break;
       default:
         break;
     }
@@ -122,6 +161,18 @@ export class IframeBridge {
   load(documentHTML: string): void {
     this.ready = false;
     this.iframe.srcdoc = documentHTML;
+  }
+
+  /** Alterna entre um slide por vez e a visão geral (todos os slides lado a lado). */
+  setMode(mode: StageMode): void {
+    this.mode = mode;
+    if (this.ready) this.send({ type: 'mode', mode });
+  }
+
+  /** Posição e zoom da visão geral. */
+  setView(view: StageView): void {
+    this.view = view;
+    if (this.ready) this.send({ type: 'view', ...view });
   }
 
   goto(index: number): void {

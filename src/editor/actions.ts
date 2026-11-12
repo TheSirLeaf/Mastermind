@@ -51,6 +51,57 @@ export async function openPDF(): Promise<boolean> {
   }
 }
 
+const escapeHtml = (text: string): string =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** Converte o deck em HTML para o Word: texto e imagens de cada slide, uma página por slide. */
+export function buildWordHTML(title: string, slideHtml: string[]): string {
+  const blocks = slideHtml.map((html, index) => {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('script,style,svg').forEach((node) => node.remove());
+    const parts: string[] = [`<h2>Slide ${index + 1}</h2>`];
+    doc.body.querySelectorAll('h1,h2,h3,h4,p,li,pre,img').forEach((node) => {
+      const tag = node.tagName.toLowerCase();
+      if (tag === 'img') {
+        const src = node.getAttribute('src');
+        if (src) parts.push(`<p><img src="${escapeHtml(src)}" style="max-width:480px" /></p>`);
+        return;
+      }
+      // Evita duplicar o texto de contêineres que já têm filhos listados.
+      if (node.querySelector('h1,h2,h3,h4,p,li,pre')) return;
+      const text = (node.textContent ?? '').replace(/\s+/g, ' ').trim();
+      if (!text) return;
+      const out = tag === 'li' ? 'p' : tag === 'pre' ? 'pre' : tag;
+      parts.push(`<${out}>${tag === 'li' ? '• ' : ''}${escapeHtml(text)}</${out}>`);
+    });
+    return `<div style="page-break-after:always">${parts.join('\n')}</div>`;
+  });
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head><body>${blocks.join('\n')}</body></html>`;
+}
+
+/** Baixa um `.doc` (HTML que o Word abre) com o texto e as imagens dos slides. */
+export function exportWord(): boolean {
+  const { deck } = useDeckStore.getState();
+  const { showToast } = useUIStore.getState();
+  try {
+    const html = buildWordHTML(
+      deck.title,
+      deck.slides.map((slide) => slide.html)
+    );
+    const url = URL.createObjectURL(new Blob(['﻿', html], { type: 'application/msword' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${deck.title.replace(/[^\w-]+/g, '_') || 'apresentacao'}.doc`;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    showToast('Documento do Word baixado (texto e imagens)', 'success');
+    return true;
+  } catch {
+    showToast('Não foi possível exportar para o Word.', 'error');
+    return false;
+  }
+}
+
 export interface LoadedImage {
   src: string;
   width: number;

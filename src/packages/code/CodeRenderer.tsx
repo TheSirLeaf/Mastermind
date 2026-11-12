@@ -24,6 +24,8 @@ export interface CodeSpec extends PackageSpec {
   delay: number;
   caret: boolean;
   w: number;
+  /** Visual da janela: `typing` (padrão, estilo apresentação) ou `terminal` (linhas numeradas). */
+  variant?: 'typing' | 'terminal';
 }
 
 export function CodeRenderer({ spec, h }: CodeRendererProps): JSX.Element {
@@ -32,7 +34,7 @@ export function CodeRenderer({ spec, h }: CodeRendererProps): JSX.Element {
   return (
     <div
       data-testid="pk-code-container"
-      className={`pk-code pk-${spec.theme}${spec.typing ? ' pk-typing' : ''}`}
+      className={`pk-code pk-${spec.theme} pk-v-${spec.variant ?? 'typing'}${spec.typing ? ' pk-typing' : ''}`}
       style={{ width: `${spec.w}px`, maxWidth: '100%' }}
     >
       <div className="pk-win">

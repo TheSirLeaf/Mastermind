@@ -4,7 +4,6 @@ export const codeForm: FormSchema = [
   {
     group: 'Conteúdo',
     icon: 'code',
-    open: true,
     fields: [
       {
         k: 'file',
@@ -52,8 +51,16 @@ export const codeForm: FormSchema = [
   {
     group: 'Aparência',
     icon: 'design',
-    open: true,
     fields: [
+      {
+        k: 'variant',
+        label: 'Estilo da janela',
+        type: 'select',
+        options: [
+          ['typing', 'Digitação (padrão)'],
+          ['terminal', 'Terminal (linhas numeradas)'],
+        ],
+      },
       {
         k: 'theme',
         label: 'Tema da janela',
@@ -104,8 +111,8 @@ export const codeForm: FormSchema = [
   },
   {
     group: 'Animação',
+    workspace: 'animation',
     icon: 'play',
-    open: true,
     fields: [
       { k: 'typing', label: 'Digitar o código', type: 'toggle' },
       { k: 'caret', label: 'Cursor piscando', type: 'toggle' },

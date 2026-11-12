@@ -189,27 +189,27 @@ export function PackageManagerModal() {
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-payday-border">
-          <h2 className="font-serif text-2xl text-gold-DEFAULT flex items-center gap-3">
+          <h2 className="font-serif text-2xl text-accent flex items-center gap-3">
             <PuzzleIcon />
             Gerenciador de Pacotes
           </h2>
           <div className="flex items-center gap-2">
             <button
-              className="rounded p-1.5 text-payday-textMuted hover:bg-payday-surface hover:text-gold-DEFAULT transition"
+              className="rounded p-1.5 text-payday-textMuted hover:bg-payday-surface hover:text-accent transition"
               onClick={handleExport}
               title="Exportar pacotes"
             >
               <Download className="w-4 h-4" />
             </button>
             <button
-              className="rounded p-1.5 text-payday-textMuted hover:bg-payday-surface hover:text-gold-DEFAULT transition"
+              className="rounded p-1.5 text-payday-textMuted hover:bg-payday-surface hover:text-accent transition"
               onClick={() => setShowImportModal(true)}
               title="Importar pacotes"
             >
               <Upload className="w-4 h-4" />
             </button>
             <button
-              className="rounded p-1.5 text-payday-textMuted hover:bg-payday-surface hover:text-gold-DEFAULT transition"
+              className="rounded p-1.5 text-payday-textMuted hover:bg-payday-surface hover:text-accent transition"
               onClick={closePackageManager}
               title="Fechar"
             >
@@ -224,7 +224,7 @@ export function PackageManagerModal() {
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-payday-textMuted/40" />
             <input
               type="text"
-              className="w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 pl-10 text-sm text-payday-text outline-none focus:border-gold-DEFAULT/40"
+              className="w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 pl-10 text-sm text-payday-text outline-none focus:border-accent/40"
               placeholder="Buscar pacotes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -258,7 +258,7 @@ export function PackageManagerModal() {
                     key={pkg.id}
                     className={clsx(
                       'p-3 rounded-lg border border-transparent hover:border-payday-border transition',
-                      selectedPackage === pkg.id && 'ring-2 ring-gold-DEFAULT bg-payday-surface'
+                      selectedPackage === pkg.id && 'ring-2 ring-accent bg-payday-surface'
                     )}
                     onClick={() => setSelectedPackage(selectedPackage === pkg.id ? null : pkg.id)}
                   >
@@ -277,7 +277,7 @@ export function PackageManagerModal() {
                           <b className="truncate text-payday-text">
                             {(def?.name as string) || pkg.id}
                           </b>
-                          <span className="px-2 py-0.5 rounded text-[10px] bg-gold-DEFAULT/20 text-gold-DEFAULT">
+                          <span className="px-2 py-0.5 rounded text-[10px] bg-accent/20 text-accent">
                             v{(def?.version as string) || '1.0.0'}
                           </span>
                           {isBuiltin && (
@@ -304,9 +304,9 @@ export function PackageManagerModal() {
                       )}
                     </div>
                     {selectedPackage === pkg.id && def && (
-                      <details className="mt-3">
+                      <details className="mt-3" open onClick={(e) => e.stopPropagation()}>
                         <summary className="text-[11px] text-[#d6c3c0] cursor-pointer">
-                          Ver detalhes
+                          Detalhes do pacote
                         </summary>
                         <pre className="mt-2 p-3 bg-payday-surface border border-payday-border rounded-lg overflow-auto text-[11px] text-payday-textMuted">
                           {JSON.stringify(
@@ -333,7 +333,7 @@ export function PackageManagerModal() {
 
         {/* Built-in packages section */}
         <div className="p-4 border-t border-payday-border">
-          <h3 className="text-[11px] uppercase tracking-wider text-gold-DEFAULT mb-3">
+          <h3 className="text-[11px] uppercase tracking-wider text-accent mb-3">
             Pacotes built-in disponíveis
           </h3>
           <div className="flex gap-3 flex-wrap">
@@ -398,9 +398,9 @@ export function PackageManagerModal() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-payday-border flex items-center justify-between">
-              <h3 className="font-serif text-xl text-gold-DEFAULT">Importar pacotes</h3>
+              <h3 className="font-serif text-xl text-accent">Importar pacotes</h3>
               <button
-                className="rounded p-1.5 text-payday-textMuted hover:bg-payday-surface hover:text-gold-DEFAULT transition"
+                className="rounded p-1.5 text-payday-textMuted hover:bg-payday-surface hover:text-accent transition"
                 onClick={() => setShowImportModal(false)}
               >
                 <X className="w-4 h-4" />
@@ -422,7 +422,7 @@ export function PackageManagerModal() {
               />
               <button
                 type="button"
-                className="mb-3 rounded border border-gold-DEFAULT/40 bg-gold-DEFAULT/10 px-3 py-1.5 text-sm text-gold-DEFAULT transition hover:bg-gold-DEFAULT/20"
+                className="mb-3 rounded border border-accent/40 bg-accent/10 px-3 py-1.5 text-sm text-accent transition hover:bg-accent/20"
                 onClick={() => fileRef.current?.click()}
               >
                 Escolher arquivo .dialcron-pkg.json…
@@ -431,7 +431,7 @@ export function PackageManagerModal() {
                 …ou cole o JSON do pacote
               </label>
               <textarea
-                className="w-full min-h-[200px] resize-y rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-sm text-payday-text outline-none focus:border-gold-DEFAULT/40 font-mono"
+                className="w-full min-h-[200px] resize-y rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-sm text-payday-text outline-none focus:border-accent/40 font-mono"
                 value={importJson}
                 onChange={(e) => setImportJson(e.target.value)}
                 placeholder='{"format": "dialcron-package", "spec": 1, "packages": [ … ]}'
@@ -445,7 +445,7 @@ export function PackageManagerModal() {
                 Cancelar
               </button>
               <button
-                className="rounded px-4 py-2 text-sm font-semibold bg-gradient-to-r from-gold-DEFAULT to-gold-dark text-payday-bg border-0 hover:opacity-90 transition"
+                className="rounded px-4 py-2 text-sm font-semibold bg-gradient-to-r from-accent to-accent-dark text-accent-fg border-0 hover:opacity-90 transition"
                 onClick={() => void handleImport()}
               >
                 Importar

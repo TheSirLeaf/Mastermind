@@ -19,6 +19,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 
 import { readSelectedElement } from './elementSelection';
+import { InspectorSection } from './InspectorSection';
 
 const KIND_LABELS: Record<AnimationKind, string> = {
   rise: 'Subir',
@@ -120,10 +121,10 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded border border-gold-DEFAULT/20 bg-gold-DEFAULT/5 p-3">
+      <div className="rounded border border-accent/20 bg-accent/5 p-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-[10px] uppercase tracking-widest text-gold-DEFAULT/70">
+            <div className="text-[10px] uppercase tracking-widest text-accent/70">
               Animação de entrada
             </div>
             <div className="mt-1 text-xs text-payday-textMuted/55">
@@ -134,7 +135,7 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
           </div>
           <button
             type="button"
-            className="shrink-0 rounded border border-gold-DEFAULT/30 px-2 py-1 text-[10px] font-medium text-gold-DEFAULT hover:bg-gold-DEFAULT/10"
+            className="shrink-0 rounded border border-accent/30 px-2 py-1 text-[10px] font-medium text-accent hover:bg-accent/10"
             onClick={() => (enabled ? apply(null) : apply(draft))}
           >
             {enabled ? 'Remover' : 'Animar'}
@@ -142,13 +143,13 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
         </div>
       </div>
 
-      <Section title="Presets">
+      <Section id="presets" title="Presets">
         <div className="grid grid-cols-2 gap-2">
           {ANIMATION_PRESETS.map((preset) => (
             <button
               key={preset.id}
               type="button"
-              className="rounded border border-payday-border bg-payday-surface px-2 py-2 text-left transition hover:border-gold-DEFAULT/40 hover:bg-gold-DEFAULT/5"
+              className="rounded border border-payday-border bg-payday-surface px-2 py-2 text-left transition hover:border-accent/40 hover:bg-accent/5"
               onClick={() => applyPreset(preset.animation)}
               title={preset.description}
             >
@@ -161,7 +162,7 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
         </div>
       </Section>
 
-      <Section title="Movimento">
+      <Section id="motion" title="Movimento" defaultOpen>
         <Field label="Tipo">
           <select
             className={inputClass}
@@ -201,7 +202,7 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
                 step={1}
                 value={draft.distance}
                 onChange={(event) => update({ distance: Number(event.target.value) })}
-                className="w-full accent-[#F7D98B]"
+                className="w-full accent-accent"
               />
             </Field>
           </>
@@ -215,7 +216,7 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
             step={0.05}
             value={draft.duration}
             onChange={(event) => update({ duration: Number(event.target.value) })}
-            className="w-full accent-[#F7D98B]"
+            className="w-full accent-accent"
           />
         </Field>
 
@@ -227,7 +228,7 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
             step={0.05}
             value={draft.delay}
             onChange={(event) => update({ delay: Number(event.target.value) })}
-            className="w-full accent-[#F7D98B]"
+            className="w-full accent-accent"
           />
         </Field>
 
@@ -252,7 +253,7 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          className="rounded border border-[#F7D98B]/30 px-2.5 py-1.5 text-[11px] font-medium text-[#F7D98B] hover:bg-[#F7D98B]/10"
+          className="rounded border border-accent/30 px-2.5 py-1.5 text-[11px] font-medium text-accent hover:bg-accent/10"
           onClick={replaySoon}
           disabled={!enabled}
         >
@@ -267,35 +268,28 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
           Copiar para irmãos
         </button>
       </div>
-
-      <p className="text-[10px] leading-relaxed text-payday-textDim/35">
-        A animação fica gravada no HTML do slide e vale no editor, no export e no PDF. Com “reduzir
-        movimento” ativo no sistema, o conteúdo aparece direto.
-      </p>
     </div>
   );
 }
 
 const inputClass =
-  'w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-xs text-payday-text outline-none focus:border-gold-DEFAULT/40';
+  'w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-xs text-payday-text outline-none focus:border-accent/40';
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({
+  title,
+  id,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  id: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <details className="group open" open>
-      <summary className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] uppercase tracking-wide text-payday-textDim/50">
-        <svg
-          className="h-4 w-4 text-gold-DEFAULT"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-        >
-          <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
-        </svg>
-        {title}
-      </summary>
-      <div className="space-y-2 px-3 pb-3 pt-2">{children}</div>
-    </details>
+    <InspectorSection id={id} group="animation" title={title} defaultOpen={defaultOpen}>
+      {children}
+    </InspectorSection>
   );
 }
 
