@@ -1,3 +1,4 @@
+import { ColorField } from '@components/common/ColorField';
 import { slideBaseId } from '@packages/core/bases';
 import {
   defaultSlideLayout,
@@ -270,12 +271,10 @@ export function SlideTab() {
               <span className="text-[10px] uppercase tracking-wider text-payday-textDim/60">
                 Cor sólida
               </span>
-              <input
-                type="color"
-                aria-label="Cor sólida do fundo"
-                className="h-9 w-full cursor-pointer rounded border border-payday-border bg-payday-surface"
+              <ColorField
+                ariaLabel="Cor sólida do fundo"
                 value={solid}
-                onChange={(event) => setSlideBackground(index, event.target.value)}
+                onChange={(hex) => setSlideBackground(index, hex)}
               />
             </label>
           </section>

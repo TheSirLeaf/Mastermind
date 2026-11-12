@@ -1,3 +1,4 @@
+import { ColorField } from '@components/common/ColorField';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BarChart3, Code2, Palette, Play, Plus, Table2, Trash2, Type } from 'lucide-react';
 import { useCallback, useMemo } from 'react';
@@ -143,13 +144,22 @@ function FieldInput({ field, value, onChange }: FieldInputProps): JSX.Element {
         />
       );
     }
+    case 'color': {
+      return (
+        <ColorField
+          value={String(value ?? '')}
+          onChange={set}
+          compact={parseInt(field.w ?? '', 10) <= 48}
+          ariaLabel={field.title ?? field.label ?? 'Cor'}
+        />
+      );
+    }
     case 'text':
-    case 'color':
     default: {
       return (
         <input
           className="w-full rounded-md border border-white/10 bg-black/20 px-2 py-1.5 text-xs text-cream outline-none focus:border-accent/40 transition"
-          type={type === 'color' ? 'color' : 'text'}
+          type="text"
           placeholder={placeholder ?? undefined}
           value={String(value ?? '')}
           onChange={(event) => set(event.target.value)}

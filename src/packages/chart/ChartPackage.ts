@@ -5,6 +5,7 @@ import type { HelperAPI, PackageDef, Preset } from '../core/types';
 import { chartCss } from './chart.css';
 import { ChartRenderer, type ChartSpec } from './ChartRenderer';
 import { chartRuntime } from './ChartRuntime';
+import { chartTimeline } from './chartTimeline';
 import { chartForm } from './formSchema';
 
 export type { ChartSpec };
@@ -23,6 +24,7 @@ export const chartDefaults: ChartSpec = {
   color: '#C77C8A',
   hlColor: '#F7D98B',
   max: '',
+  prefix: '',
   suffix: '',
   decimals: 0,
   showValues: true,
@@ -31,7 +33,7 @@ export const chartDefaults: ChartSpec = {
   countUp: true,
   delay: 0.3,
   w: 900,
-  colorMode: 'single',
+  colorMode: 'palette',
   animStyle: 'grow',
   animDuration: 0.8,
   stagger: 0.08,
@@ -90,7 +92,7 @@ export const chartPresets: Preset<ChartSpec>[] = [
 export const ChartPackage: PackageDef<ChartSpec> = {
   id: 'chart',
   name: 'Gráfico',
-  version: '1.0.0',
+  version: '1.1.0',
   icon: 'chart',
   category: 'Dados',
   author: 'Dialcron',
@@ -111,4 +113,5 @@ export const ChartPackage: PackageDef<ChartSpec> = {
   // Referência direta (não wrapper): o runtime é serializado via String() no
   // export e precisa reviver autossuficiente no host do HTML standalone.
   runtime: chartRuntime,
+  timeline: chartTimeline,
 };

@@ -2,7 +2,10 @@
 import { FormGenerator } from '@components/Inspector/forms/FormGenerator';
 import { usePackageRegistry } from '@hooks/usePackageRegistry';
 import type { SelectionInfo } from '@packages/core/types';
+import { useDeckStore } from '@store/deckStore';
 import { useMemo } from 'react';
+
+import { RenameLabel } from '../common/RenameLabel';
 
 import { readSelectedElement } from './elementSelection';
 import { EmptyState } from './EmptyState';
@@ -76,7 +79,16 @@ function PackageEditor({
           </svg>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-medium text-payday-text">{pkgDef.name}</div>
+          <RenameLabel
+            value={element.getAttribute('data-name')?.trim() || pkgDef.name}
+            pencil
+            onCommit={(name) =>
+              useDeckStore
+                .getState()
+                .patchElement(selection.path, { attrs: { 'data-name': name || null } })
+            }
+            className="flex max-w-full items-center text-left font-medium text-payday-text"
+          />
           <div className="text-[11px] text-payday-text/50">
             v{pkgDef.version} · {pkgDef.id}
           </div>

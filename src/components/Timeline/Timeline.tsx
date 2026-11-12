@@ -14,7 +14,7 @@ import type { PackageDef, PackageTimelineEvent } from '@packages/core/types';
 import { itemAt, useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 import { clsx } from 'clsx';
-import { Play, Plus, Square } from 'lucide-react';
+import { Link2, Play, Plus, Square } from 'lucide-react';
 import {
   useEffect,
   useMemo,
@@ -23,6 +23,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 
+import { RenameLabel } from '../common/RenameLabel';
 import { Tooltip } from '../common/Tooltip';
 import { getElementSpec, updatePackageSpec } from '../Inspector/packageSpec';
 
@@ -41,6 +42,23 @@ interface PackageTrack {
   label: string;
   def: PackageDef;
   spec: Record<string, unknown>;
+}
+
+/** Tudo o que um mesmo elemento tem na linha do tempo. */
+interface ElementGroup {
+  key: string;
+  path: number[];
+  label: string;
+  anim?: Track;
+  pkg?: PackageTrack;
+}
+
+function comparePaths(a: number[], b: number[]): number {
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    const diff = (a[i] ?? -1) - (b[i] ?? -1);
+    if (diff !== 0) return diff;
+  }
+  return 0;
 }
 
 type Scope = 'slide' | 'selection';
@@ -67,9 +85,11 @@ const TEXT_TAGS = new Set(['h1', 'h2', 'h3', 'h4', 'p', 'span', 'b', 'i', 'em', 
 const SNAP = 0.05;
 
 function labelOf(element: Element): string {
+  const custom = element.getAttribute('data-name')?.trim();
+  if (custom) return custom;
   const tag = element.tagName.toLowerCase();
   const pkg = element.getAttribute('data-pkg');
-  if (pkg) return `Pacote · ${pkg}`;
+  if (pkg) return registry.get(pkg)?.name ?? `Pacote · ${pkg}`;
   if (TEXT_TAGS.has(tag)) {
     const text = (element.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 26);
     if (text) return `${tag} — ${text}`;
@@ -222,6 +242,20 @@ export function Timeline() {
 
   const effective = (track: Track): ElementAnimation | null => draft[track.key] ?? track.animation;
 
+  // Um elemento com mais de uma ocorrência (entrada + digitação, por exemplo) vira um bloco só.
+  const groups = useMemo(() => {
+    const byKey = new Map<string, ElementGroup>();
+    for (const track of tracks) {
+      byKey.set(track.key, { key: track.key, path: track.path, label: track.label, anim: track });
+    }
+    for (const pkg of pkgTracks) {
+      const found = byKey.get(pkg.key);
+      if (found) found.pkg = pkg;
+      else byKey.set(pkg.key, { key: pkg.key, path: pkg.path, label: pkg.label, pkg });
+    }
+    return Array.from(byKey.values()).sort((a, b) => comparePaths(a.path, b.path));
+  }, [tracks, pkgTracks]);
+
   const pkgEnd = Math.max(
     0,
     ...pkgTracks.flatMap((track) =>
@@ -367,6 +401,184 @@ export function Timeline() {
   const ticks: number[] = [];
   for (let t = 0; t <= span + 1e-6; t += 0.5) ticks.push(t);
 
+  const rename = (path: number[], name: string): void => {
+    useDeckStore.getState().patchElement(path, { attrs: { 'data-name': name || null } });
+  };
+
+  /** Célula do nome: clique seleciona, duplo clique renomeia. */
+  const nameCell = (path: number[], label: string, selected: boolean, indent: number) => (
+    <RenameLabel
+      value={label}
+      onClick={() => useDeckStore.getState().requestSelection(path)}
+      onCommit={(name) => rename(path, name)}
+      className={clsx(
+        'flex w-[190px] shrink-0 items-center overflow-hidden border-r border-payday-border pr-2 text-left text-[11px] transition hover:text-payday-text',
+        selected ? 'text-accent' : 'text-payday-textMuted'
+      )}
+      style={{ paddingLeft: indent }}
+    />
+  );
+
+  const gridLines = ticks.map((t) => (
+    <span
+      key={t}
+      className="absolute top-0 h-full border-l border-payday-border/30"
+      style={{ left: `${(t / span) * 100}%` }}
+    />
+  ));
+
+  /** Linha de uma animação de entrada (`sub` = linha dentro de um bloco de mesmo elemento). */
+  const animRow = (track: Track, sub?: string) => {
+    const animation = effective(track);
+    const selected = selectedKey === track.key;
+    return (
+      <div
+        key={`anim-${track.key}`}
+        className={clsx(
+          'flex h-8',
+          !sub && 'border-b border-payday-border/40',
+          selected && 'bg-accent/[0.07]'
+        )}
+      >
+        {sub ? (
+          <div
+            className="w-[190px] shrink-0 truncate border-r border-payday-border pr-2 text-[11px] leading-8 text-payday-textDim"
+            style={{ paddingLeft: 26 }}
+          >
+            ↳ {sub}
+          </div>
+        ) : (
+          nameCell(track.path, track.label, selected, 12 + track.depth * 12)
+        )}
+        <div className="relative min-w-0 flex-1">
+          {gridLines}
+          {animation ? (
+            <div
+              className="absolute top-1.5 h-5"
+              style={{
+                left: `${(animation.delay / span) * 100}%`,
+                width: `${Math.max(1.2, (animation.duration / span) * 100)}%`,
+              }}
+            >
+              <Tooltip
+                title={`${KIND_LABELS[animation.kind]} · ${fmt(animation.duration)}`}
+                description={`Começa em ${fmt(animation.delay)} e termina em ${fmt(animation.delay + animation.duration)}.`}
+                side="top"
+                className="h-full w-full"
+              >
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Animação de ${track.label}`}
+                  onPointerDown={(event) => beginDrag(event, track, 'move')}
+                  onPointerMove={moveDrag}
+                  onPointerUp={endDrag}
+                  onPointerCancel={endDrag}
+                  className={clsx(
+                    'relative flex h-full w-full cursor-grab touch-none items-center overflow-hidden rounded-[5px] border px-1.5 text-[10px] font-medium text-black/70 active:cursor-grabbing',
+                    selected ? 'border-white/80' : 'border-black/30'
+                  )}
+                  style={{ background: KIND_COLORS[animation.kind] }}
+                >
+                  <span className="truncate">{KIND_LABELS[animation.kind]}</span>
+                  <span
+                    aria-hidden="true"
+                    onPointerDown={(event) => beginDrag(event, track, 'resize')}
+                    onPointerMove={moveDrag}
+                    onPointerUp={endDrag}
+                    className="absolute inset-y-0 right-0 w-2 cursor-ew-resize bg-black/25"
+                  />
+                </div>
+              </Tooltip>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => commit(track, ANIMATION_DEFAULTS)}
+              className="absolute left-2 top-1.5 inline-flex h-5 items-center gap-1 rounded border border-dashed border-payday-border px-2 text-[10px] text-payday-textMuted transition hover:border-accent/50 hover:text-accent"
+            >
+              <Plus className="h-3 w-3" /> Animar
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  /** Linha dos eventos de um pacote (digitação, destaques, entrada do gráfico…). */
+  const pkgRow = (track: PackageTrack, sub?: string) => {
+    const events = packageEvents(track, specOf(track));
+    const selected = selectedKey === track.key;
+    return (
+      <div
+        key={`pkg-${track.key}`}
+        className={clsx(
+          'flex h-8',
+          !sub && 'border-b border-payday-border/40',
+          selected && 'bg-accent/[0.07]'
+        )}
+      >
+        {sub ? (
+          <div
+            className="w-[190px] shrink-0 truncate border-r border-payday-border pr-2 text-[11px] leading-8 text-payday-textDim"
+            style={{ paddingLeft: 26 }}
+          >
+            ↳ {sub}
+          </div>
+        ) : (
+          nameCell(track.path, track.label, selected, 12)
+        )}
+        <div className="relative min-w-0 flex-1">
+          {gridLines}
+          {events.map((item) => (
+            <div
+              key={item.id}
+              className="absolute top-1.5 h-5"
+              style={{
+                left: `${(item.start / span) * 100}%`,
+                width: `${Math.max(1.6, (item.duration / span) * 100)}%`,
+              }}
+            >
+              <Tooltip
+                title={`${item.label} · começa em ${fmt(item.start)}`}
+                description={
+                  item.resizable
+                    ? 'Arraste a barra para o atraso e a ponta para a duração.'
+                    : 'Arraste a barra para mudar o momento do destaque.'
+                }
+                side="top"
+                className="h-full w-full"
+              >
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${item.label} de ${track.label}`}
+                  onPointerDown={(event) => beginPkgDrag(event, track, item, 'move')}
+                  onPointerMove={movePkgDrag}
+                  onPointerUp={endPkgDrag}
+                  onPointerCancel={endPkgDrag}
+                  className="relative flex h-full w-full cursor-grab touch-none items-center overflow-hidden rounded-[5px] border border-black/30 px-1.5 text-[10px] font-medium text-black/70 active:cursor-grabbing"
+                  style={{ background: item.color ?? '#F7D98B' }}
+                >
+                  <span className="truncate">{item.label}</span>
+                  {item.resizable ? (
+                    <span
+                      aria-hidden="true"
+                      onPointerDown={(event) => beginPkgDrag(event, track, item, 'resize')}
+                      onPointerMove={movePkgDrag}
+                      onPointerUp={endPkgDrag}
+                      className="absolute inset-y-0 right-0 w-2 cursor-ew-resize bg-black/25"
+                    />
+                  ) : null}
+                </div>
+              </Tooltip>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
       id="timeline"
@@ -446,175 +658,38 @@ export function Timeline() {
           </div>
         </div>
 
-        {tracks.length === 0 && pkgTracks.length === 0 ? (
+        {groups.length === 0 ? (
           <div className="grid h-[calc(100%-24px)] place-items-center px-6 text-center text-xs text-payday-textDim">
             Nenhum elemento animado neste slide. Selecione um elemento e use “Animar” — ou escolha
             “Seleção” para ver só o que está selecionado.
           </div>
         ) : (
-          tracks.map((track) => {
-            const animation = effective(track);
-            const selected = selectedKey === track.key;
-            return (
-              <div
-                key={track.key}
-                className={clsx(
-                  'flex h-8 border-b border-payday-border/40',
-                  selected && 'bg-accent/[0.07]'
-                )}
-              >
-                <button
-                  type="button"
-                  onClick={() => useDeckStore.getState().requestSelection(track.path)}
-                  className={clsx(
-                    'w-[190px] shrink-0 truncate border-r border-payday-border pr-2 text-left text-[11px] transition hover:text-payday-text',
-                    selected ? 'text-accent' : 'text-payday-textMuted'
-                  )}
-                  style={{ paddingLeft: 12 + track.depth * 12 }}
-                  title={track.label}
+          groups.map((group) => {
+            if (group.anim && group.pkg) {
+              const selected = selectedKey === group.key;
+              return (
+                <div
+                  key={group.key}
+                  data-testid="timeline-group"
+                  className="border-b border-payday-border/40 border-l-2 border-l-accent/70 bg-white/[0.025]"
                 >
-                  {track.label}
-                </button>
-                <div className="relative min-w-0 flex-1">
-                  {ticks.map((t) => (
-                    <span
-                      key={t}
-                      className="absolute top-0 h-full border-l border-payday-border/30"
-                      style={{ left: `${(t / span) * 100}%` }}
-                    />
-                  ))}
-                  {animation ? (
-                    <div
-                      className="absolute top-1.5 h-5"
-                      style={{
-                        left: `${(animation.delay / span) * 100}%`,
-                        width: `${Math.max(1.2, (animation.duration / span) * 100)}%`,
-                      }}
-                    >
-                      <Tooltip
-                        title={`${KIND_LABELS[animation.kind]} · ${fmt(animation.duration)}`}
-                        description={`Começa em ${fmt(animation.delay)} e termina em ${fmt(animation.delay + animation.duration)}.`}
-                        side="top"
-                        className="h-full w-full"
-                      >
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          aria-label={`Animação de ${track.label}`}
-                          onPointerDown={(event) => beginDrag(event, track, 'move')}
-                          onPointerMove={moveDrag}
-                          onPointerUp={endDrag}
-                          onPointerCancel={endDrag}
-                          className={clsx(
-                            'relative flex h-full w-full cursor-grab touch-none items-center overflow-hidden rounded-[5px] border px-1.5 text-[10px] font-medium text-black/70 active:cursor-grabbing',
-                            selected ? 'border-white/80' : 'border-black/30'
-                          )}
-                          style={{ background: KIND_COLORS[animation.kind] }}
-                        >
-                          <span className="truncate">{KIND_LABELS[animation.kind]}</span>
-                          <span
-                            aria-hidden="true"
-                            onPointerDown={(event) => beginDrag(event, track, 'resize')}
-                            onPointerMove={moveDrag}
-                            onPointerUp={endDrag}
-                            className="absolute inset-y-0 right-0 w-2 cursor-ew-resize bg-black/25"
-                          />
-                        </div>
-                      </Tooltip>
+                  <div className={clsx('flex h-6', selected && 'bg-accent/[0.07]')}>
+                    {nameCell(group.path, group.label, selected, 10)}
+                    <div className="flex min-w-0 flex-1 items-center gap-2 px-2 text-[10px] text-payday-textDim">
+                      <Link2 className="h-3 w-3" />
+                      mesmo elemento · {1 + packageEvents(group.pkg, specOf(group.pkg)).length}{' '}
+                      eventos
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => commit(track, ANIMATION_DEFAULTS)}
-                      className="absolute left-2 top-1.5 inline-flex h-5 items-center gap-1 rounded border border-dashed border-payday-border px-2 text-[10px] text-payday-textMuted transition hover:border-accent/50 hover:text-accent"
-                    >
-                      <Plus className="h-3 w-3" /> Animar
-                    </button>
-                  )}
+                  </div>
+                  {animRow(group.anim, 'Entrada')}
+                  {pkgRow(group.pkg, group.pkg.def.name)}
                 </div>
-              </div>
-            );
+              );
+            }
+            if (group.anim) return animRow(group.anim);
+            return group.pkg ? pkgRow(group.pkg) : null;
           })
         )}
-
-        {pkgTracks.map((track) => {
-          const events = packageEvents(track, specOf(track));
-          const selected = selectedKey === track.key;
-          return (
-            <div
-              key={`pkg-${track.key}`}
-              className={clsx(
-                'flex h-8 border-b border-payday-border/40',
-                selected && 'bg-accent/[0.07]'
-              )}
-            >
-              <button
-                type="button"
-                onClick={() => useDeckStore.getState().requestSelection(track.path)}
-                className={clsx(
-                  'w-[190px] shrink-0 truncate border-r border-payday-border pl-3 pr-2 text-left text-[11px] transition hover:text-payday-text',
-                  selected ? 'text-accent' : 'text-payday-textMuted'
-                )}
-                title={track.label}
-              >
-                {track.label}
-              </button>
-              <div className="relative min-w-0 flex-1">
-                {ticks.map((t) => (
-                  <span
-                    key={t}
-                    className="absolute top-0 h-full border-l border-payday-border/30"
-                    style={{ left: `${(t / span) * 100}%` }}
-                  />
-                ))}
-                {events.map((item) => (
-                  <div
-                    key={item.id}
-                    className="absolute top-1.5 h-5"
-                    style={{
-                      left: `${(item.start / span) * 100}%`,
-                      width: `${Math.max(1.6, (item.duration / span) * 100)}%`,
-                    }}
-                  >
-                    <Tooltip
-                      title={`${item.label} · começa em ${fmt(item.start)}`}
-                      description={
-                        item.resizable
-                          ? 'Arraste a barra para o atraso e a ponta para a duração.'
-                          : 'Arraste a barra para mudar o momento do destaque.'
-                      }
-                      side="top"
-                      className="h-full w-full"
-                    >
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`${item.label} de ${track.label}`}
-                        onPointerDown={(event) => beginPkgDrag(event, track, item, 'move')}
-                        onPointerMove={movePkgDrag}
-                        onPointerUp={endPkgDrag}
-                        onPointerCancel={endPkgDrag}
-                        className="relative flex h-full w-full cursor-grab touch-none items-center overflow-hidden rounded-[5px] border border-black/30 px-1.5 text-[10px] font-medium text-black/70 active:cursor-grabbing"
-                        style={{ background: item.color ?? '#F7D98B' }}
-                      >
-                        <span className="truncate">{item.label}</span>
-                        {item.resizable ? (
-                          <span
-                            aria-hidden="true"
-                            onPointerDown={(event) => beginPkgDrag(event, track, item, 'resize')}
-                            onPointerMove={movePkgDrag}
-                            onPointerUp={endPkgDrag}
-                            className="absolute inset-y-0 right-0 w-2 cursor-ew-resize bg-black/25"
-                          />
-                        ) : null}
-                      </div>
-                    </Tooltip>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
 
         {time !== null ? (
           <div className="pointer-events-none absolute bottom-0 left-[190px] right-0 top-0">

@@ -39,6 +39,8 @@ interface UIState {
   // Preview mode
   isPreviewMode: boolean;
   isPresenting: boolean;
+  /** Aba em que o usuário estava antes de entrar na Apresentação (para voltar a ela). */
+  workspaceBeforePresentation: Workspace;
 
   // Toast
   toast: { message: string; type: 'info' | 'success' | 'error' } | null;
@@ -128,6 +130,7 @@ export const useUIStore = create<UIState>()(
 
     isPreviewMode: false,
     isPresenting: false,
+    workspaceBeforePresentation: 'editor',
 
     toast: null,
 
@@ -139,6 +142,9 @@ export const useUIStore = create<UIState>()(
     setInspectorTab: (tab) => set({ inspectorActiveTab: tab }),
     setWorkspace: (workspace) =>
       set((state) => {
+        if (workspace === 'presentation' && state.workspace !== 'presentation') {
+          state.workspaceBeforePresentation = state.workspace;
+        }
         state.workspace = workspace;
         state.isPreviewMode = false;
         state.isPresenting = workspace === 'presentation';
@@ -197,8 +203,17 @@ export const useUIStore = create<UIState>()(
     setPresenting: (enabled) =>
       set((state) => {
         state.isPresenting = enabled;
-        // Sair da apresentação devolve o usuário à aba de edição.
-        if (!enabled && state.workspace === 'presentation') state.workspace = 'editor';
+        // Sair da apresentação devolve o usuário à aba em que ele estava.
+        if (!enabled && state.workspace === 'presentation') {
+          const back = state.workspaceBeforePresentation;
+          state.workspace = back === 'presentation' ? 'editor' : back;
+          const tab = state.inspectorActiveTab;
+          if (state.workspace === 'slide') state.inspectorActiveTab = 'slide';
+          else if (state.workspace === 'animation' && tab !== 'package')
+            state.inspectorActiveTab = 'animation';
+          else if (state.workspace !== 'animation' && (tab === 'animation' || tab === 'slide'))
+            state.inspectorActiveTab = 'style';
+        }
       }),
 
     showToast: (message, type = 'info') => set({ toast: { message, type } }),

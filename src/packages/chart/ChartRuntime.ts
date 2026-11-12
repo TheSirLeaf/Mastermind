@@ -131,9 +131,11 @@ export function chartRuntime(root: HTMLElement, spec: ChartSpec, api: RuntimeAPI
                     .replace(/\./g, '')
                     .replace(',', '.')
                 ) || 0;
-              const suffix = original.replace(/[0-9.,\s-]/g, '');
+              // Prefixo (ex.: "R$ ") e sufixo (ex.: "%") ficam como estão; só o número conta.
+              const prefix = (/^[^0-9-]*/.exec(original) ?? [''])[0];
+              const suffix = original.slice(prefix.length).replace(/[0-9.,\s-]/g, '');
               const digits = Math.min(2, original.split(/[.,]/)[1]?.length ?? 0);
-              el.textContent = `${(target * t).toLocaleString('pt-BR', {
+              el.textContent = `${prefix}${(target * t).toLocaleString('pt-BR', {
                 minimumFractionDigits: digits,
                 maximumFractionDigits: digits,
               })}${suffix}`;

@@ -15,6 +15,7 @@ export interface ChartSpec extends PackageSpec {
   color: string;
   hlColor: string;
   max: string;
+  prefix?: string;
   suffix: string;
   decimals: number;
   showValues: boolean;
@@ -108,6 +109,7 @@ export function ChartRenderer({ spec, h }: ChartRendererProps): JSX.Element {
                 />
               </div>
               <div className="pk-hv">
+                {spec.prefix}
                 {h.fmt(value, spec.decimals)}
                 {spec.suffix}
               </div>
@@ -164,6 +166,7 @@ export function ChartRenderer({ spec, h }: ChartRendererProps): JSX.Element {
             className="pk-cv pk-cv-total"
             style={{ fontSize: 32 }}
           >
+            {spec.prefix}
             {h.fmt(total, spec.decimals)}
             {spec.suffix}
           </text>
@@ -222,6 +225,7 @@ export function ChartRenderer({ spec, h }: ChartRendererProps): JSX.Element {
               />
               {spec.showValues ? (
                 <text x={p.x} y={p.y - 18} textAnchor="middle" className="pk-cv pk-line-v">
+                  {spec.prefix}
                   {h.fmt(p.value, spec.decimals)}
                   {spec.suffix}
                 </text>
@@ -273,6 +277,7 @@ export function ChartRenderer({ spec, h }: ChartRendererProps): JSX.Element {
                   textAnchor="middle"
                   className="pk-cv pk-bar-v"
                 >
+                  {spec.prefix}
                   {h.fmt(value, spec.decimals)}
                   {spec.suffix}
                 </text>

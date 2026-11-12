@@ -99,6 +99,7 @@ export const chartForm: FormSchema = [
         type: 'row',
         fields: [
           { k: 'max', label: 'Escala (máx.)', type: 'text', placeholder: 'auto' },
+          { k: 'prefix', label: 'Prefixo', type: 'text', placeholder: 'R$ ' },
           { k: 'suffix', label: 'Sufixo', type: 'text', placeholder: '%' },
         ],
       },

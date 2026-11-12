@@ -12,6 +12,8 @@ interface TreeNode {
 const TEXT_TAGS = new Set(['h1', 'h2', 'h3', 'p', 'span', 'b', 'i', 'em', 'strong', 'li']);
 
 function nodeLabel(element: Element, tag: string): string {
+  const custom = element.getAttribute('data-name')?.trim();
+  if (custom) return custom;
   const pkg = element.getAttribute('data-pkg');
   if (pkg) return `Pacote · ${pkg}`;
   const classes = (element.getAttribute('class') ?? '').split(/\s+/).filter(Boolean).slice(0, 2);

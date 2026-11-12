@@ -287,6 +287,8 @@
     }
   }
   function labelOf(el) {
+    var custom = el.getAttribute && el.getAttribute('data-name');
+    if (custom && custom.trim()) return custom.trim();
     if (el.hasAttribute && el.hasAttribute('data-pkg'))
       return registryName(el.getAttribute('data-pkg'));
     if (el.classList.contains('cover-glow')) return 'Efeito de luz';

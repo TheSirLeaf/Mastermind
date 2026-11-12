@@ -1,3 +1,4 @@
+import { ColorField } from '@components/common/ColorField';
 import type { SelectionInfo } from '@packages/core/types';
 import {
   AlignCenter,
@@ -71,12 +72,10 @@ export function AppearanceSection({ selection }: { selection: SelectionInfo }) {
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <Field label="Preenchimento">
-            <input
-              type="color"
-              aria-label="Preenchimento"
-              className="h-9 w-full cursor-pointer rounded border border-payday-border bg-payday-surface"
+            <ColorField
+              ariaLabel="Preenchimento"
               value={toHex(style.background ?? style['background-color']) ?? '#ffffff'}
-              onChange={(event) => setStyle('background', event.target.value)}
+              onChange={(hex) => setStyle('background', hex)}
             />
           </Field>
           <Field label="Raio da borda">

@@ -1,4 +1,5 @@
 // components/Inspector/StyleTab.tsx
+import { ColorField } from '@components/common/ColorField';
 import type { SelectionInfo } from '@packages/core/types';
 import type { ReactNode } from 'react';
 
@@ -119,11 +120,10 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
       >
         <div className="space-y-2">
           <Field label="Cor">
-            <input
-              type="color"
-              className="h-9 w-full cursor-pointer rounded border border-payday-border bg-payday-surface"
+            <ColorField
+              ariaLabel="Cor do texto"
               value={toHex(current.color) ?? '#ffffff'}
-              onChange={(event) => setStyle('color', event.target.value)}
+              onChange={(hex) => setStyle('color', hex)}
             />
           </Field>
           <Field label="Tamanho">
