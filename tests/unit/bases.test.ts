@@ -8,6 +8,7 @@ import {
   slideBaseId,
   slidesUsingBase,
   stripBaseLayer,
+  withBaseName,
   withSlideBaseId,
 } from '../../src/packages/core/bases';
 import { createDefaultDeck } from '../../src/packages/core/deck';
@@ -77,5 +78,19 @@ describe('slides base', () => {
     expect(useDeckStore.getState().pasteSlide()).toBe(true);
     expect(useDeckStore.getState().deck.slides).toHaveLength(3);
     expect(useDeckStore.getState().currentIndex).toBe(1);
+  });
+});
+
+describe('bases órfãs e nomes', () => {
+  it('slide com base inexistente perde o data-base na versão resolvida', () => {
+    const deck = createDefaultDeck();
+    deck.bases = [];
+    expect(resolveDeckSlides(deck)[0]).not.toContain('data-base=');
+  });
+
+  it('renomear apara espaços', () => {
+    expect(withBaseName('<section class="slide" data-base-id="a"></section>', '  Meu  ')).toContain(
+      'data-base-name="Meu"'
+    );
   });
 });

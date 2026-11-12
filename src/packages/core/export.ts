@@ -291,13 +291,16 @@ export const NAV_SCRIPT = `(function(){
   document.head.appendChild(tstyle);
 
   /* Mostra, dentro do slide ativo, os slides que estão sobre ele (na posição e escala do layout). */
-  function nest(a){
+  function unnest(){
     slides.forEach(function(el){
       if(el.classList.contains('mm-nest')){
         el.classList.remove('mm-nest');
         ['left','top','transform','z-index'].forEach(function(p){ el.style.removeProperty(p); });
       }
     });
+  }
+  function nest(a){
+    unnest();
     var la = lay(a);
     kids[a].forEach(function(j){
       var l = lay(j), el = slides[j], rel = l.s / la.s;
@@ -327,6 +330,7 @@ export const NAV_SCRIPT = `(function(){
     var za = camFor(from).z, zb = camFor(n).z;
     var ax = a.x + 960*a.s, ay = a.y + 540*a.s, bx = b.x + 960*b.s, by = b.y + 540*b.s;
     deck.style.transition = 'none';
+    unnest();
     document.body.classList.add('mm-world');
     var t0 = null, DUR = 1300;
     function ease(t){ return t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2; }

@@ -38,7 +38,7 @@ export function PresentationOverlay({ mode }: PresentationOverlayProps) {
       try {
         const template = await loadTemplate();
         if (cancelled) return;
-        const start = currentIndex + 1;
+        const start = Math.min(currentIndex, deck.slides.length - 1) + 1;
         const next = buildPresentationHTML({ template, deck, registry }).replace(
           '</body>',
           `<script>try{location.hash='#${start}'}catch(e){}</script>${FRAME_SCRIPT}</body>`

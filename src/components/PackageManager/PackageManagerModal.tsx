@@ -46,7 +46,7 @@ const categoryOf = (def: PackageDef): string => def.category?.trim() || OTHER;
 export function PackageManagerModal() {
   const { isPackageManagerOpen, closePackageManager, showToast } = useUIStore();
   const { registry, listPackages } = usePackageRegistry();
-  const [, setVersion] = useState(0);
+  const [version, setVersion] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
@@ -69,7 +69,8 @@ export function PackageManagerModal() {
     return () => document.removeEventListener('keydown', onKey);
   }, [isPackageManagerOpen, showImport, closePackageManager]);
 
-  const packages = listPackages();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const packages = useMemo(() => listPackages(), [version, isPackageManagerOpen]);
 
   const categories = useMemo(() => {
     const counts = new Map<string, number>();

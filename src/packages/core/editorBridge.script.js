@@ -23,7 +23,7 @@
   var sel = document.createElement('div');
   sel.id = 'mm-sel';
   sel.style.cssText =
-    'position:absolute;z-index:9000;pointer-events:none;box-sizing:border-box;display:none;' +
+    'position:absolute;z-index:3000000;pointer-events:none;box-sizing:border-box;display:none;' +
     'border:2px solid ' +
     GOLD +
     ';box-shadow:0 0 0 1px rgba(16,6,11,.55),0 0 24px rgba(247,217,139,.3)';
@@ -1016,7 +1016,9 @@
       /* ignore */
     }
     document.body.classList.remove('mm-lift');
-    if (d.on && d.mode === 'move' && dropIntoOtherSlide(d.el, e)) return;
+    if (d.on && d.mode === 'move' && e && e.type === 'pointerup' && dropIntoOtherSlide(d.el, e)) {
+      return;
+    }
     if (d.on) {
       commit('');
       post({

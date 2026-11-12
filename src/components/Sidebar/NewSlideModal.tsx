@@ -35,6 +35,7 @@ export function NewSlideModal() {
   };
   const currentModelId = useDeckStore((state) => state.deck.modelId);
   const models = useMemo(() => getModels(), []);
+  const baseCounts = useMemo(() => new Map(models.map((m) => [m.id, m.bases().length])), [models]);
   const [modelId, setModelId] = useState(currentModelId ?? models[0]?.id ?? '');
 
   useEffect(() => {
@@ -108,8 +109,8 @@ export function NewSlideModal() {
               >
                 <span className="block text-sm font-medium">{m.name}</span>
                 <span className="mt-0.5 block text-[10px] leading-snug text-payday-textDim">
-                  {m.slides.length} slides · {m.bases().length} base
-                  {m.bases().length === 1 ? '' : 's'}
+                  {m.slides.length} slides · {baseCounts.get(m.id) ?? 0} base
+                  {baseCounts.get(m.id) === 1 ? '' : 's'}
                 </span>
                 {m.id === currentModelId ? (
                   <span className="mt-1 inline-block rounded bg-accent/20 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-accent">

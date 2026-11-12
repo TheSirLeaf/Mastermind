@@ -49,8 +49,7 @@ export function withSlideBaseId(html: string, id: string | null): string {
 }
 
 export function withBaseName(html: string, name: string): string {
-  // Sem trim: o campo de texto precisa aceitar espaços enquanto se digita.
-  return setAttr(html, 'data-base-name', name || 'Base');
+  return setAttr(html, 'data-base-name', name.trim() || 'Base');
 }
 
 /** Remove as camadas de base injetadas (usado antes de guardar/importar um slide). */
@@ -106,7 +105,12 @@ export function resolveDeckSlides(deck: Deck): string[] {
   return deck.slides.map((slide, index) => {
     const id = slideBaseId(slide.html);
     const base = id ? bases.find((b) => baseOwnId(b.html) === id) : undefined;
-    return base ? applyBase(slide.html, base, index, deck.slides.length) : slide.html;
+    // Base inexistente: sem `data-base`, para o CSS não anular o fundo do próprio slide.
+    return base
+      ? applyBase(slide.html, base, index, deck.slides.length)
+      : id
+        ? withSlideBaseId(slide.html, null)
+        : slide.html;
   });
 }
 

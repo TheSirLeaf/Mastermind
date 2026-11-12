@@ -29,7 +29,8 @@ function BaseNameInput({ name, onRename }: { name: string; onRename: (name: stri
       value={draft}
       onChange={(event) => {
         setDraft(event.target.value);
-        if (event.target.value.trim()) onRename(event.target.value);
+        // O campo guarda o texto bruto (com espaços); o nome gravado é sempre aparado.
+        if (event.target.value.trim()) onRename(event.target.value.trim());
       }}
       onBlur={() => setDraft(name)}
     />
