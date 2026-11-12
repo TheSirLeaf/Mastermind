@@ -3,6 +3,10 @@
 O Mastermind é um site estático (Vite). O `npm run build` gera a pasta `dist/`, e o Cloudflare Pages
 serve esses arquivos de graça. Não há servidor: os rascunhos ficam no navegador de cada pessoa.
 
+> **Tela "Set up your application" / "Deploy command: npx wrangler deploy"?** É o fluxo novo (Workers com
+> arquivos estáticos). Funciona igual: mantenha `npm run build` e `npx wrangler deploy`; o `wrangler.jsonc`
+> da raiz do repositório diz ao Cloudflare para publicar a pasta `dist/`. O `.node-version` fixa o Node 22.
+
 ## Opção A — integração Git do Cloudflare (a mais simples)
 
 O Cloudflare observa o repositório do GitHub e publica sozinho a cada push.
