@@ -3,7 +3,6 @@ import type { SelectionInfo } from '@packages/core/types';
 import { useDeckStore } from '@store/deckStore';
 import type { InspectorTab, Workspace } from '@stores/uiStore';
 
-
 import { AnimationTab } from './AnimationTab';
 import { BaseFxButtons } from './BaseBlocks';
 import { ContentTab } from './ContentTab';

@@ -23,6 +23,8 @@ interface UIState {
   // Modals
   isPackageManagerOpen: boolean;
   isNewSlideOpen: boolean;
+  /** `deck`: a tela escolhe o modelo de uma apresentação nova; `slide`: adiciona um slide. */
+  newSlideMode: 'slide' | 'deck';
   isWelcomeOpen: boolean;
   /** Há um rascunho salvo neste navegador (carregado no boot). */
   hasDraft: boolean;
@@ -49,7 +51,7 @@ interface UIState {
   setOpenSection: (group: string, id: string) => void;
   replayAnimations: () => void;
   openPackageManager: () => void;
-  openNewSlide: () => void;
+  openNewSlide: (mode?: 'slide' | 'deck') => void;
   closeNewSlide: () => void;
   closePackageManager: () => void;
   openWelcome: () => void;
@@ -112,6 +114,7 @@ export const useUIStore = create<UIState>()(
 
     isPackageManagerOpen: false,
     isNewSlideOpen: false,
+    newSlideMode: 'slide',
     isWelcomeOpen: readWelcomePref(),
     hasDraft: false,
     isExportModalOpen: false,
@@ -160,7 +163,7 @@ export const useUIStore = create<UIState>()(
       }),
 
     openPackageManager: () => set({ isPackageManagerOpen: true }),
-    openNewSlide: () => set({ isNewSlideOpen: true }),
+    openNewSlide: (mode = 'slide') => set({ isNewSlideOpen: true, newSlideMode: mode }),
     closeNewSlide: () => set({ isNewSlideOpen: false }),
     closePackageManager: () => set({ isPackageManagerOpen: false }),
 

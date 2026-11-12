@@ -18,7 +18,7 @@ export function SlideFooter() {
         type="button"
         className={`${buttonClass} col-span-2`}
         aria-haspopup="dialog"
-        onClick={openNewSlide}
+        onClick={() => openNewSlide()}
       >
         <Plus className="h-3.5 w-3.5" /> Novo
       </button>

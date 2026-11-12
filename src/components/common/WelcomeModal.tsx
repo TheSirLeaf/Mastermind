@@ -3,7 +3,7 @@ import { useUIStore } from '@stores/uiStore';
 import { FileText, FolderOpen, History, X } from 'lucide-react';
 import { useRef, useState, type ChangeEvent } from 'react';
 
-import { newDeck, openDeckFile } from '../../editor/actions';
+import { openDeckFile } from '../../editor/actions';
 
 export function WelcomeModal() {
   const { isWelcomeOpen, closeWelcome, hasDraft } = useUIStore();
@@ -68,8 +68,8 @@ export function WelcomeModal() {
                 : 'flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-accent to-accent-dark px-4 py-2.5 text-sm font-semibold text-accent-fg transition hover:brightness-110'
             }
             onClick={() => {
-              if (hasDraft) newDeck();
               close();
+              useUIStore.getState().openNewSlide('deck');
             }}
           >
             <FileText className="h-5 w-5" /> Nova apresentação

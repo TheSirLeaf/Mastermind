@@ -2,6 +2,7 @@
 import { baseName, baseOwnId, slideBaseId, slidesUsingBase } from '@packages/core/bases';
 import { itemAt, useDeckStore } from '@store/deckStore';
 import { Droplet, Hash, Sun } from 'lucide-react';
+import { useState } from 'react';
 
 import {
   BASE_ELEMENT_LABELS,
@@ -17,6 +18,23 @@ const ICONS: Record<BaseElementKind, typeof Sun> = {
   light: Sun,
   counter: Hash,
 };
+
+/** Campo do nome: guarda o que se digita (inclusive vazio) e só grava nomes não vazios. */
+function BaseNameInput({ name, onRename }: { name: string; onRename: (name: string) => void }) {
+  const [draft, setDraft] = useState(name);
+  return (
+    <input
+      aria-label="Nome do slide base"
+      className={inputClass}
+      value={draft}
+      onChange={(event) => {
+        setDraft(event.target.value);
+        if (event.target.value.trim()) onRename(event.target.value);
+      }}
+      onBlur={() => setDraft(name)}
+    />
+  );
+}
 
 /** Botões para criar marca d'água, luz e contador no slide base atual. */
 export function BaseFxButtons() {
@@ -54,11 +72,10 @@ export function BaseBlock({ index }: { index: number }) {
       <h3 className="mb-2 text-[10px] uppercase tracking-widest text-sky-400">Slide base</h3>
       <label className="flex flex-col gap-1">
         <span className="text-[10px] uppercase tracking-wider text-payday-textDim/60">Nome</span>
-        <input
-          aria-label="Nome do slide base"
-          className={inputClass}
-          value={baseName(item.html)}
-          onChange={(event) => renameBase(index, event.target.value)}
+        <BaseNameInput
+          key={id}
+          name={baseName(item.html)}
+          onRename={(name) => renameBase(index, name)}
         />
       </label>
       <p className="mt-2 text-[11px] leading-snug text-payday-textDim">

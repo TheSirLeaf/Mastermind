@@ -49,7 +49,8 @@ export function withSlideBaseId(html: string, id: string | null): string {
 }
 
 export function withBaseName(html: string, name: string): string {
-  return setAttr(html, 'data-base-name', name.trim() || 'Base');
+  // Sem trim: o campo de texto precisa aceitar espaços enquanto se digita.
+  return setAttr(html, 'data-base-name', name || 'Base');
 }
 
 /** Remove as camadas de base injetadas (usado antes de guardar/importar um slide). */

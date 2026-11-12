@@ -9,6 +9,8 @@ import { clsx } from 'clsx';
 import { Layers, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
+import { newDeckFromModel } from '../../editor/actions';
+
 import { SlidePreview } from './SlidePreview';
 
 function previewDeck(model: ModelDef, html: string): Deck {
@@ -24,6 +26,13 @@ export function NewSlideModal() {
   const open = useUIStore((state) => state.isNewSlideOpen);
   const close = useUIStore((state) => state.closeNewSlide);
   const addSlideFromModel = useDeckStore((state) => state.addSlideFromModel);
+  const mode = useUIStore((state) => state.newSlideMode);
+  const isDeck = mode === 'deck';
+  const pick = (id: string, index: number | null) => {
+    if (isDeck) newDeckFromModel(id, index);
+    else if (index !== null) addSlideFromModel(id, index);
+    close();
+  };
   const currentModelId = useDeckStore((state) => state.deck.modelId);
   const models = useMemo(() => getModels(), []);
   const [modelId, setModelId] = useState(currentModelId ?? models[0]?.id ?? '');
@@ -115,9 +124,21 @@ export function NewSlideModal() {
         <section className="flex min-w-0 flex-1 flex-col">
           <header className="flex items-start justify-between gap-4 border-b border-payday-border px-5 py-3">
             <div>
-              <h2 className="text-base font-semibold text-payday-text">{model.name}</h2>
+              <h2 className="text-base font-semibold text-payday-text">
+                {isDeck ? 'Nova apresentação · ' : ''}
+                {model.name}
+              </h2>
               <p className="text-xs text-payday-textMuted">{model.description}</p>
             </div>
+            {isDeck ? (
+              <button
+                type="button"
+                onClick={() => pick(model.id, null)}
+                className="ml-auto shrink-0 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-fg transition hover:brightness-110"
+              >
+                Usar slides iniciais
+              </button>
+            ) : null}
             <button
               type="button"
               aria-label="Fechar"
@@ -130,17 +151,16 @@ export function NewSlideModal() {
 
           <div className="min-h-0 flex-1 overflow-auto p-5">
             <h3 className="mb-2 text-[10px] uppercase tracking-widest text-accent">
-              Slides do modelo — clique para adicionar após o slide atual
+              {isDeck
+                ? 'Slides do modelo — clique para começar a apresentação com um deles'
+                : 'Slides do modelo — clique para adicionar após o slide atual'}
             </h3>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               {model.slides.map((slide, index) => (
                 <button
                   key={slide.name}
                   type="button"
-                  onClick={() => {
-                    addSlideFromModel(model.id, index);
-                    close();
-                  }}
+                  onClick={() => pick(model.id, index)}
                   className="group overflow-hidden rounded-lg border border-payday-border bg-payday-bg text-left transition hover:border-accent/60"
                 >
                   {slideDecks[index] ? (

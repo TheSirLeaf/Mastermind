@@ -1,6 +1,7 @@
-import { createDefaultDeck } from '@packages/core/deck';
+import { createDefaultDeck, makeSlide } from '@packages/core/deck';
 import { buildPresentationHTML, exportPresentationFile, loadTemplate } from '@packages/core/export';
 import { parseDeckHTML } from '@packages/core/importDeck';
+import { getModel } from '@packages/core/models';
 import { registry } from '@packages/core/PackageRegistry';
 import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
@@ -201,6 +202,19 @@ export async function importPackageFile(file: File): Promise<boolean> {
 export function newDeck(): void {
   useDeckStore.getState().setDeck(createDefaultDeck());
   useUIStore.getState().showToast('Nova apresentação criada', 'success');
+}
+
+/** Apresentação nova a partir de um modelo (com um slide escolhido, ou os dois primeiros). */
+export function newDeckFromModel(modelId: string, slideIndex: number | null): void {
+  const model = getModel(modelId);
+  const picked = slideIndex === null ? model.slides.slice(0, 2) : [model.slides[slideIndex]];
+  useDeckStore.getState().setDeck({
+    title: 'Apresentação sem título',
+    slides: picked.filter((s) => s !== undefined).map((s) => makeSlide(s.html, '')),
+    bases: model.bases(),
+    modelId: model.id,
+  });
+  useUIStore.getState().showToast(`Nova apresentação (${model.name})`, 'success');
 }
 
 /** Pergunta antes de descartar alterações não salvas; `true` = pode seguir. */

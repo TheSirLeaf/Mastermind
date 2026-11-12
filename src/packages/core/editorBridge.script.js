@@ -79,6 +79,8 @@
     '.notes-panel,.hint,.progress,.lightbox{display:none!important}',
     /* "Travado" vale só no export/apresentação; no editor o elemento continua selecionável */
     'body:not(.mm-preview) .slide.active [style*="pointer-events: none"],body:not(.mm-preview) .slide.active [style*="pointer-events:none"]{pointer-events:auto!important}',
+    /* luz decorativa da capa: o template a deixa sem clique; no editor ela é um elemento como os outros */
+    'body:not(.mm-preview) .slide.active .cover-glow{pointer-events:auto!important}',
     '.mm-locked-sel .mm-h{display:none}',
     'body:not(.mm-preview) .slide .pkg *,body:not(.mm-preview) .slide .pk-wrap *{animation:none!important}',
     'body:not(.mm-preview) .slide.active .chart .bar,body:not(.mm-preview) .slide.active .chart .cv,body:not(.mm-preview) .slide.active .sw-chip,body:not(.mm-preview) .slide.active .tbar-track i,body:not(.mm-preview) .slide.active .branch-svg .draw,body:not(.mm-preview) .slide.active .branch-svg .pop{animation:none!important}',
@@ -287,6 +289,7 @@
   function labelOf(el) {
     if (el.hasAttribute && el.hasAttribute('data-pkg'))
       return registryName(el.getAttribute('data-pkg'));
+    if (el.classList.contains('cover-glow')) return 'Efeito de luz';
     if (el.classList.contains('ed-shape')) return 'Forma';
     if (el.classList.contains('ed-text')) return 'Texto';
     var names = {

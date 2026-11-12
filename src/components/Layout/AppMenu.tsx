@@ -11,7 +11,6 @@ import {
   confirmDiscard,
   exportWord,
   importPackageFile,
-  newDeck,
   openDeckFile,
   openPDF,
   saveHTML,
@@ -80,7 +79,7 @@ export function AppMenu() {
         {
           label: 'Nova apresentação',
           onSelect: () => {
-            if (confirmDiscard()) newDeck();
+            if (confirmDiscard()) useUIStore.getState().openNewSlide('deck');
           },
         },
         { label: 'Abrir…', onSelect: () => deckInputRef.current?.click() },
