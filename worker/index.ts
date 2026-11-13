@@ -11,7 +11,7 @@ interface Env {
   ROOM: DurableObjectNamespace;
 }
 
-const WS_PATH = /^\/api\/room\/([^/]+)\/ws$/;
+const ROOM_PATH = /^\/api\/room\/([^/]+)\/(ws|deck)$/;
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -21,11 +21,14 @@ export default {
       return Response.json({ ok: true });
     }
 
-    const match = WS_PATH.exec(url.pathname);
+    const match = ROOM_PATH.exec(url.pathname);
     if (match) {
       const code = (match[1] ?? '').toUpperCase();
       if (!ROOM_CODE_RE.test(code)) {
         return Response.json({ error: 'Código de sala inválido.' }, { status: 400 });
+      }
+      if (match[2] === 'deck') {
+        return env.ROOM.get(env.ROOM.idFromName(code)).fetch(request);
       }
       if (request.headers.get('Upgrade') !== 'websocket') {
         return new Response('Esperava uma conexão WebSocket.', { status: 426 });

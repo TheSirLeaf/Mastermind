@@ -165,6 +165,34 @@ export function PresentationPrefsModal() {
               onChange={(value) => set({ live: value })}
             />
           </section>
+
+          <section
+            className={clsx(
+              'flex items-start justify-between gap-4 transition',
+              !settings.live && 'opacity-50'
+            )}
+          >
+            <div>
+              <h3 className="text-sm font-medium text-payday-text">
+                Espectadores veem o slide no celular
+              </h3>
+              <p className="mt-0.5 text-[11px] leading-snug text-payday-textMuted">
+                Quem entrou pelo código acompanha o slide que está na tela, com as animações e as
+                transições, mas só vê exatamente o que você está exibindo. As notas do apresentador
+                não são enviadas.
+              </p>
+              {settings.live ? null : (
+                <p className="mt-1 text-[11px] text-payday-textDim">
+                  Ligue a interação ao vivo para usar.
+                </p>
+              )}
+            </div>
+            <Toggle
+              label="Espectadores veem o slide"
+              checked={settings.spectatorView}
+              onChange={(value) => set({ spectatorView: value })}
+            />
+          </section>
         </div>
       </div>
     </div>

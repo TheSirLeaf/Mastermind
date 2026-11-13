@@ -14,6 +14,7 @@ import {
   type ChatMessage,
   type RoomState,
 } from '../live/protocol';
+import { roomMessage } from '../live/roomLink';
 
 const NAME_KEY = 'mm-spectator-name';
 
@@ -21,6 +22,74 @@ const NAME_KEY = 'mm-spectator-name';
 function codeFromPath(): string {
   const part = location.pathname.split('/')[2] ?? '';
   return normalizeRoomCode(decodeURIComponent(part));
+}
+
+/** O slide que está na tela do apresentador, só para olhar (sem controle). */
+function SlideViewer({
+  code,
+  deckVersion,
+  slide,
+}: {
+  code: string;
+  deckVersion: number;
+  slide: number;
+}) {
+  const [html, setHtml] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const slideRef = useRef(slide);
+  slideRef.current = slide;
+
+  useEffect(() => {
+    let cancelled = false;
+    setFailed(false);
+    void fetch(`/api/room/${code}/deck`, { cache: 'no-store' })
+      .then((response) =>
+        response.ok && response.body
+          ? new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).text()
+          : Promise.reject(new Error('deck'))
+      )
+      .then((text) => {
+        if (!cancelled) setHtml(text);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [code, deckVersion]);
+
+  useEffect(() => {
+    frameRef.current?.contentWindow?.postMessage({ __mm: 'goto', index: slide }, '*');
+  }, [slide]);
+
+  return (
+    <div
+      className="relative aspect-video w-full shrink-0 overflow-hidden bg-black"
+      data-testid="slide-viewer"
+    >
+      {html ? (
+        <iframe
+          ref={frameRef}
+          title="Slide atual"
+          srcDoc={html}
+          onLoad={() => {
+            frameRef.current?.contentWindow?.postMessage(
+              { __mm: 'goto', index: slideRef.current },
+              '*'
+            );
+            frameRef.current?.contentWindow?.postMessage(roomMessage(code), '*');
+          }}
+          className="pointer-events-none absolute inset-0 h-full w-full border-0"
+        />
+      ) : (
+        <div className="grid h-full place-items-center text-xs text-payday-textDim">
+          {failed ? 'Não foi possível carregar o slide.' : 'Carregando o slide…'}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function SpectatorApp() {
@@ -92,7 +161,7 @@ export default function SpectatorApp() {
   const send = (event: FormEvent) => {
     event.preventDefault();
     const value = text.trim();
-    if (!value || !room.chat) return;
+    if (!value || !chatOn) return;
     clientRef.current?.send({ t: 'chat', text: value });
     setText('');
   };
@@ -149,6 +218,7 @@ export default function SpectatorApp() {
   }
 
   const waiting = !room.live;
+  const chatOn = room.live && room.chat;
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col">
       <header className="flex items-center justify-between border-b border-payday-border px-4 py-3">
@@ -169,12 +239,18 @@ export default function SpectatorApp() {
         </span>
       </header>
 
+      {room.live && room.view && room.deck > 0 ? (
+        <SlideViewer code={code} deckVersion={room.deck} slide={room.slide} />
+      ) : null}
+
       <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto p-4" aria-live="polite">
         {messages.length === 0 ? (
           <p className="mt-8 text-center text-sm text-payday-textDim">
-            {room.chat
-              ? 'Nenhuma mensagem ainda. Comece a conversa!'
-              : 'O chat abre em alguns slides.'}
+            {!room.live
+              ? 'A apresentação foi encerrada ou ainda não começou.'
+              : room.chat
+                ? 'Nenhuma mensagem ainda. Comece a conversa!'
+                : 'O chat abre em alguns slides.'}
           </p>
         ) : null}
         {messages.map((m) => {
@@ -200,14 +276,14 @@ export default function SpectatorApp() {
           aria-label="Mensagem"
           value={text}
           onChange={(event) => setText(event.target.value.slice(0, MAX_TEXT))}
-          disabled={!room.chat}
-          placeholder={room.chat ? 'Escreva uma mensagem' : 'Chat fechado neste momento'}
+          disabled={!chatOn}
+          placeholder={chatOn ? 'Escreva uma mensagem' : 'Chat fechado neste momento'}
           className="min-w-0 flex-1 rounded-full border border-payday-border bg-payday-surface px-4 py-2.5 text-sm text-payday-text outline-none focus:border-accent/60 disabled:opacity-50"
         />
         <button
           type="submit"
           aria-label="Enviar"
-          disabled={!room.chat || !text.trim()}
+          disabled={!chatOn || !text.trim()}
           className="grid h-11 w-11 place-items-center rounded-full bg-accent text-accent-fg transition disabled:opacity-40"
         >
           <Send className="h-4 w-4" />

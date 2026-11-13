@@ -1,12 +1,13 @@
 // Visão do apresentador (interação ao vivo ligada): o slide atual, o próximo, as notas, o chat da
 // plateia e o código da sala. A tela exibida ao público fica em outra janela (`/screen/CODE`).
-import { slideHasChat, slideNotes } from '@packages/core/deck';
+import { presentationSettings, slideHasChat, slideNotes } from '@packages/core/deck';
 import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 import { MonitorUp, Trash2, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useLiveStore } from '../../live/liveStore';
+import { roomMessage } from '../../live/roomLink';
 import { screenChannelName, type ScreenMessage } from '../../spectator/screenChannel';
 
 import { buildFrameHTML } from './presentationFrame';
@@ -60,6 +61,40 @@ export function PresenterView() {
     return () => window.clearInterval(id);
   }, []);
 
+  // Espectadores veem o slide no celular: publica uma cópia do deck (sem as notas) na sala.
+  const spectatorView = useDeckStore((state) => presentationSettings(state.deck).spectatorView);
+  const [publishError, setPublishError] = useState(false);
+  useEffect(() => {
+    if (live.status !== 'open') return;
+    if (!spectatorView) {
+      useLiveStore.getState().setView(false);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const publicDeck = {
+          ...deck,
+          slides: slides.map((s) => ({
+            ...s,
+            html: s.html.replace(/data-notes="[^"]*"/, 'data-notes=""'),
+          })),
+        };
+        const publicHtml = await buildFrameHTML(publicDeck, 0, { escapeExit: false });
+        const ok = await useLiveStore.getState().publishDeck(publicHtml);
+        if (cancelled) return;
+        setPublishError(!ok);
+        if (ok) useLiveStore.getState().setView(true);
+      } catch {
+        if (!cancelled) setPublishError(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live.status, spectatorView]);
+
   // Canal com a tela exibida.
   useEffect(() => {
     if (!code || !html) return;
@@ -68,12 +103,14 @@ export function PresenterView() {
     channel.onmessage = (event: MessageEvent<ScreenMessage>) => {
       if (event.data.type !== 'hello') return;
       const state = useLiveStore.getState();
+      const { url, matrix } = roomMessage(code);
       channel.postMessage({
         type: 'init',
         html,
         index: indexRef.current,
         chatOpen: state.room.chat,
         messages: state.messages.slice(-5),
+        room: { url, matrix },
       } satisfies ScreenMessage);
     };
     return () => {
@@ -107,6 +144,20 @@ export function PresenterView() {
       '*'
     );
   }, [index, slides, html]);
+
+  // O link da sala (QR code) vai para as apresentações: a atual, a prévia e a tela exibida.
+  const sendRoom = () => {
+    if (!code) return;
+    const message = roomMessage(code);
+    mainRef.current?.contentWindow?.postMessage(message, '*');
+    nextRef.current?.contentWindow?.postMessage(message, '*');
+    channelRef.current?.postMessage({
+      type: 'room',
+      url: message.url,
+      matrix: message.matrix,
+    } satisfies ScreenMessage);
+  };
+  useEffect(sendRoom, [code, html]);
 
   // Chat/mensagens para a tela exibida.
   useEffect(() => {
@@ -157,6 +208,11 @@ export function PresenterView() {
           na plateia
         </span>
         <span className="text-xs text-payday-textDim">{status}</span>
+        {publishError ? (
+          <span className="text-xs text-amber-300">
+            Não foi possível publicar o slide para o celular.
+          </span>
+        ) : null}
         <span className="ml-auto font-mono text-xs tabular-nums text-payday-textMuted">
           {pad(Math.floor(seconds / 60))}:{pad(seconds % 60)}
         </span>
@@ -185,7 +241,10 @@ export function PresenterView() {
                 title="Slide atual"
                 srcDoc={html}
                 className="absolute inset-0 h-full w-full border-0"
-                onLoad={() => mainRef.current?.contentWindow?.focus()}
+                onLoad={() => {
+                  mainRef.current?.contentWindow?.focus();
+                  sendRoom();
+                }}
               />
             ) : null}
           </div>
@@ -225,12 +284,13 @@ export function PresenterView() {
                   srcDoc={html}
                   tabIndex={-1}
                   className="pointer-events-none absolute inset-0 h-full w-full border-0"
-                  onLoad={() =>
+                  onLoad={() => {
                     nextRef.current?.contentWindow?.postMessage(
                       { __mm: 'goto', index: Math.min(index + 1, slides.length - 1) },
                       '*'
-                    )
-                  }
+                    );
+                    sendRoom();
+                  }}
                 />
               ) : (
                 <div className="grid h-full place-items-center text-xs text-payday-textDim">

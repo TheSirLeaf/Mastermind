@@ -16,6 +16,25 @@ em outra janela.
    mensagens nos slides marcados; na visão do apresentador você pode abri-lo ou fechá-lo a qualquer momento
    e apagar mensagens.
 
+### Ver o slide no celular
+
+Nas mesmas preferências, **Espectadores veem o slide no celular** faz o celular mostrar o slide que está na
+tela do apresentador, com as animações e as transições, só para olhar (sem controle). O app envia uma cópia
+comprimida do deck para a sala **sem as notas do apresentador**; a plateia baixa essa cópia e acompanha só o
+número do slide. Quem tem o código da sala consegue baixar essa cópia, então use salas só durante a apresentação.
+
+### QR code com o link da sala
+
+O pacote **QR code** (categoria Mídia) gera um QR de um link ou texto, com tamanho, cores, borda e correção de
+erros definíveis. Ligando **Sempre mostrar o link da sala**, o QR passa a ser o endereço de participação da
+sala (`/join/CODIGO`), qualquer que seja o código, e se atualiza sozinho quando o código muda. No editor ele
+aparece esmaecido (exemplo); o QR real aparece na visão do apresentador, na tela exibida e no celular.
+
+### Encerrar
+
+Ao encerrar a apresentação (ou se o apresentador fechar a janela), a sala fecha: o chat e a visão do slide
+deixam de funcionar para todos e o celular mostra "Aguardando o apresentador".
+
 Sem a interação ao vivo ligada, a apresentação continua como sempre (tela cheia, sem servidor).
 
 ## Como funciona por dentro

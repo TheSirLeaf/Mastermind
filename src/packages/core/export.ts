@@ -515,6 +515,11 @@ export const NAV_SCRIPT = `(function(){
   window.addEventListener('message', function(e){
     var d = e.data;
     if(d && d.__mm === 'goto' && typeof d.index === 'number') show(d.index, false);
+    /* Link da sala ao vivo (QR code): guarda e avisa os pacotes que estiverem na tela. */
+    if(d && d.__mm === 'room' && d.matrix){
+      window.__mmRoom = {url: d.url, matrix: d.matrix};
+      try{ document.dispatchEvent(new CustomEvent('mm-room', {detail: window.__mmRoom})); }catch(x){}
+    }
   });
   window.addEventListener('hashchange', function(){
     var h = parseInt((location.hash||'').replace('#',''),10);

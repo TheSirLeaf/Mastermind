@@ -14,6 +14,7 @@ import {
   MonitorPlay,
   Package,
   Plus,
+  QrCode,
   Search,
   Trash2,
   Upload,
@@ -30,6 +31,7 @@ const ICONS: Record<string, LucideIcon> = {
   chart: BarChart3,
   'bar-chart-2': BarChart3,
   'monitor-play': MonitorPlay,
+  'qr-code': QrCode,
 };
 
 const OTHER = 'Outros';

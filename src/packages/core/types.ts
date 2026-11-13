@@ -288,8 +288,10 @@ export interface PresentationSettings {
   progressBar?: boolean;
   /** `standard`: slides em sequência. `areas`: o apresentador navega livremente (em desenvolvimento). */
   mode?: 'standard' | 'areas';
-  /** Interação ao vivo com a plateia (em desenvolvimento). */
+  /** Interação ao vivo com a plateia. */
   live?: boolean;
+  /** Os espectadores veem o slide atual no celular (precisa da interação ao vivo). */
+  spectatorView?: boolean;
 }
 
 /** Dados de seleção reportados pelo iframe do editor. */

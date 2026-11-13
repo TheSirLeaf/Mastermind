@@ -60,12 +60,13 @@ export function PalettePanel() {
         title="Preferências da apresentação"
         description="Barra de progresso, tipo de apresentação e interação ao vivo."
         side="top"
+        className="ml-auto"
       >
         <button
           type="button"
           aria-label="Preferências da apresentação"
           onClick={() => useUIStore.getState().setPrefsOpen(true)}
-          className="ml-auto inline-flex items-center gap-1.5 rounded border border-payday-border px-2.5 py-1 text-[11px] text-payday-textMuted transition hover:border-accent/50 hover:text-accent"
+          className="inline-flex items-center gap-1.5 rounded border border-payday-border px-2.5 py-1 text-[11px] text-payday-textMuted transition hover:border-accent/50 hover:text-accent"
         >
           <SlidersHorizontal className="h-3.5 w-3.5" /> Preferências
         </button>

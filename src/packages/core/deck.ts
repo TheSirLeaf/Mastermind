@@ -64,6 +64,7 @@ export function presentationSettings(deck: {
     progressBar: deck.settings?.progressBar !== false,
     mode: deck.settings?.mode === 'areas' ? 'areas' : 'standard',
     live: deck.settings?.live === true,
+    spectatorView: deck.settings?.spectatorView === true,
   };
 }
 

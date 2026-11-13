@@ -47,9 +47,22 @@ export interface RoomState {
   chat: boolean;
   /** Há um apresentador conectado. */
   live: boolean;
+  /** Os espectadores podem ver o slide atual no celular (precisa do deck publicado). */
+  view: boolean;
+  /** Versão do deck publicado para os espectadores (0 = nenhum). */
+  deck: number;
 }
 
-export const INITIAL_STATE: RoomState = { slide: 0, chat: false, live: false };
+export const INITIAL_STATE: RoomState = {
+  slide: 0,
+  chat: false,
+  live: false,
+  view: false,
+  deck: 0,
+};
+
+/** Tamanho máximo do deck publicado (comprimido), em bytes. */
+export const MAX_DECK_BYTES = 20 * 1024 * 1024;
 
 export type Role = 'presenter' | 'spectator';
 
@@ -59,6 +72,7 @@ export type ClientMessage =
   | { t: 'hello'; role: 'spectator'; name: string }
   | { t: 'slide'; index: number; chat: boolean }
   | { t: 'chat-open'; open: boolean }
+  | { t: 'view'; on: boolean }
   | { t: 'chat'; text: string }
   | { t: 'chat-delete'; id: string };
 
@@ -116,6 +130,8 @@ export function parseClientMessage(raw: unknown): ClientMessage | null {
         : null;
     case 'chat-open':
       return { t: 'chat-open', open: m.open === true };
+    case 'view':
+      return { t: 'view', on: m.on === true };
     case 'chat': {
       const text = cleanText(m.text);
       return text ? { t: 'chat', text } : null;

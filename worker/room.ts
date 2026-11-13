@@ -6,6 +6,7 @@ import { DurableObject } from 'cloudflare:workers';
 import {
   CHAT_COOLDOWN_MS,
   INITIAL_STATE,
+  MAX_DECK_BYTES,
   parseClientMessage,
   trimMessages,
   type ChatMessage,
@@ -29,6 +30,7 @@ export class Room extends DurableObject<RoomEnv> {
   private messages: ChatMessage[] | null = null;
 
   async fetch(request: Request): Promise<Response> {
+    if (new URL(request.url).pathname.endsWith('/deck')) return this.deck(request);
     if (request.headers.get('Upgrade') !== 'websocket') {
       return new Response('Esperava uma conexão WebSocket.', { status: 426 });
     }
@@ -66,12 +68,14 @@ export class Room extends DurableObject<RoomEnv> {
     if (!att.role) return this.fail(ws, 'not-ready', 'Entre na sala primeiro.');
 
     if (att.role === 'presenter') {
-      if (msg.t === 'slide' || msg.t === 'chat-open') {
+      if (msg.t === 'slide' || msg.t === 'chat-open' || msg.t === 'view') {
         const state = await this.getState();
         const next: RoomState =
           msg.t === 'slide'
             ? { ...state, slide: msg.index, chat: msg.chat }
-            : { ...state, chat: msg.open };
+            : msg.t === 'view'
+              ? { ...state, view: msg.on }
+              : { ...state, chat: msg.open };
         await this.setState(next);
         this.broadcast({ t: 'state', state: next });
         return;
@@ -115,6 +119,46 @@ export class Room extends DurableObject<RoomEnv> {
 
   /* ---------------- internos ---------------- */
 
+  /** Deck publicado para os espectadores: o apresentador envia (PUT) e a plateia baixa (GET). */
+  private async deck(request: Request): Promise<Response> {
+    if (request.method === 'GET') {
+      const meta = await this.ctx.storage.get<{ chunks: number }>('deckMeta');
+      if (!meta) return new Response('Sem deck publicado.', { status: 404 });
+      const parts: Uint8Array[] = [];
+      for (let i = 0; i < meta.chunks; i += 1) {
+        const part = await this.ctx.storage.get<Uint8Array>(`deck:${i}`);
+        if (part) parts.push(part);
+      }
+      return new Response(new Blob(parts), {
+        headers: {
+          // gzip "cru": o navegador descomprime (DecompressionStream); evita dupla codificação na borda.
+          'Content-Type': 'application/gzip',
+          'Cache-Control': 'no-store',
+        },
+      });
+    }
+    if (request.method !== 'PUT') return new Response('Método não permitido.', { status: 405 });
+    const stored = await this.ctx.storage.get<string>('hostKey');
+    if (!stored || request.headers.get('x-host-key') !== stored) {
+      return new Response('Só o apresentador da sala pode publicar.', { status: 403 });
+    }
+    const body = new Uint8Array(await request.arrayBuffer());
+    if (body.byteLength === 0 || body.byteLength > MAX_DECK_BYTES) {
+      return new Response('Tamanho inválido.', { status: 413 });
+    }
+    const CHUNK = 900 * 1024;
+    const chunks = Math.ceil(body.byteLength / CHUNK);
+    for (let i = 0; i < chunks; i += 1) {
+      await this.ctx.storage.put(`deck:${i}`, body.slice(i * CHUNK, (i + 1) * CHUNK));
+    }
+    await this.ctx.storage.put('deckMeta', { chunks });
+    const state = await this.getState();
+    const next: RoomState = { ...state, deck: state.deck + 1 };
+    await this.setState(next);
+    this.broadcast({ t: 'state', state: next });
+    return Response.json({ ok: true, deck: next.deck });
+  }
+
   private async presenterHello(ws: WebSocket, att: Attachment, hostKey: string): Promise<void> {
     const stored = await this.ctx.storage.get<string>('hostKey');
     if (stored && stored !== hostKey) {
@@ -146,7 +190,13 @@ export class Room extends DurableObject<RoomEnv> {
         return a?.role === 'presenter';
       });
       if (!stillThere) {
-        const state: RoomState = { ...(await this.getState()), live: false };
+        // Sem apresentador a sala se encerra: o chat e a visão do slide fecham para todos.
+        const state: RoomState = {
+          ...(await this.getState()),
+          live: false,
+          chat: false,
+          view: false,
+        };
         await this.setState(state);
         this.broadcast({ t: 'state', state }, 'spectator');
       }

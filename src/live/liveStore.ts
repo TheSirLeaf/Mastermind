@@ -23,11 +23,16 @@ interface LiveState {
   start: () => void;
   stop: () => void;
   sendSlide: (index: number, chat: boolean) => void;
+  setView: (on: boolean) => void;
+  publishDeck: (html: string) => Promise<boolean>;
   setChatOpen: (open: boolean) => void;
   deleteMessage: (id: string) => void;
 }
 
 let client: LiveClient | null = null;
+let currentHostKey = '';
+let lastSlide: { index: number; chat: boolean } | null = null;
+let viewWanted = false;
 
 function hostKey(): string {
   const bytes = new Uint8Array(16);
@@ -46,6 +51,9 @@ export const useLiveStore = create<LiveState>()((set, get) => ({
   start: () => {
     if (client) return;
     const code = generateRoomCode();
+    currentHostKey = hostKey();
+    lastSlide = null;
+    viewWanted = false;
     set({
       code,
       status: 'connecting',
@@ -56,8 +64,15 @@ export const useLiveStore = create<LiveState>()((set, get) => ({
     });
     client = new LiveClient({
       code,
-      hello: { t: 'hello', role: 'presenter', hostKey: hostKey() },
-      onStatus: (status) => set({ status }),
+      hello: { t: 'hello', role: 'presenter', hostKey: currentHostKey },
+      onStatus: (status) => {
+        set({ status });
+        // Depois de (re)conectar, a sala precisa saber de novo onde estamos e se o slide é visível.
+        if (status === 'open') {
+          if (lastSlide) client?.send({ t: 'slide', ...lastSlide });
+          if (viewWanted) client?.send({ t: 'view', on: true });
+        }
+      },
       onMessage: (message: ServerMessage) => {
         switch (message.t) {
           case 'welcome':
@@ -91,10 +106,32 @@ export const useLiveStore = create<LiveState>()((set, get) => ({
   stop: () => {
     client?.close();
     client = null;
+    lastSlide = null;
+    viewWanted = false;
     set({ code: null, status: 'off', spectators: 0, messages: [], room: { ...INITIAL_STATE } });
   },
 
-  sendSlide: (index, chat) => client?.send({ t: 'slide', index, chat }),
+  sendSlide: (index, chat) => {
+    lastSlide = { index, chat };
+    client?.send({ t: 'slide', index, chat });
+  },
+  setView: (on) => {
+    viewWanted = on;
+    client?.send({ t: 'view', on });
+  },
+  /** Publica o deck (comprimido) para os espectadores verem o slide no celular. */
+  publishDeck: async (html) => {
+    const code = get().code;
+    if (!code) return false;
+    const stream = new Blob([html]).stream().pipeThrough(new CompressionStream('gzip'));
+    const body = await new Response(stream).arrayBuffer();
+    const response = await fetch(`/api/room/${code}/deck`, {
+      method: 'PUT',
+      headers: { 'x-host-key': currentHostKey },
+      body,
+    });
+    return response.ok;
+  },
   setChatOpen: (open) => {
     set({ room: { ...get().room, chat: open } });
     client?.send({ t: 'chat-open', open });

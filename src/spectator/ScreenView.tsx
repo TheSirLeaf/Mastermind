@@ -16,6 +16,13 @@ export default function ScreenView() {
   });
   const frameRef = useRef<HTMLIFrameElement>(null);
   const indexRef = useRef(0);
+  const roomRef = useRef<{ url: string; matrix: string[] } | null>(null);
+
+  const sendRoom = () => {
+    if (roomRef.current) {
+      frameRef.current?.contentWindow?.postMessage({ __mm: 'room', ...roomRef.current }, '*');
+    }
+  };
 
   const goto = (index: number) => {
     indexRef.current = index;
@@ -29,8 +36,12 @@ export default function ScreenView() {
       const m = event.data;
       if (m.type === 'init') {
         indexRef.current = m.index;
+        roomRef.current = m.room ?? null;
         setHtml(m.html);
         setChat({ open: m.chatOpen, messages: m.messages });
+      } else if (m.type === 'room') {
+        roomRef.current = { url: m.url, matrix: m.matrix };
+        sendRoom();
       } else if (m.type === 'goto') goto(m.index);
       else if (m.type === 'chat') setChat({ open: m.open, messages: m.messages });
     };
@@ -49,7 +60,10 @@ export default function ScreenView() {
           ref={frameRef}
           title="Apresentação"
           srcDoc={html}
-          onLoad={() => goto(indexRef.current)}
+          onLoad={() => {
+            goto(indexRef.current);
+            sendRoom();
+          }}
           className="pointer-events-none h-full w-full border-0"
         />
       ) : (

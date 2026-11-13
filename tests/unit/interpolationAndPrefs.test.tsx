@@ -154,7 +154,12 @@ describe('preferências da apresentação', () => {
   });
 
   it('padrões: barra ligada, modo padrão, ao vivo desligado', () => {
-    expect(presentationSettings({})).toEqual({ progressBar: true, mode: 'standard', live: false });
+    expect(presentationSettings({})).toEqual({
+      progressBar: true,
+      mode: 'standard',
+      live: false,
+      spectatorView: false,
+    });
   });
 
   it('desligar a barra esconde-a na apresentação exportada', () => {
