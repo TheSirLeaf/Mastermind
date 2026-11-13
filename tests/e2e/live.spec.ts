@@ -106,7 +106,12 @@ test('Ao vivo: espectador entra, conversa nos slides com chat e a tela exibida a
   });
 
   // ir para o slide 2 (sem chat): o chat do celular fecha
-  await presenter.getByRole('button', { name: /Próximo/ }).click();
+  // com as setas do teclado: muda o slide atual (e não só a prévia do próximo)
+  await presenter.keyboard.press('ArrowRight');
+  await expect(presenter.getByText('2 / 2')).toBeVisible({ timeout: 10000 });
+  await expect(
+    presenter.frameLocator('iframe[title="Slide atual"]').locator('.slide.active h2')
+  ).toHaveText('Dois');
   await expect(phone.getByLabel('Mensagem')).toBeDisabled({ timeout: 10000 });
   await expect(screen.getByTestId('screen-chat')).toHaveCount(0);
 

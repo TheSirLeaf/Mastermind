@@ -21,6 +21,7 @@ export function PresenterView() {
   const setPreviewMode = useUIStore((state) => state.setPreviewMode);
   const live = useLiveStore();
   const [html, setHtml] = useState<string | null>(null);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [index, setIndex] = useState(Math.min(startIndex, deck.slides.length - 1));
   const [seconds, setSeconds] = useState(0);
   const mainRef = useRef<HTMLIFrameElement>(null);
@@ -48,6 +49,11 @@ export function PresenterView() {
     let cancelled = false;
     void buildFrameHTML(deck, startIndex).then((built) => {
       if (!cancelled) setHtml(built);
+    });
+    // A prévia do próximo slide não leva o script que pega o foco do teclado: senão as setas
+    // passariam a mexer nela, e não no slide atual.
+    void buildFrameHTML(deck, startIndex, { escapeExit: false }).then((built) => {
+      if (!cancelled) setPreviewHtml(built);
     });
     return () => {
       cancelled = true;
@@ -173,6 +179,30 @@ export function PresenterView() {
     mainRef.current?.contentWindow?.postMessage({ __mm: 'goto', index: clamped }, '*');
   };
 
+  // Teclado: funciona mesmo com o foco fora do slide (depois de clicar num botão, por exemplo).
+  // Dentro do slide atual quem trata as teclas é a própria apresentação.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      // Espaço/Enter num botão são do botão; as setas continuam passando o slide.
+      if (target?.tagName === 'BUTTON' && (event.key === ' ' || event.key === 'Enter')) return;
+      const key = event.key;
+      if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(key)) {
+        event.preventDefault();
+        go(indexRef.current + 1);
+      } else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(key)) {
+        event.preventDefault();
+        go(indexRef.current - 1);
+      } else if (key === 'Escape') {
+        close();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const openScreen = () => {
     if (!code) return;
     window.open(`/screen/${code}`, 'mm-screen', 'popup,width=1280,height=720');
@@ -277,11 +307,11 @@ export function PresenterView() {
               Próximo
             </div>
             <div className="relative aspect-video overflow-hidden rounded-lg border border-payday-border bg-black">
-              {html && hasNext ? (
+              {previewHtml && hasNext ? (
                 <iframe
                   ref={nextRef}
                   title="Próximo slide"
-                  srcDoc={html}
+                  srcDoc={previewHtml}
                   tabIndex={-1}
                   className="pointer-events-none absolute inset-0 h-full w-full border-0"
                   onLoad={() => {
