@@ -81,6 +81,7 @@
     'body:not(.mm-preview) .slide.active [style*="pointer-events: none"],body:not(.mm-preview) .slide.active [style*="pointer-events:none"]{pointer-events:auto!important}',
     /* luz decorativa da capa: o template a deixa sem clique; no editor ela é um elemento como os outros */
     'body:not(.mm-preview) .slide.active .cover-glow{pointer-events:auto!important}',
+    '#mm-sel.mm-pose .mm-h{display:none}',
     '.mm-locked-sel .mm-h{display:none}',
     'body:not(.mm-preview) .slide .pkg *,body:not(.mm-preview) .slide .pk-wrap *{animation:none!important}',
     'body:not(.mm-preview) .slide.active .chart .bar,body:not(.mm-preview) .slide.active .chart .cv,body:not(.mm-preview) .slide.active .sw-chip,body:not(.mm-preview) .slide.active .tbar-track i,body:not(.mm-preview) .slide.active .branch-svg .draw,body:not(.mm-preview) .slide.active .branch-svg .pop{animation:none!important}',
@@ -352,6 +353,18 @@
   /* ---------- serialização ---------- */
   function serialize(slide) {
     var c = slide.cloneNode(true);
+    /* o elemento em "pose" de keyframe volta aos estilos naturais no HTML guardado */
+    if (poseState && poseState.el.isConnected && slide.contains(poseState.el)) {
+      var rel = [];
+      for (var pn = poseState.el; pn !== slide; pn = pn.parentNode) {
+        rel.unshift(kidsOf(pn.parentNode).indexOf(pn));
+      }
+      var tgt = c;
+      rel.forEach(function (i) {
+        tgt = tgt && kidsOf(tgt)[i];
+      });
+      if (tgt) restoreBase(tgt, poseState.base);
+    }
     c.classList.remove('active', 'mm-static', 'mm-hl');
     Array.prototype.forEach.call(c.querySelectorAll(':scope > .mm-bgl'), function (n) {
       n.remove();
@@ -653,11 +666,83 @@
     var p = selected.parentElement;
     if (p && p !== deck && !p.classList.contains('slide')) select(p);
   }
+  /* ---------- pose de keyframe: mostra (e deixa editar) o elemento num keyframe ---------- */
+  var poseState = null; /* { el, base, pose } */
+  function numOf(v) {
+    var n = parseFloat(v);
+    return isNaN(n) ? 0 : n;
+  }
+  function baseOf(el) {
+    var t = (el.style.translate || '').split(' ').filter(Boolean);
+    return {
+      translate: el.style.translate || '',
+      scale: el.style.scale || '',
+      rotate: el.style.rotate || '',
+      opacity: el.style.opacity || '',
+      x: numOf(t[0]),
+      y: numOf(t[1]),
+      s: numOf(el.style.scale) || 1,
+      r: numOf(el.style.rotate),
+      o: el.style.opacity === '' ? 1 : numOf(el.style.opacity),
+    };
+  }
+  function restoreBase(el, b) {
+    ['translate', 'scale', 'rotate', 'opacity'].forEach(function (p) {
+      if (b[p]) el.style.setProperty(p, b[p]);
+      else el.style.removeProperty(p);
+    });
+    if (el.getAttribute('style') === '') el.removeAttribute('style');
+  }
+  function unpose() {
+    if (!poseState) return;
+    if (poseState.el.isConnected) restoreBase(poseState.el, poseState.base);
+    poseState = null;
+    sel.classList.remove('mm-pose');
+  }
+  function setPose(path, pose) {
+    if (poseState && !poseState.el.isConnected) poseState = null;
+    var target = pose && path ? elAt(path) : null;
+    if (poseState && poseState.el !== target) unpose();
+    if (!target) {
+      drawSelection(selected);
+      return;
+    }
+    if (!poseState) {
+      poseState = { el: target, base: baseOf(target), pose: pose };
+      sel.classList.add('mm-pose');
+    }
+    poseState.pose = pose;
+    var b = poseState.base;
+    target.style.translate = b.x + pose.x + 'px ' + (b.y + pose.y) + 'px';
+    target.style.scale = String(b.s * pose.s);
+    target.style.rotate = b.r + pose.r + 'deg';
+    target.style.opacity = String(b.o * pose.o);
+    if (selected === target) drawSelection(target);
+  }
+  /* depois de arrastar/empurrar o elemento posado: avisa o editor da nova posição do keyframe */
+  function poseMoved() {
+    var t = getTrans(poseState.el);
+    var p = poseState.pose;
+    var np = {
+      x: Math.round(t.x - poseState.base.x),
+      y: Math.round(t.y - poseState.base.y),
+      s: p.s,
+      r: p.r,
+      o: p.o,
+    };
+    poseState.pose = np;
+    post({ type: 'pose-edit', pose: np });
+  }
+
   function nudge(dx, dy) {
     if (!selected || isLocked(selected) || mode === 'arrange') return;
     var t = getTrans(selected);
     setTrans(selected, t.x + dx, t.y + dy);
     drawSelection(selected);
+    if (poseState && selected === poseState.el) {
+      poseMoved();
+      return;
+    }
     commit('nudge:' + (pathOf(selected) || []).join('.'));
   }
 
@@ -1021,6 +1106,10 @@
     if (d.on && d.mode === 'move' && e && e.type === 'pointerup' && dropIntoOtherSlide(d.el, e)) {
       return;
     }
+    if (d.on && poseState && d.el === poseState.el) {
+      poseMoved();
+      return;
+    }
     if (d.on) {
       commit('');
       post({
@@ -1337,7 +1426,10 @@
         else target.style.setProperty(name, String(styles[name]));
       });
       select(target);
+    } else if (data.type === 'pose') {
+      setPose(data.path, data.pose);
     } else if (data.type === 'preview-anim') {
+      unpose();
       playPreview();
     } else if (data.type === 'stop-preview') {
       stopPreview();

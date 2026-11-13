@@ -7,8 +7,9 @@ import {
 } from '@packages/core/bases';
 import { buildEditorHTML } from '@packages/core/export';
 import { IframeBridge } from '@packages/core/iframeBridge';
+import { keyframesPatch, readKeyframes } from '@packages/core/keyframes';
 import { registry } from '@packages/core/PackageRegistry';
-import { deckItems, useDeckStore } from '@store/deckStore';
+import { deckItems, itemAt, useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 import { useRef, useEffect, useState } from 'react';
 
@@ -16,6 +17,19 @@ import { handleDroppedFile } from '../../editor/actions';
 import { setActiveBridge } from '../../editor/bridgeRef';
 import { handleBridgeKey } from '../../editor/shortcuts';
 import { getStageViewHandlers, markCanvasClick } from '../../editor/stageView';
+
+/** Elemento (no HTML guardado) a partir do caminho reportado pelo palco. */
+function readElementAt(path: number[]): Element | null {
+  const slide = itemAt(useDeckStore.getState().deck, path[0] ?? -1);
+  if (!slide) return null;
+  let node: Element | null = new DOMParser().parseFromString(slide.html, 'text/html').body
+    .firstElementChild;
+  for (const part of path.slice(1)) {
+    node = node?.children[part] ?? null;
+    if (!node) return null;
+  }
+  return node;
+}
 
 export function Stage() {
   const { deck, currentIndex, pendingSelection, pendingEdit } = useDeckStore();
@@ -65,6 +79,23 @@ export function Stage() {
         if (index !== deckState.currentIndex) markCanvasClick();
         deckState.selectSlide(index);
         deckState.requestSelection(path);
+      },
+      onPoseEdit: (pose) => {
+        const active = useUIStore.getState().activeKeyframe;
+        if (!active) return;
+        const element = readElementAt(active.path);
+        if (!element) return;
+        const list = readKeyframes(element);
+        const current = list[active.index];
+        if (!current) return;
+        useDeckStore
+          .getState()
+          .patchElement(
+            active.path,
+            keyframesPatch(
+              list.map((k, i) => (i === active.index ? { ...k, x: pose.x, y: pose.y } : k))
+            )
+          );
       },
       onPalette: (colors) => useUIStore.getState().setSlidePalette(colors),
       onPan: (dx, dy) => getStageViewHandlers()?.pan(dx, dy),
@@ -157,6 +188,26 @@ export function Stage() {
     lastSlidesRef.current = current;
     lastIdsRef.current = currentIds;
   }, [deck, booted, currentIndex]);
+
+  // Keyframe selecionado na linha do tempo: o elemento aparece na pose dele e pode ser arrastado.
+  const activeKeyframe = useUIStore((state) => state.activeKeyframe);
+  useEffect(() => {
+    if (!booted) return;
+    const bridge = bridgeRef.current;
+    if (!bridge) return;
+    if (!activeKeyframe || workspace !== 'animation') {
+      bridge.pose(null);
+      if (activeKeyframe) useUIStore.getState().setActiveKeyframe(null);
+      return;
+    }
+    const element = readElementAt(activeKeyframe.path);
+    const k = element ? readKeyframes(element)[activeKeyframe.index] : undefined;
+    if (!k) {
+      useUIStore.getState().setActiveKeyframe(null);
+      return;
+    }
+    bridge.pose(activeKeyframe.path, { x: k.x, y: k.y, s: k.s, r: k.r, o: k.o });
+  }, [booted, activeKeyframe, workspace, deck, currentIndex]);
 
   // Aba Slides: paleta de cores do slide ativo (espera o DOM assentar depois de cada mudança).
   useEffect(() => {

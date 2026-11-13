@@ -73,16 +73,21 @@ export const PKG_HOST_SRC = `(function(){
       var tr = (el.style.translate || '').split(' ').filter(Boolean);
       var bx = num(tr[0]), by = num(tr[1]);
       var bs = num(el.style.scale) || 1, br = num(el.style.rotate);
+      var bo = el.style.opacity === '' ? 1 : num(el.style.opacity);
       var total = Math.max(0.05, num(kfs[kfs.length - 1].t));
+      /* Só mexe no que os keyframes usam: a entrada (fade/subir) do elemento continua valendo. */
+      function used(key, neutral) {
+        return kfs.some(function (k) { return k[key] !== undefined && num(k[key]) !== neutral; });
+      }
+      var useMove = used('x', 0) || used('y', 0), useScale = used('s', 1);
+      var useRot = used('r', 0), useOpa = used('o', 1);
       function frame(k, offset, easing) {
-        return {
-          offset: offset,
-          translate: (bx + num(k.x)) + 'px ' + (by + num(k.y)) + 'px',
-          scale: bs * (k.s === undefined ? 1 : num(k.s)),
-          rotate: (br + num(k.r)) + 'deg',
-          opacity: k.o === undefined ? 1 : num(k.o),
-          easing: easing
-        };
+        var f = { offset: offset, easing: easing };
+        if (useMove) f.translate = (bx + num(k.x)) + 'px ' + (by + num(k.y)) + 'px';
+        if (useScale) f.scale = bs * (k.s === undefined ? 1 : num(k.s));
+        if (useRot) f.rotate = (br + num(k.r)) + 'deg';
+        if (useOpa) f.opacity = bo * (k.o === undefined ? 1 : num(k.o));
+        return f;
       }
       var frames = [];
       if (num(kfs[0].t) > 0) frames.push(frame({}, 0, 'linear'));

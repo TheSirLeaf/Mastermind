@@ -80,6 +80,8 @@ interface KeyframeDrag {
   track: KeyframeTrack;
   index: number;
   startX: number;
+  /** Passou do limite de clique: é um arrasto (muda o tempo), não uma seleção. */
+  moved: boolean;
 }
 
 type Scope = 'slide' | 'selection';
@@ -278,6 +280,7 @@ export function Timeline() {
     const prefix = selection.path.join('.');
     return allPkgTracks.filter((t) => t.key === prefix || t.key.startsWith(`${prefix}.`));
   }, [allPkgTracks, scope, selection]);
+  const activeKeyframe = useUIStore((state) => state.activeKeyframe);
   const allKfTracks = useMemo(
     () => collectKeyframeTracks(html, currentIndex),
     [html, currentIndex]
@@ -342,6 +345,7 @@ export function Timeline() {
     setDraft({});
     setPkgDraft({});
     setKfDraft({});
+    useUIStore.getState().setActiveKeyframe(null);
   }, [currentIndex]);
 
   const stop = (): void => {
@@ -485,7 +489,7 @@ export function Timeline() {
     event.preventDefault();
     event.stopPropagation();
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    kfDragRef.current = { track, index, startX: event.clientX };
+    kfDragRef.current = { track, index, startX: event.clientX, moved: false };
   };
 
   const moveKfDrag = (event: ReactPointerEvent): void => {
@@ -494,6 +498,8 @@ export function Timeline() {
     if (!drag || !area) return;
     const base = drag.track.kfs[drag.index];
     if (!base) return;
+    if (!drag.moved && Math.abs(event.clientX - drag.startX) < 4) return;
+    drag.moved = true;
     const seconds = ((event.clientX - drag.startX) / area.clientWidth) * span;
     const t = round(Math.max(0, base.t + seconds));
     setKfDraft((prev) => ({
@@ -512,7 +518,22 @@ export function Timeline() {
       delete rest[drag.track.key];
       return rest;
     });
-    if (next) useDeckStore.getState().patchElement(drag.track.path, keyframesPatch(next));
+    const ui = useUIStore.getState();
+    if (!drag.moved || !next) {
+      // Clique: seleciona o elemento e mostra o keyframe no palco (para ver e editar a pose).
+      useDeckStore.getState().requestSelection(drag.track.path);
+      ui.setActiveKeyframe({ path: drag.track.path, index: drag.index });
+      return;
+    }
+    useDeckStore.getState().patchElement(drag.track.path, keyframesPatch(next));
+    // O keyframe arrastado pode ter mudado de posição na lista ordenada.
+    const movedT = next[drag.index]?.t;
+    const sorted = [...next].sort((a, b) => a.t - b.t);
+    const newIndex = sorted.findIndex((k) => k.t === movedT);
+    const active = ui.activeKeyframe;
+    if (active && active.path.join('.') === drag.track.key && active.index === drag.index) {
+      ui.setActiveKeyframe({ path: drag.track.path, index: Math.max(0, newIndex) });
+    }
   };
 
   const gridLines = ticks.map((t) => (
@@ -651,11 +672,19 @@ export function Timeline() {
                   role="button"
                   tabIndex={0}
                   aria-label={`Keyframe ${index + 1} de ${track.label}`}
+                  aria-pressed={
+                    activeKeyframe?.path.join('.') === track.key && activeKeyframe.index === index
+                  }
                   onPointerDown={(event) => beginKfDrag(event, track, index)}
                   onPointerMove={moveKfDrag}
                   onPointerUp={endKfDrag}
                   onPointerCancel={endKfDrag}
-                  className="h-full w-full rotate-45 cursor-grab touch-none rounded-[3px] border border-black/40 bg-[#B9A6E8] active:cursor-grabbing"
+                  className={clsx(
+                    'h-full w-full rotate-45 cursor-grab touch-none rounded-[3px] border active:cursor-grabbing',
+                    activeKeyframe?.path.join('.') === track.key && activeKeyframe.index === index
+                      ? 'border-white bg-accent shadow-[0_0_8px_rgba(247,217,139,0.9)]'
+                      : 'border-black/40 bg-[#B9A6E8]'
+                  )}
                 />
               </Tooltip>
             </div>
@@ -795,6 +824,19 @@ export function Timeline() {
             </button>
           ))}
         </div>
+
+        {activeKeyframe ? (
+          <span className="inline-flex items-center gap-2 rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] text-accent">
+            Editando o keyframe {activeKeyframe.index + 1} — arraste o elemento no palco
+            <button
+              type="button"
+              onClick={() => useUIStore.getState().setActiveKeyframe(null)}
+              className="rounded border border-accent/40 px-1.5 text-[10px] hover:bg-accent/20"
+            >
+              Sair
+            </button>
+          </span>
+        ) : null}
 
         <span className="ml-auto truncate text-[11px] text-payday-textDim">
           Slide {currentIndex + 1} · {allTracks.length + allPkgTracks.length + allKfTracks.length}{' '}

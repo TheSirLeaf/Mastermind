@@ -103,6 +103,26 @@ describe('host da apresentação executa os keyframes', () => {
     expect(call.frames[2]).toMatchObject({ offset: 1, translate: '10px 20px', scale: 1 });
   });
 
+  it('só anima o que os keyframes usam (a entrada com fade do elemento continua valendo)', () => {
+    const calls: Array<{ frames: Array<Record<string, unknown>> }> = [];
+    const proto = Element.prototype as unknown as Record<string, unknown>;
+    proto.getAnimations = () => [];
+    proto.animate = function (frames: Array<Record<string, unknown>>) {
+      calls.push({ frames });
+      return { id: '', currentTime: 0, pause: () => undefined, play: () => undefined, finish: () => undefined, cancel: () => undefined };
+    };
+    (window as unknown as { __MM_HOST__?: boolean | undefined }).__MM_HOST__ = undefined;
+    new Function(PKG_HOST_SRC)();
+    document.body.innerHTML =
+      '<section class="slide active"><div data-kf='[{"t":1,"x":50,"y":0},{"t":2,"x":0,"y":0}]'></div></section>';
+    (window as unknown as { __anim: (s: Element) => void }).__anim(document.querySelector('.slide') as Element);
+    const frame = calls[0]?.frames[1] as Record<string, unknown>;
+    expect(frame).toHaveProperty('translate');
+    expect(frame).not.toHaveProperty('opacity');
+    expect(frame).not.toHaveProperty('rotate');
+    expect(frame).not.toHaveProperty('scale');
+  });
+
   it('sai do slide com o estado final (para imprimir)', () => {
     const { calls } = runHost();
     window.dispatchEvent(new Event('beforeprint'));

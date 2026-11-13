@@ -48,16 +48,28 @@ function NumberCell({ label, value, step = 1, onCommit }: NumberCellProps) {
 
 export function KeyframesSection({ path, element }: { path: number[]; element: Element | null }) {
   const list = element ? readKeyframes(element) : [];
+  const active = useUIStore((state) => state.activeKeyframe);
+  const activeIndex = active && active.path.join('.') === path.join('.') ? active.index : -1;
+  const setActive = (index: number | null): void =>
+    useUIStore.getState().setActiveKeyframe(index === null ? null : { path, index });
 
   const save = (next: Keyframe[]): void => {
     useDeckStore.getState().patchElement(path, keyframesPatch(next));
   };
   const change = (index: number, patch: Partial<Keyframe>): void => {
-    save(list.map((k, i) => (i === index ? normalizeKeyframe({ ...k, ...patch }) : k)));
+    const edited = normalizeKeyframe({ ...list[index], ...patch });
+    save(list.map((k, i) => (i === index ? edited : k)));
+    // Mudar o tempo pode reordenar a lista: o keyframe em edição continua sendo o mesmo.
+    if (activeIndex === index) {
+      const sorted = list.map((k, i) => (i === index ? edited : k)).sort((a, b) => a.t - b.t);
+      setActive(Math.max(0, sorted.indexOf(edited)));
+    }
   };
   const add = (): void => {
     const last = list[list.length - 1];
-    save([...list, normalizeKeyframe({ ...(last ?? KEYFRAME_DEFAULT), t: (last?.t ?? 0) + 1 })]);
+    const created = normalizeKeyframe({ ...(last ?? KEYFRAME_DEFAULT), t: (last?.t ?? 0) + 1 });
+    save([...list, created]);
+    setActive(list.length);
   };
   const test = (): void => {
     window.setTimeout(() => useUIStore.getState().replayAnimations(), 60);
@@ -73,17 +85,27 @@ export function KeyframesSection({ path, element }: { path: number[]; element: E
       {list.map((k, index) => (
         <div
           key={index}
-          className="space-y-1.5 rounded-md border border-white/10 bg-black/20 p-2"
+          className={`space-y-1.5 rounded-md border p-2 ${
+            index === activeIndex ? 'border-accent/70 bg-accent/10' : 'border-white/10 bg-black/20'
+          }`}
           data-testid="keyframe"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-widest text-accent/80">
-              Keyframe {index + 1}
-            </span>
+            <button
+              type="button"
+              onClick={() => setActive(index === activeIndex ? null : index)}
+              title="Mostrar o elemento neste keyframe no palco"
+              className="text-[10px] uppercase tracking-widest text-accent/80 hover:text-accent"
+            >
+              Keyframe {index + 1} {index === activeIndex ? '· no palco' : '· ver no palco'}
+            </button>
             <button
               type="button"
               aria-label={`Remover keyframe ${index + 1}`}
-              onClick={() => save(list.filter((_k, i) => i !== index))}
+              onClick={() => {
+                if (activeIndex >= 0) setActive(null);
+                save(list.filter((_k, i) => i !== index));
+              }}
               className="grid h-5 w-5 place-items-center text-payday-textDim transition hover:text-accent"
             >
               <Trash2 className="h-3 w-3" />

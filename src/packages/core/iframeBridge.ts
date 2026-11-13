@@ -23,10 +23,21 @@ export interface BridgeEvents {
   /** Elemento solto em outro slide: o slide e o caminho do elemento já no novo lugar. */
   /** Paleta de cores do slide ativo (`#RRGGBB`), em resposta a `requestPalette`. */
   onPalette?: (colors: string[]) => void;
+  /** O elemento em pose de keyframe foi arrastado/empurrado: nova posição (X/Y) do keyframe. */
+  onPoseEdit?: (pose: KeyframePose) => void;
   onElementMoved?: (index: number, path: number[]) => void;
 }
 
 /** `edit`: edita os elementos do slide atual. `arrange`: move/redimensiona os slides. */
+/** Estado de um keyframe (relativo ao elemento): posição, escala, giro e opacidade. */
+export interface KeyframePose {
+  x: number;
+  y: number;
+  s: number;
+  r: number;
+  o: number;
+}
+
 export type StageMode = 'edit' | 'arrange';
 
 export interface StageView {
@@ -67,7 +78,8 @@ type DeckMessage =
   | { __mm: 'deck'; type: 'slide-click'; index: number }
   | { __mm: 'deck'; type: 'slide-open'; index: number }
   | { __mm: 'deck'; type: 'element-moved'; index: number; path: number[] }
-  | { __mm: 'deck'; type: 'palette'; colors: string[] };
+  | { __mm: 'deck'; type: 'palette'; colors: string[] }
+  | { __mm: 'deck'; type: 'pose-edit'; pose: KeyframePose };
 
 /**
  * Ponte com o iframe do palco.
@@ -150,6 +162,9 @@ export class IframeBridge {
       case 'slide-open':
         this.events.onSlideOpen?.(data.index);
         break;
+      case 'pose-edit':
+        this.events.onPoseEdit?.(data.pose);
+        break;
       case 'palette':
         this.events.onPalette?.(data.colors);
         break;
@@ -184,6 +199,11 @@ export class IframeBridge {
   setMode(mode: StageMode): void {
     this.mode = mode;
     if (this.ready) this.send({ type: 'mode', mode });
+  }
+
+  /** Mostra o elemento no estado de um keyframe (`null` volta ao normal). */
+  pose(path: number[] | null, pose?: KeyframePose | null): void {
+    if (this.ready) this.send({ type: 'pose', path, pose: pose ?? null });
   }
 
   /** Pede a paleta do slide ativo (a resposta vem em `onPalette`). */

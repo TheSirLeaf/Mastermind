@@ -383,16 +383,32 @@ export const NAV_SCRIPT = `(function(){
     var D = 800, z = deck.getBoundingClientRect().width/1920 || 1, hidden = [];
     prev.classList.add('t-leave', 't-morph-out');
     next.classList.add('t-instant');
+    var matched = [];
     plan.forEach(function(p){
       var b = p.to.getBoundingClientRect();
       if(!b.width || !b.height || !p.r.width || !p.r.height || !p.to.animate) return;
       var dx = ((p.r.left + p.r.width/2) - (b.left + b.width/2)) / z;
       var dy = ((p.r.top + p.r.height/2) - (b.top + b.height/2)) / z;
+      var own = window.getComputedStyle(p.to).transform;
       p.from.style.visibility = 'hidden';
       hidden.push(p.from);
-      p.to.animate([{transform:'translate(' + dx + 'px,' + dy + 'px) scale(' + (p.r.width/b.width) + ',' + (p.r.height/b.height) + ')'}], {duration:D, easing:'cubic-bezier(.65,0,.35,1)'});
+      matched.push(p.to);
+      /* sai da posição/tamanho do elemento antigo e chega na dele (dois keyframes: de -> para) */
+      p.to.animate([
+        {transform:'translate(' + dx + 'px,' + dy + 'px) scale(' + (p.r.width/b.width) + ',' + (p.r.height/b.height) + ')'},
+        {transform: own || 'none'}
+      ], {duration:D, easing:'cubic-bezier(.65,0,.35,1)'});
     });
-    if(next.animate) next.animate([{opacity:0},{opacity:1}], {duration:D*0.45, easing:'ease-out'});
+    /* o que não tem par aparece com um fade (os elementos com par ficam sempre opacos) */
+    function fadeUnmatched(node){
+      [].slice.call(node.children).forEach(function(child){
+        if(matched.indexOf(child) >= 0) return;
+        var holds = matched.some(function(m){ return child.contains(m); });
+        if(holds) fadeUnmatched(child);
+        else if(child.animate) child.animate([{opacity:0},{opacity:1}], {duration:D*0.6, easing:'ease-out'});
+      });
+    }
+    fadeUnmatched(next);
     setTimeout(function(){
       hidden.forEach(function(el){ el.style.visibility = ''; });
       prev.classList.remove('t-morph-out');

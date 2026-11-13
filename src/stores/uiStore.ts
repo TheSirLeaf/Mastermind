@@ -23,6 +23,9 @@ interface UIState {
   // Modals
   isPackageManagerOpen: boolean;
   isNewSlideOpen: boolean;
+  /** Keyframe em edição na linha do tempo (o elemento aparece na pose dele no palco). */
+  activeKeyframe: { path: number[]; index: number } | null;
+  setActiveKeyframe: (value: { path: number[]; index: number } | null) => void;
   isPrefsOpen: boolean;
   setPrefsOpen: (open: boolean) => void;
   /** Cores mais comuns do slide ativo (aba Slides). */
@@ -121,6 +124,8 @@ export const useUIStore = create<UIState>()(
 
     isPackageManagerOpen: false,
     isNewSlideOpen: false,
+    activeKeyframe: null,
+    setActiveKeyframe: (value) => set({ activeKeyframe: value }),
     isPrefsOpen: false,
     setPrefsOpen: (open) => set({ isPrefsOpen: open }),
     slidePalette: [],
@@ -175,6 +180,7 @@ export const useUIStore = create<UIState>()(
     replayAnimations: () =>
       set((state) => {
         state.animationPreviewNonce += 1;
+        state.activeKeyframe = null;
       }),
 
     openPackageManager: () => set({ isPackageManagerOpen: true }),
