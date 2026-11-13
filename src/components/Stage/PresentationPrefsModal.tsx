@@ -146,17 +146,17 @@ export function PresentationPrefsModal() {
             <div>
               <h3 className="flex items-center gap-1.5 text-sm font-medium text-payday-text">
                 <Radio className="h-3.5 w-3.5 text-accent" /> Interação ao vivo
-                <span className="rounded bg-white/10 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-payday-textDim">
-                  em breve
+                <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-accent">
+                  beta
                 </span>
               </h3>
               <p className="mt-0.5 text-[11px] leading-snug text-payday-textMuted">
-                A plateia entra pelo celular com o código da apresentação e um nome, e participa ao
-                vivo: chat em certos slides, emojis que voam e perguntas que o apresentador escolhe
-                para mostrar no slide. Usa duas telas: a do apresentador e a exibida.
+                A plateia entra pelo celular com o código da apresentação e um nome e conversa no
+                chat dos slides que você marcar. Ao apresentar, você ganha a visão do apresentador
+                (próximo slide, notas, chat) e abre a tela exibida em outra janela.
               </p>
               <p className="mt-1 text-[11px] text-payday-textDim">
-                A opção é salva na apresentação; a integração ainda será construída.
+                Em breve: emojis que voam e perguntas escolhidas por você para aparecer no slide.
               </p>
             </div>
             <Toggle

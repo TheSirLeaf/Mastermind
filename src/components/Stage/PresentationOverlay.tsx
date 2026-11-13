@@ -1,26 +1,27 @@
-import { buildPresentationHTML, loadTemplate } from '@packages/core/export';
-import { registry } from '@packages/core/PackageRegistry';
+import { presentationSettings } from '@packages/core/deck';
 import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 import { useEffect, useRef, useState } from 'react';
+
+import { buildFrameHTML } from './presentationFrame';
+import { PresenterView } from './PresenterView';
 
 interface PresentationOverlayProps {
   mode: 'preview' | 'present';
 }
 
 /**
- * Roda dentro da apresentação: leva o foco para o documento (as setas funcionam
- * sem clicar antes) e avisa o editor quando o usuário aperta Esc.
+ * Apresentação: em tela cheia e sem barras (padrão) ou, com a interação ao vivo ligada,
+ * a visão do apresentador (com a tela exibida em outra janela).
  */
-const FRAME_SCRIPT = `<script>(function(){
-  try{window.focus()}catch(e){}
-  document.addEventListener('keydown',function(e){
-    if(e.key==='Escape'){try{parent.postMessage({__mm:'present-exit'},'*')}catch(x){}}
-  },true);
-})()</script>`;
+export function PresentationOverlay({ mode }: PresentationOverlayProps) {
+  const live = useDeckStore((state) => presentationSettings(state.deck).live);
+  if (live && mode === 'present') return <PresenterView />;
+  return <PlainPresentation mode={mode} />;
+}
 
 /** Mostra o deck real (HTML autônomo) em tela cheia, sem barras, por cima do editor. */
-export function PresentationOverlay({ mode }: PresentationOverlayProps) {
+function PlainPresentation({ mode }: PresentationOverlayProps) {
   const deck = useDeckStore((state) => state.deck);
   const currentIndex = useDeckStore((state) => state.currentIndex);
   const setPreviewMode = useUIStore((state) => state.setPreviewMode);
@@ -36,13 +37,8 @@ export function PresentationOverlay({ mode }: PresentationOverlayProps) {
     let cancelled = false;
     void (async () => {
       try {
-        const template = await loadTemplate();
+        const next = await buildFrameHTML(deck, currentIndex);
         if (cancelled) return;
-        const start = Math.min(currentIndex, deck.slides.length - 1) + 1;
-        const next = buildPresentationHTML({ template, deck, registry }).replace(
-          '</body>',
-          `<script>try{location.hash='#${start}'}catch(e){}</script>${FRAME_SCRIPT}</body>`
-        );
         setHtml(next);
       } catch {
         if (!cancelled) setError('Não foi possível montar a apresentação.');

@@ -24,6 +24,7 @@ import {
   slideTemplateHTML,
   withSlideBackground,
   withSlideClass,
+  withSlideChat,
   withSlideLayout,
   withSlideTransition,
   type SlideLayout,
@@ -72,6 +73,8 @@ export interface DeckState {
   setSlideLayout: (index: number, layout: Partial<SlideLayout> | null) => void;
   /** Como o slide entra na apresentação. */
   setSlideTransition: (index: number, transition: SlideTransition) => void;
+  /** Liga/desliga o chat ao vivo no slide. */
+  setSlideChat: (index: number, on: boolean) => void;
   /** Altera as preferências da apresentação (barra de progresso, modo, ao vivo). */
   setPresentationSettings: (patch: PresentationSettings) => void;
   /** Cria um slide a partir de um modelo, logo depois do slide atual. */
@@ -412,6 +415,12 @@ export const useDeckStore = create<DeckState>()((set, get) => {
       });
       set({ currentIndex: at, selection: null });
       return true;
+    },
+
+    setSlideChat: (index, on) => {
+      const slide = get().deck.slides[index];
+      if (!slide) return;
+      get().updateSlideHTML(index, withSlideChat(slide.html, on), `chat:${index}`);
     },
 
     setPresentationSettings: (patch) => {

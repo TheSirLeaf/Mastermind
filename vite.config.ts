@@ -25,5 +25,9 @@ export default defineConfig({
   server: {
     host: '127.0.0.1',
     port: 5173,
+    // Salas ao vivo: em desenvolvimento, o Worker roda à parte (`npm run dev:worker`).
+    proxy: {
+      '/api': { target: `http://127.0.0.1:${process.env.LIVE_WORKER_PORT ?? 8787}`, ws: true },
+    },
   },
 });

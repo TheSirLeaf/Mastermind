@@ -8,6 +8,7 @@ export default tseslint.config(
   {
     ignores: [
       '**/dist/**',
+      '**/.wrangler/**',
       '**/storybook-static/**',
       '**/.work/**',
       '**/node_modules/**',

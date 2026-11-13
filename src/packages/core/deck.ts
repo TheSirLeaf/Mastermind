@@ -42,6 +42,20 @@ export function makeSlide(html: string, footer = FOOTER_HTML): Slide {
 }
 
 /** Deck inicial usado quando não há nada salvo. */
+/** O slide abre o chat ao vivo (`data-chat="1"` na seção). */
+export function slideHasChat(html: string): boolean {
+  return /<section[^>]*\sdata-chat="1"/.test(html);
+}
+
+export function withSlideChat(html: string, on: boolean): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const section = doc.body.firstElementChild;
+  if (!section) return html;
+  if (on) section.setAttribute('data-chat', '1');
+  else section.removeAttribute('data-chat');
+  return section.outerHTML;
+}
+
 /** Preferências da apresentação com os padrões aplicados. */
 export function presentationSettings(deck: {
   settings?: PresentationSettings | undefined;

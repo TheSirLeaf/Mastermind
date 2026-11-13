@@ -35,3 +35,6 @@ holy-grail.html
 # OS
 Thumbs.db
 .DS_Store
+
+# Cloudflare (estado local do wrangler)
+.wrangler/

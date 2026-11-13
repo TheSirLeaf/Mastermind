@@ -468,6 +468,7 @@ export const NAV_SCRIPT = `(function(){
     }
     if(bar) bar.style.width = ((idx+1)/slides.length*100).toFixed(2) + '%';
     if(notesEl) notesEl.textContent = s.getAttribute('data-notes') || '';
+    try{ if(window.parent !== window) window.parent.postMessage({__mm:'slide', index: idx}, '*'); }catch(e){}
     if(push !== false){ try{ history.replaceState(null,'','#'+(idx+1)); }catch(e){} }
   }
   function next(){ show(idx+1); }
@@ -510,6 +511,11 @@ export const NAV_SCRIPT = `(function(){
     sx = null;
   }, {passive:true});
   window.addEventListener('resize', fit);
+  /* Duas telas: quem apresenta manda "ir para o slide N" para a tela exibida. */
+  window.addEventListener('message', function(e){
+    var d = e.data;
+    if(d && d.__mm === 'goto' && typeof d.index === 'number') show(d.index, false);
+  });
   window.addEventListener('hashchange', function(){
     var h = parseInt((location.hash||'').replace('#',''),10);
     if(!isNaN(h) && h-1 !== idx) show(h-1, false);

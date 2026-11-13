@@ -68,6 +68,7 @@ funções como `{ $fn: "..." }` — compatível com o editor antigo.
 
 - **Criar um pacote:** [`docs/PACKAGES.md`](docs/PACKAGES.md) (com um exemplo pronto em `docs/examples/`).
 - **Deploy no Cloudflare Pages e CI/CD:** [`docs/DEPLOY.md`](docs/DEPLOY.md).
+- **Interação ao vivo (espectadores):** [`docs/LIVE.md`](docs/LIVE.md).
 
 ## Fluxo de agentes
 

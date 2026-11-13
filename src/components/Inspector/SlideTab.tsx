@@ -4,6 +4,7 @@ import {
   defaultSlideLayout,
   SLIDE_TRANSITIONS,
   slideBackground,
+  slideHasChat,
   slideLayout,
   slideNotes,
   slideTheme,
@@ -59,6 +60,8 @@ export function SlideTab() {
   const updateSlideNotes = useDeckStore((state) => state.updateSlideNotes);
   const setSlideLayout = useDeckStore((state) => state.setSlideLayout);
   const setSlideTransition = useDeckStore((state) => state.setSlideTransition);
+  const setSlideChat = useDeckStore((state) => state.setSlideChat);
+  const liveOn = useDeckStore((state) => state.deck.settings?.live === true);
 
   if (!slide) return null;
   const theme = slideTheme(slide.html);
@@ -284,6 +287,25 @@ export function SlideTab() {
             </label>
           </section>
         </>
+      ) : null}
+      {!isBase ? (
+        <section>
+          <h3 className="mb-2 text-[10px] uppercase tracking-widest text-accent">Chat ao vivo</h3>
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-payday-text">
+            <input
+              type="checkbox"
+              aria-label="Chat ao vivo neste slide"
+              checked={slideHasChat(slide.html)}
+              onChange={(event) => setSlideChat(index, event.target.checked)}
+            />
+            Abrir o chat da plateia neste slide
+          </label>
+          <p className="mt-1.5 text-[11px] leading-snug text-payday-textDim">
+            {liveOn
+              ? 'Os espectadores só escrevem nos slides marcados (ou quando você abre o chat na visão do apresentador).'
+              : 'Vale quando a interação ao vivo está ligada, nas preferências da apresentação.'}
+          </p>
+        </section>
       ) : null}
       {!isBase ? (
         <section>
