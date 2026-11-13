@@ -1,5 +1,6 @@
 import { ANIMATION_CSS } from './animation';
 import { resolveDeckSlides } from './bases';
+import { presentationSettings } from './deck';
 import type { PackageRegistry } from './PackageRegistry';
 import { PKG_HOST_SRC, EDITOR_BRIDGE_SRC } from './pkgHost';
 import type { Deck, Slide } from './types';
@@ -42,13 +43,21 @@ export function deckSlidesHTML(deck: Deck, withBases: boolean): string {
   return parts.join('\n');
 }
 
+/** CSS das preferências da apresentação (hoje: esconder a barra de progresso). */
+function prefsCss(deck: Deck): string {
+  return presentationSettings(deck).progressBar
+    ? ''
+    : '<style id="mm-prefs">.progress{display:none!important}</style>\n';
+}
+
 /** Bases embutidas no HTML exportado, para reabrir o arquivo no editor sem perder o modelo. */
 function basesMeta(deck: Deck): string {
-  if (!deck.bases?.length) return '';
-  const json = JSON.stringify({ bases: deck.bases, modelId: deck.modelId }).replace(
-    /</g,
-    '\\u003c'
-  );
+  if (!deck.bases?.length && !deck.settings) return '';
+  const json = JSON.stringify({
+    bases: deck.bases ?? [],
+    modelId: deck.modelId,
+    settings: deck.settings,
+  }).replace(/</g, '\\u003c');
   return `<script type="application/json" id="mm-bases">${json}</script>`;
 }
 
@@ -115,7 +124,7 @@ export function buildPresentationHTML(options: BuildPresentationOptions): string
   if (html.includes('</head>')) {
     html = html.replace(
       '</head>',
-      `<style id="mm-anim">${ANIMATION_CSS}</style>\n<style id="mm-print">${PRINT_CSS}</style>\n${basesMeta(deck)}</head>`
+      `<style id="mm-anim">${ANIMATION_CSS}</style>\n<style id="mm-print">${PRINT_CSS}</style>\n${prefsCss(deck)}${basesMeta(deck)}</head>`
     );
   }
 
@@ -260,6 +269,7 @@ export const NAV_SCRIPT = `(function(){
     '#deck.mm-notrans .slide{transition:none!important}',
     '.slide.mm-nest{inset:auto!important;opacity:1!important;visibility:visible!important;transition:none!important;transform-origin:0 0!important;pointer-events:none}',
     '.slide.t-instant{transition:none!important}',
+    '.slide.t-morph-out{transform:none!important}',
     '.slide.t-leave{visibility:visible!important;opacity:1!important;transition:none!important;z-index:1!important;pointer-events:none}',
     '.slide.t-in-slide{animation:mmTrIn .7s cubic-bezier(.65,0,.35,1) both}.slide.t-out-slide{animation:mmTrOut .7s cubic-bezier(.65,0,.35,1) both}',
     '.slide.t-in-slide-r{animation:mmTrInR .7s cubic-bezier(.65,0,.35,1) both}.slide.t-out-slide-r{animation:mmTrOutR .7s cubic-bezier(.65,0,.35,1) both}',
@@ -355,6 +365,41 @@ export const NAV_SCRIPT = `(function(){
     requestAnimationFrame(frame);
   }
 
+  /* Interpolar: elementos com o mesmo nome (data-name) nos dois slides viajam de um lugar ao outro. */
+  function named(root){
+    var map = {};
+    [].slice.call(root.querySelectorAll('[data-name],[data-morph]')).forEach(function(el){
+      var k = el.getAttribute('data-morph') || el.getAttribute('data-name');
+      if(k && !map[k]) map[k] = el;
+    });
+    return map;
+  }
+  function morphPlan(prev, next){
+    var a = named(prev), b = named(next), plan = [];
+    for(var k in a){ if(b[k]) plan.push({from:a[k], to:b[k], r:a[k].getBoundingClientRect()}); }
+    return plan;
+  }
+  function morphRun(prev, next, plan){
+    var D = 800, z = deck.getBoundingClientRect().width/1920 || 1, hidden = [];
+    prev.classList.add('t-leave', 't-morph-out');
+    next.classList.add('t-instant');
+    plan.forEach(function(p){
+      var b = p.to.getBoundingClientRect();
+      if(!b.width || !b.height || !p.r.width || !p.r.height || !p.to.animate) return;
+      var dx = ((p.r.left + p.r.width/2) - (b.left + b.width/2)) / z;
+      var dy = ((p.r.top + p.r.height/2) - (b.top + b.height/2)) / z;
+      p.from.style.visibility = 'hidden';
+      hidden.push(p.from);
+      p.to.animate([{transform:'translate(' + dx + 'px,' + dy + 'px) scale(' + (p.r.width/b.width) + ',' + (p.r.height/b.height) + ')'}], {duration:D, easing:'cubic-bezier(.65,0,.35,1)'});
+    });
+    if(next.animate) next.animate([{opacity:0},{opacity:1}], {duration:D*0.45, easing:'ease-out'});
+    setTimeout(function(){
+      hidden.forEach(function(el){ el.style.visibility = ''; });
+      prev.classList.remove('t-morph-out');
+      clean([prev, next]);
+    }, D + 60);
+  }
+
   function clean(list){
     list.forEach(function(el){
       Array.prototype.slice.call(el.classList).forEach(function(c){
@@ -375,10 +420,13 @@ export const NAV_SCRIPT = `(function(){
     if(tr === 'move' && n !== from){ travel(from, n); }
     else {
       var pk = tr.indexOf('pkg:') === 0 ? tr.slice(4).replace(':', '-') : '';
+      var plan = tr === 'morph' ? morphPlan(prev, s) : null;
       prev.classList.remove('active');
       s.classList.add('active');
       nest(n);
-      if(tr === 'instant'){
+      if(tr === 'morph'){
+        morphRun(prev, s, plan);
+      } else if(tr === 'instant'){
         prev.classList.add('t-instant'); s.classList.add('t-instant');
         setTimeout(function(){ clean([prev, s]); }, 80);
       } else if(tr === 'slide' || tr === 'zoom' || pk){

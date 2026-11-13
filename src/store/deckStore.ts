@@ -32,7 +32,7 @@ import {
 } from '../packages/core/deck';
 import { HistoryManager } from '../packages/core/history';
 import { ensureBase, getModel, slideFromModel } from '../packages/core/models';
-import type { Deck, SelectionInfo, Slide } from '../packages/core/types';
+import type { Deck, PresentationSettings, SelectionInfo, Slide } from '../packages/core/types';
 
 export interface DeckState {
   deck: Deck;
@@ -72,6 +72,8 @@ export interface DeckState {
   setSlideLayout: (index: number, layout: Partial<SlideLayout> | null) => void;
   /** Como o slide entra na apresentação. */
   setSlideTransition: (index: number, transition: SlideTransition) => void;
+  /** Altera as preferências da apresentação (barra de progresso, modo, ao vivo). */
+  setPresentationSettings: (patch: PresentationSettings) => void;
   /** Cria um slide a partir de um modelo, logo depois do slide atual. */
   addSlideFromTemplate: (kind: SlideTemplateKind) => void;
   /** Cria um slide a partir de um slide de um modelo (e traz a base dele, se faltar). */
@@ -410,6 +412,12 @@ export const useDeckStore = create<DeckState>()((set, get) => {
       });
       set({ currentIndex: at, selection: null });
       return true;
+    },
+
+    setPresentationSettings: (patch) => {
+      apply((deck) => {
+        deck.settings = { ...deck.settings, ...patch };
+      }, 'settings');
     },
 
     addSlideFromTemplate: (kind) => {

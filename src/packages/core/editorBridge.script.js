@@ -1249,6 +1249,11 @@
     } catch (err) {
       /* ignore */
     }
+    try {
+      window.dispatchEvent(new Event('mm-kf-reset'));
+    } catch (err) {
+      /* ignore */
+    }
     previewing = false;
     document.body.classList.remove('mm-preview');
     var s = activeSlide();

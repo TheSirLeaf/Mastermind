@@ -24,11 +24,14 @@ export function parseDeckHTML(html: string, options: ImportDeckOptions = {}): De
   // Bases embutidas na exportação e slides base (não apresentados) gravados pelo editor.
   let bases: Deck['bases'];
   let modelId: string | undefined;
+  let settings: Deck['settings'];
   try {
     const meta = JSON.parse(doc.getElementById('mm-bases')?.textContent ?? 'null') as {
       bases?: Array<{ id: string; html: string }>;
       modelId?: string;
+      settings?: Deck['settings'];
     } | null;
+    if (meta?.settings) settings = meta.settings;
     if (meta?.bases?.length) {
       bases = meta.bases.map((b) => ({ id: b.id || newSlideId(), html: b.html }));
       modelId = meta.modelId;
@@ -54,6 +57,7 @@ export function parseDeckHTML(html: string, options: ImportDeckOptions = {}): De
     })),
     ...(bases ? { bases } : {}),
     ...(modelId ? { modelId } : {}),
+    ...(settings ? { settings } : {}),
   };
 
   parsed.slides = renumberFooters(parsed.slides);

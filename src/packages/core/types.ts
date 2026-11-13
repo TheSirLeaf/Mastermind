@@ -278,6 +278,18 @@ export interface Deck {
   bases?: Slide[];
   /** Modelo de origem (ver `models.ts`). */
   modelId?: string;
+  /** Preferências da apresentação (aba Slides). */
+  settings?: PresentationSettings;
+}
+
+/** Como a apresentação se comporta. */
+export interface PresentationSettings {
+  /** Barra de progresso inferior (padrão: ligada). */
+  progressBar?: boolean;
+  /** `standard`: slides em sequência. `areas`: o apresentador navega livremente (em desenvolvimento). */
+  mode?: 'standard' | 'areas';
+  /** Interação ao vivo com a plateia (em desenvolvimento). */
+  live?: boolean;
 }
 
 /** Dados de seleção reportados pelo iframe do editor. */

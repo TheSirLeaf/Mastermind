@@ -1,7 +1,7 @@
 import { customAlphabet } from 'nanoid';
 
 import { getModel, DEFAULT_MODEL_ID } from './models';
-import type { Deck, Slide } from './types';
+import type { Deck, PresentationSettings, Slide } from './types';
 
 const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 10);
 
@@ -42,6 +42,17 @@ export function makeSlide(html: string, footer = FOOTER_HTML): Slide {
 }
 
 /** Deck inicial usado quando não há nada salvo. */
+/** Preferências da apresentação com os padrões aplicados. */
+export function presentationSettings(deck: {
+  settings?: PresentationSettings | undefined;
+}): Required<PresentationSettings> {
+  return {
+    progressBar: deck.settings?.progressBar !== false,
+    mode: deck.settings?.mode === 'areas' ? 'areas' : 'standard',
+    live: deck.settings?.live === true,
+  };
+}
+
 export function createDefaultDeck(): Deck {
   const model = getModel(DEFAULT_MODEL_ID);
   const slides = model.slides.slice(0, 2).map((s) => makeSlide(s.html, ''));
@@ -247,7 +258,7 @@ export function withSlideLayout(html: string, layout: Partial<SlideLayout> | nul
 }
 
 /** Como o slide ENTRA na apresentação. */
-export const SLIDE_TRANSITIONS = ['default', 'instant', 'move', 'slide', 'zoom'] as const;
+export const SLIDE_TRANSITIONS = ['default', 'instant', 'move', 'slide', 'zoom', 'morph'] as const;
 /** Transição embutida, ou `pkg:<pacote>:<transição>` quando vem de um pacote. */
 export type SlideTransition = (typeof SLIDE_TRANSITIONS)[number] | `pkg:${string}`;
 

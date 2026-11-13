@@ -9,6 +9,12 @@ import {
   type AnimationKind,
   type ElementAnimation,
 } from '@packages/core/animation';
+import {
+  keyframesEnd,
+  keyframesPatch,
+  readKeyframes,
+  type Keyframe,
+} from '@packages/core/keyframes';
 import { registry } from '@packages/core/PackageRegistry';
 import type { PackageDef, PackageTimelineEvent } from '@packages/core/types';
 import { itemAt, useDeckStore } from '@store/deckStore';
@@ -51,6 +57,7 @@ interface ElementGroup {
   label: string;
   anim?: Track;
   pkg?: PackageTrack;
+  kf?: KeyframeTrack;
 }
 
 function comparePaths(a: number[], b: number[]): number {
@@ -59,6 +66,20 @@ function comparePaths(a: number[], b: number[]): number {
     if (diff !== 0) return diff;
   }
   return 0;
+}
+
+/** Interpolação (keyframes) de um elemento. */
+interface KeyframeTrack {
+  path: number[];
+  key: string;
+  label: string;
+  kfs: Keyframe[];
+}
+
+interface KeyframeDrag {
+  track: KeyframeTrack;
+  index: number;
+  startX: number;
 }
 
 type Scope = 'slide' | 'selection';
@@ -143,6 +164,26 @@ function collectPackageTracks(html: string, slideIndex: number): PackageTrack[] 
           def,
           spec: getElementSpec(child),
         });
+      }
+      walk(child, childPath);
+    });
+  };
+  walk(root, [slideIndex]);
+  return out;
+}
+
+function collectKeyframeTracks(html: string, slideIndex: number): KeyframeTrack[] {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const root = doc.body.firstElementChild;
+  if (!root) return [];
+  const out: KeyframeTrack[] = [];
+  const walk = (element: Element, path: number[]): void => {
+    Array.from(element.children).forEach((child, index) => {
+      if (child.id === 'mm-sel') return;
+      const childPath = [...path, index];
+      const kfs = readKeyframes(child);
+      if (kfs.length > 0) {
+        out.push({ path: childPath, key: childPath.join('.'), label: labelOf(child), kfs });
       }
       walk(child, childPath);
     });
@@ -237,6 +278,19 @@ export function Timeline() {
     const prefix = selection.path.join('.');
     return allPkgTracks.filter((t) => t.key === prefix || t.key.startsWith(`${prefix}.`));
   }, [allPkgTracks, scope, selection]);
+  const allKfTracks = useMemo(
+    () => collectKeyframeTracks(html, currentIndex),
+    [html, currentIndex]
+  );
+  const kfTracks = useMemo(() => {
+    if (scope === 'slide' || !selection) return allKfTracks;
+    const prefix = selection.path.join('.');
+    return allKfTracks.filter((t) => t.key === prefix || t.key.startsWith(`${prefix}.`));
+  }, [allKfTracks, scope, selection]);
+  const [kfDraft, setKfDraft] = useState<Record<string, Keyframe[]>>({});
+  const kfDragRef = useRef<KeyframeDrag | null>(null);
+  const kfsOf = (track: KeyframeTrack): Keyframe[] => kfDraft[track.key] ?? track.kfs;
+
   const specOf = (track: PackageTrack): Record<string, unknown> =>
     pkgDraft[track.key] ?? track.spec;
 
@@ -253,8 +307,13 @@ export function Timeline() {
       if (found) found.pkg = pkg;
       else byKey.set(pkg.key, { key: pkg.key, path: pkg.path, label: pkg.label, pkg });
     }
+    for (const kf of kfTracks) {
+      const found = byKey.get(kf.key);
+      if (found) found.kf = kf;
+      else byKey.set(kf.key, { key: kf.key, path: kf.path, label: kf.label, kf });
+    }
     return Array.from(byKey.values()).sort((a, b) => comparePaths(a.path, b.path));
-  }, [tracks, pkgTracks]);
+  }, [tracks, pkgTracks, kfTracks]);
 
   const pkgEnd = Math.max(
     0,
@@ -262,8 +321,10 @@ export function Timeline() {
       packageEvents(track, specOf(track)).map((e) => e.start + e.duration)
     )
   );
+  const kfEnd = Math.max(0, ...kfTracks.map((track) => keyframesEnd(kfsOf(track))));
   const total = Math.max(
     pkgEnd,
+    kfEnd,
     ...tracks.map((track) => animationDuration(effective(track)) / 1000)
   );
   const span = Math.max(3, Math.ceil((total + 0.4) * 2) / 2);
@@ -280,6 +341,7 @@ export function Timeline() {
     setTime(null);
     setDraft({});
     setPkgDraft({});
+    setKfDraft({});
   }, [currentIndex]);
 
   const stop = (): void => {
@@ -419,6 +481,40 @@ export function Timeline() {
     />
   );
 
+  const beginKfDrag = (event: ReactPointerEvent, track: KeyframeTrack, index: number): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    kfDragRef.current = { track, index, startX: event.clientX };
+  };
+
+  const moveKfDrag = (event: ReactPointerEvent): void => {
+    const drag = kfDragRef.current;
+    const area = trackAreaRef.current;
+    if (!drag || !area) return;
+    const base = drag.track.kfs[drag.index];
+    if (!base) return;
+    const seconds = ((event.clientX - drag.startX) / area.clientWidth) * span;
+    const t = round(Math.max(0, base.t + seconds));
+    setKfDraft((prev) => ({
+      ...prev,
+      [drag.track.key]: drag.track.kfs.map((k, i) => (i === drag.index ? { ...k, t } : k)),
+    }));
+  };
+
+  const endKfDrag = (): void => {
+    const drag = kfDragRef.current;
+    kfDragRef.current = null;
+    if (!drag) return;
+    const next = kfDraft[drag.track.key];
+    setKfDraft((prev) => {
+      const rest = { ...prev };
+      delete rest[drag.track.key];
+      return rest;
+    });
+    if (next) useDeckStore.getState().patchElement(drag.track.path, keyframesPatch(next));
+  };
+
   const gridLines = ticks.map((t) => (
     <span
       key={t}
@@ -500,6 +596,70 @@ export function Timeline() {
               <Plus className="h-3 w-3" /> Animar
             </button>
           )}
+        </div>
+      </div>
+    );
+  };
+
+  /** Linha da interpolação: uma faixa com um losango por keyframe. */
+  const kfRow = (track: KeyframeTrack, sub?: string) => {
+    const kfs = kfsOf(track);
+    const selected = selectedKey === track.key;
+    const first = Math.min(...kfs.map((k) => k.t));
+    const last = Math.max(...kfs.map((k) => k.t));
+    return (
+      <div
+        key={`kf-${track.key}`}
+        className={clsx(
+          'flex h-8',
+          !sub && 'border-b border-payday-border/40',
+          selected && 'bg-accent/[0.07]'
+        )}
+      >
+        {sub ? (
+          <div
+            className="w-[190px] shrink-0 truncate border-r border-payday-border pr-2 text-[11px] leading-8 text-payday-textDim"
+            style={{ paddingLeft: 26 }}
+          >
+            ↳ {sub}
+          </div>
+        ) : (
+          nameCell(track.path, track.label, selected, 12)
+        )}
+        <div className="relative min-w-0 flex-1">
+          {gridLines}
+          <div
+            className="absolute top-[15px] h-[3px] rounded bg-[#B9A6E8]/60"
+            style={{
+              left: `${(first / span) * 100}%`,
+              width: `${Math.max(0.5, ((last - first) / span) * 100)}%`,
+            }}
+          />
+          {kfs.map((k, index) => (
+            <div
+              key={index}
+              className="absolute top-2 h-4 w-4 -translate-x-1/2"
+              style={{ left: `${(k.t / span) * 100}%` }}
+            >
+              <Tooltip
+                title={`Keyframe ${index + 1} · ${fmt(k.t)}`}
+                description={`X ${k.x}, Y ${k.y} · escala ${Math.round(k.s * 100)}% · giro ${k.r}° · opacidade ${Math.round(k.o * 100)}%. Arraste para mudar o tempo.`}
+                side="top"
+                className="h-full w-full"
+              >
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Keyframe ${index + 1} de ${track.label}`}
+                  onPointerDown={(event) => beginKfDrag(event, track, index)}
+                  onPointerMove={moveKfDrag}
+                  onPointerUp={endKfDrag}
+                  onPointerCancel={endKfDrag}
+                  className="h-full w-full rotate-45 cursor-grab touch-none rounded-[3px] border border-black/40 bg-[#B9A6E8] active:cursor-grabbing"
+                />
+              </Tooltip>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -594,7 +754,11 @@ export function Timeline() {
             type="button"
             aria-label={time !== null ? 'Parar' : 'Reproduzir'}
             onClick={play}
-            disabled={tracks.every((track) => !effective(track)) && pkgTracks.length === 0}
+            disabled={
+              tracks.every((track) => !effective(track)) &&
+              pkgTracks.length === 0 &&
+              kfTracks.length === 0
+            }
             className="grid h-7 w-7 place-items-center rounded-md bg-accent/15 text-accent transition hover:bg-accent/25 disabled:pointer-events-none disabled:opacity-35"
           >
             {time !== null ? <Square className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
@@ -633,8 +797,9 @@ export function Timeline() {
         </div>
 
         <span className="ml-auto truncate text-[11px] text-payday-textDim">
-          Slide {currentIndex + 1} · {allTracks.length + allPkgTracks.length} animaç
-          {allTracks.length + allPkgTracks.length === 1 ? 'ão' : 'ões'}
+          Slide {currentIndex + 1} · {allTracks.length + allPkgTracks.length + allKfTracks.length}{' '}
+          animaç
+          {allTracks.length + allPkgTracks.length + allKfTracks.length === 1 ? 'ão' : 'ões'}
           {' · '}arraste a barra para o atraso, a ponta para a duração
         </span>
       </div>
@@ -665,8 +830,13 @@ export function Timeline() {
           </div>
         ) : (
           groups.map((group) => {
-            if (group.anim && group.pkg) {
+            const parts = [group.anim, group.pkg, group.kf].filter(Boolean).length;
+            if (parts >= 2) {
               const selected = selectedKey === group.key;
+              const events =
+                (group.anim ? 1 : 0) +
+                (group.pkg ? packageEvents(group.pkg, specOf(group.pkg)).length : 0) +
+                (group.kf ? group.kf.kfs.length : 0);
               return (
                 <div
                   key={group.key}
@@ -677,17 +847,18 @@ export function Timeline() {
                     {nameCell(group.path, group.label, selected, 10)}
                     <div className="flex min-w-0 flex-1 items-center gap-2 px-2 text-[10px] text-payday-textDim">
                       <Link2 className="h-3 w-3" />
-                      mesmo elemento · {1 + packageEvents(group.pkg, specOf(group.pkg)).length}{' '}
-                      eventos
+                      mesmo elemento · {events} eventos
                     </div>
                   </div>
-                  {animRow(group.anim, 'Entrada')}
-                  {pkgRow(group.pkg, group.pkg.def.name)}
+                  {group.anim ? animRow(group.anim, 'Entrada') : null}
+                  {group.pkg ? pkgRow(group.pkg, group.pkg.def.name) : null}
+                  {group.kf ? kfRow(group.kf, 'Interpolação') : null}
                 </div>
               );
             }
             if (group.anim) return animRow(group.anim);
-            return group.pkg ? pkgRow(group.pkg) : null;
+            if (group.pkg) return pkgRow(group.pkg);
+            return group.kf ? kfRow(group.kf) : null;
           })
         )}
 

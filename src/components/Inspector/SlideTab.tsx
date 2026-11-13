@@ -37,6 +37,11 @@ const TRANSITIONS: Record<
   },
   slide: { label: 'Deslizar', description: 'O novo slide empurra o anterior para o lado.' },
   zoom: { label: 'Zoom', description: 'O anterior se afasta e o novo se aproxima.' },
+  morph: {
+    label: 'Interpolar',
+    description:
+      'Elementos com o mesmo nome nos dois slides se transformam de um no outro (posição e tamanho). Dê o mesmo nome a eles com o lápis do inspetor.',
+  },
 };
 
 const inputClass =

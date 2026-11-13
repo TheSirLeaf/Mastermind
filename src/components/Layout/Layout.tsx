@@ -7,6 +7,7 @@ import { NewSlideModal } from '@components/Sidebar/NewSlideModal';
 import { Sidebar } from '@components/Sidebar/Sidebar';
 import { PalettePanel } from '@components/Stage/PalettePanel';
 import { PresentationOverlay } from '@components/Stage/PresentationOverlay';
+import { PresentationPrefsModal } from '@components/Stage/PresentationPrefsModal';
 import { StageViewport } from '@components/Stage/StageViewport';
 import { useUIStore } from '@stores/uiStore';
 import { PlugZap } from 'lucide-react';
@@ -80,6 +81,7 @@ export function Layout() {
       {isWelcomeOpen && <WelcomeModal />}
       <PackageManagerModal />
       <NewSlideModal />
+      <PresentationPrefsModal />
       <SettingsModal />
       {toast && <Toast message={toast.message} type={toast.type} onDismiss={hideToast} />}
     </div>

@@ -57,6 +57,49 @@ export const PKG_HOST_SRC = `(function(){
     };
   }
 
+  function num(v) {
+    var n = parseFloat(v);
+    return isNaN(n) ? 0 : n;
+  }
+
+  /* Interpolação: cada elemento com data-kf percorre seus keyframes (translate/scale/rotate/opacity). */
+  function mountKeyframes(slide, controllers) {
+    [].slice.call(slide.querySelectorAll('[data-kf]')).forEach(function (el) {
+      var kfs;
+      try { kfs = JSON.parse(el.getAttribute('data-kf') || '[]'); } catch (e) { return; }
+      if (!Array.isArray(kfs) || !kfs.length || !el.animate) return;
+      el.getAnimations().forEach(function (a) { if (a.id === 'mm-kf') a.cancel(); });
+      kfs = kfs.slice().sort(function (a, b) { return num(a.t) - num(b.t); });
+      var tr = (el.style.translate || '').split(' ').filter(Boolean);
+      var bx = num(tr[0]), by = num(tr[1]);
+      var bs = num(el.style.scale) || 1, br = num(el.style.rotate);
+      var total = Math.max(0.05, num(kfs[kfs.length - 1].t));
+      function frame(k, offset, easing) {
+        return {
+          offset: offset,
+          translate: (bx + num(k.x)) + 'px ' + (by + num(k.y)) + 'px',
+          scale: bs * (k.s === undefined ? 1 : num(k.s)),
+          rotate: (br + num(k.r)) + 'deg',
+          opacity: k.o === undefined ? 1 : num(k.o),
+          easing: easing
+        };
+      }
+      var frames = [];
+      if (num(kfs[0].t) > 0) frames.push(frame({}, 0, 'linear'));
+      kfs.forEach(function (k) {
+        frames.push(frame(k, Math.min(1, num(k.t) / total), k.ease || 'ease-in-out'));
+      });
+      var anim = el.animate(frames, { duration: total * 1000, fill: 'both', easing: 'linear' });
+      anim.id = 'mm-kf';
+      anim.pause();
+      anim.currentTime = 0;
+      controllers.push({
+        play: function () { if (reduced) anim.finish(); else anim.play(); },
+        final: function () { try { anim.finish(); } catch (e) {} }
+      });
+    });
+  }
+
   function mountSlide(slide) {
     var alive = true;
     var controllers = [];
@@ -80,6 +123,8 @@ export const PKG_HOST_SRC = `(function(){
         if (ctrl && typeof ctrl.play === 'function') controllers.push(ctrl);
       } catch (e) { /* pacote não deve quebrar a apresentação */ }
     });
+
+    try { mountKeyframes(slide, controllers); } catch (e) { /* não deve quebrar a apresentação */ }
 
     return {
       play: function () {
@@ -106,6 +151,12 @@ export const PKG_HOST_SRC = `(function(){
   }
 
   window.__anim = animate;
+  /* O editor pede para soltar o estado final das interpolações ao sair da pré-visualização. */
+  window.addEventListener('mm-kf-reset', function () {
+    [].slice.call(document.querySelectorAll('[data-kf]')).forEach(function (el) {
+      if (el.getAnimations) el.getAnimations().forEach(function (a) { if (a.id === 'mm-kf') a.cancel(); });
+    });
+  });
   window.addEventListener('beforeprint', function () { if (current) current.final(); });
   window.addEventListener('afterprint', function () {
     var active = document.querySelector('.slide.active');

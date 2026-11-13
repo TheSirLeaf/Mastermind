@@ -23,6 +23,8 @@ interface UIState {
   // Modals
   isPackageManagerOpen: boolean;
   isNewSlideOpen: boolean;
+  isPrefsOpen: boolean;
+  setPrefsOpen: (open: boolean) => void;
   /** Cores mais comuns do slide ativo (aba Slides). */
   slidePalette: string[];
   setSlidePalette: (colors: string[]) => void;
@@ -119,6 +121,8 @@ export const useUIStore = create<UIState>()(
 
     isPackageManagerOpen: false,
     isNewSlideOpen: false,
+    isPrefsOpen: false,
+    setPrefsOpen: (open) => set({ isPrefsOpen: open }),
     slidePalette: [],
     setSlidePalette: (colors) => set({ slidePalette: colors }),
     newSlideMode: 'slide',

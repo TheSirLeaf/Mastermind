@@ -20,6 +20,7 @@ import { useEffect, useState } from 'react';
 
 import { readSelectedElement } from './elementSelection';
 import { InspectorSection } from './InspectorSection';
+import { KeyframesSection } from './KeyframesSection';
 
 const KIND_LABELS: Record<AnimationKind, string> = {
   rise: 'Subir',
@@ -248,6 +249,10 @@ export function AnimationTab({ selection }: { selection: SelectionInfo }) {
             )}
           </select>
         </Field>
+      </Section>
+
+      <Section id="interpolation" title="Interpolação">
+        <KeyframesSection path={path} element={selectedElement} />
       </Section>
 
       <div className="flex flex-wrap gap-2">
