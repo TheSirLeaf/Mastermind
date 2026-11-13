@@ -131,7 +131,6 @@ test('Ao vivo: QR da sala, slide no celular e encerramento fecha tudo', async ({
   await expect(main.locator('.pk-qr-text')).toHaveText(new RegExp(`/join/${code}$`), {
     timeout: 10000,
   });
-  await expect(main.locator('.pk-qr')).not.toHaveClass(/pk-qr-ph/);
 
   const phoneCtx = await browser.newContext({
     baseURL: baseURL ?? 'http://127.0.0.1:5173',

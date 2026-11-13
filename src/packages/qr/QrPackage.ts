@@ -13,8 +13,6 @@ export const qrCss = `
 .pk-qr .pk-qr-code{display:block;border-radius:10px;overflow:hidden;line-height:0}
 .pk-qr .pk-qr-code svg{display:block}
 .pk-qr .pk-qr-text{max-width:100%;font-size:26px;line-height:1.3;text-align:center;word-break:break-all;color:inherit;opacity:.9}
-.pk-qr.pk-qr-ph .pk-qr-code{opacity:.22}
-.pk-qr.pk-qr-ph .pk-qr-text{opacity:.4}
 `;
 
 export const qrDefaults: QrSpec = {

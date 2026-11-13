@@ -2,8 +2,10 @@
 // O link da sala e a mensagem que leva o QR para dentro da apresentação (iframes).
 import { qrMatrix } from '../packages/qr/qrMatrix';
 
-export function roomUrl(code: string, origin: string = location.origin): string {
-  return `${origin}/join/${code}`;
+import { joinUrl } from './site';
+
+export function roomUrl(code: string): string {
+  return joinUrl(code);
 }
 
 export interface RoomMessage {

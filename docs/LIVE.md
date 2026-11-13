@@ -28,7 +28,10 @@ número do slide. Quem tem o código da sala consegue baixar essa cópia, então
 O pacote **QR code** (categoria Mídia) gera um QR de um link ou texto, com tamanho, cores, borda e correção de
 erros definíveis. Ligando **Sempre mostrar o link da sala**, o QR passa a ser o endereço de participação da
 sala (`/join/CODIGO`), qualquer que seja o código, e se atualiza sozinho quando o código muda. No editor ele
-aparece esmaecido (exemplo); o QR real aparece na visão do apresentador, na tela exibida e no celular.
+mostra um link de exemplo do mesmo tamanho do real (`https://mastermind.patrickorb3.workers.dev/join/ABCDE`), então o
+QR tem a mesma aparência; ao apresentar, só o código muda. Se você apresentar com o editor aberto numa máquina local
+(localhost ou rede interna), o link usa o site publicado, porque o celular da plateia não alcança o endereço local.
+O endereço público fica em `src/live/site.ts`.
 
 ### Encerrar
 

@@ -7,7 +7,7 @@ import { MonitorUp, Trash2, Users, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useLiveStore } from '../../live/liveStore';
-import { roomMessage } from '../../live/roomLink';
+import { roomMessage, roomUrl } from '../../live/roomLink';
 import { screenChannelName, type ScreenMessage } from '../../spectator/screenChannel';
 
 import { buildFrameHTML } from './presentationFrame';
@@ -32,7 +32,7 @@ export function PresenterView() {
 
   const code = live.code;
   const hasNext = index + 1 < slides.length;
-  const joinUrl = code ? `${location.origin}/join/${code}` : '';
+  const joinLink = code ? roomUrl(code) : '';
 
   const close = () => {
     if (closing.current) return;
@@ -201,7 +201,7 @@ export function PresenterView() {
           </span>
         </div>
         <span className="hidden truncate text-xs text-payday-textMuted md:block">
-          Participar: <b>{joinUrl}</b>
+          Participar: <b>{joinLink}</b>
         </span>
         <span className="inline-flex items-center gap-1.5 text-xs text-payday-textMuted">
           <Users className="h-3.5 w-3.5" /> <span data-testid="spectators">{live.spectators}</span>{' '}

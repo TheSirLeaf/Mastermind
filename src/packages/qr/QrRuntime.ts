@@ -12,7 +12,6 @@ export function qrRuntime(root: HTMLElement, spec: QrSpec, _api: RuntimeAPI) {
   if (!spec.roomLink) return null;
   const code = root.querySelector('.pk-qr-code');
   const caption = root.querySelector('.pk-qr-text');
-  const box = root.querySelector('.pk-qr');
 
   const draw = (room: { url?: string; matrix?: string[] } | undefined) => {
     if (!room || !room.matrix || !room.matrix.length || !code) return;
@@ -50,7 +49,6 @@ export function qrRuntime(root: HTMLElement, spec: QrSpec, _api: RuntimeAPI) {
       '" fill="' +
       spec.fg +
       '"/></svg>';
-    if (box) box.classList.remove('pk-qr-ph');
     if (caption && room.url) caption.textContent = room.url;
   };
 

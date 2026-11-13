@@ -14,7 +14,7 @@ export const qrForm: FormSchema = [
       {
         type: 'info',
         showIf: { k: 'roomLink', eq: true },
-        text: 'O QR da sala aparece ao apresentar com a interação ao vivo ligada. Até lá, o editor mostra um exemplo esmaecido.',
+        text: 'Aqui aparece um link de exemplo, do mesmo tamanho do real. Ao apresentar com a interação ao vivo ligada, o QR passa a ser o da sala (o código muda a cada apresentação).',
       },
       {
         k: 'text',

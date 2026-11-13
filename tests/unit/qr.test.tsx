@@ -37,18 +37,23 @@ describe('QR code', () => {
     expect(svg).toContain('M3 3h1v1h-1z');
   });
 
-  it('renderiza no tamanho definido; o modo sala fica esmaecido e sem o link no texto', () => {
+  it('renderiza no tamanho definido; o modo sala mostra um link de exemplo, sem esmaecer', () => {
     const { container } = render(
       <QrRenderer h={H} spec={spec({ text: 'https://a.com', size: 500, showText: true })} />
     );
     const box = container.querySelector('.pk-qr') as HTMLElement;
     expect(box.style.width).toBe('500px');
-    expect(box.className).not.toContain('pk-qr-ph');
     expect(container.querySelector('.pk-qr-text')?.textContent).toBe('https://a.com');
 
     const room = render(<QrRenderer h={H} spec={spec({ roomLink: true, showText: true })} />);
-    expect(room.container.querySelector('.pk-qr')?.className).toContain('pk-qr-ph');
-    expect(room.container.querySelector('.pk-qr-text')?.textContent).toBe('Link da sala');
+    expect(room.container.querySelector('.pk-qr')?.className).toBe('pk-qr');
+    expect(room.container.querySelector('.pk-qr-text')?.textContent).toBe(
+      'https://mastermind.patrickorb3.workers.dev/join/ABCDE'
+    );
+    // o exemplo tem o mesmo tamanho do link real: o QR tem a mesma densidade
+    expect(qrMatrix('https://mastermind.patrickorb3.workers.dev/join/ABCDE').length).toBe(
+      qrMatrix(roomUrl('ZZZZ2')).length
+    );
   });
 
   it('está registrado como pacote embutido, com a opção de link da sala', () => {
@@ -76,7 +81,6 @@ describe('QR da sala (runtime na apresentação)', () => {
     const ctrl = qrRuntime(root, spec({ roomLink: true, showText: true }), api)!;
     const first = roomMessage('ABCDE');
     document.dispatchEvent(new CustomEvent('mm-room', { detail: first }));
-    expect(root.querySelector('.pk-qr')?.className).not.toContain('pk-qr-ph');
     expect(root.querySelector('.pk-qr-text')?.textContent).toBe(roomUrl('ABCDE'));
     const svg1 = root.querySelector('.pk-qr-code')?.innerHTML;
 

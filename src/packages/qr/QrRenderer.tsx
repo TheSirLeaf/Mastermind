@@ -1,3 +1,4 @@
+import { PUBLIC_SITE } from '../../live/site';
 import type { HelperAPI, PackageSpec } from '../core/types';
 
 import { qrSvg, type QrEcc } from './qrMatrix';
@@ -18,8 +19,8 @@ export interface QrSpec extends PackageSpec {
   showText: boolean;
 }
 
-/** Link de exemplo mostrado (esmaecido) enquanto não há sala. */
-export const SAMPLE_ROOM_URL = 'https://mastermind.example/join/ABCDE';
+/** Link de exemplo mostrado no editor (o código de verdade só existe ao apresentar). */
+export const SAMPLE_ROOM_URL = `${PUBLIC_SITE}/join/ABCDE`;
 
 export interface QrRendererProps {
   spec: QrSpec;
@@ -27,15 +28,12 @@ export interface QrRendererProps {
 }
 
 export function QrRenderer({ spec }: QrRendererProps): JSX.Element {
-  const placeholder = spec.roomLink;
-  const content = placeholder ? SAMPLE_ROOM_URL : spec.text;
+  // No modo sala o editor mostra um link do mesmo tamanho do real (5 caracteres de código), então o QR
+  // tem a mesma densidade e o mesmo tamanho; ao apresentar só o código muda.
+  const content = spec.roomLink ? SAMPLE_ROOM_URL : spec.text;
   const svg = qrSvg(content, spec.fg, spec.bg, spec.margin, spec.ecc);
   return (
-    <div
-      data-testid="pk-qr"
-      className={`pk-qr${placeholder ? ' pk-qr-ph' : ''}`}
-      style={{ width: `${spec.size}px` }}
-    >
+    <div data-testid="pk-qr" className="pk-qr" style={{ width: `${spec.size}px` }}>
       <div
         className="pk-qr-code"
         style={{ width: `${spec.size}px`, height: `${spec.size}px` }}
@@ -43,7 +41,7 @@ export function QrRenderer({ spec }: QrRendererProps): JSX.Element {
       />
       {spec.showText ? (
         <div className="pk-qr-text" data-testid="pk-qr-text">
-          {placeholder ? 'Link da sala' : spec.text}
+          {content}
         </div>
       ) : null}
     </div>
