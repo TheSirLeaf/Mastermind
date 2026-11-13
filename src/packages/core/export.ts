@@ -270,6 +270,7 @@ export const NAV_SCRIPT = `(function(){
     '.slide.mm-nest{inset:auto!important;opacity:1!important;visibility:visible!important;transition:none!important;transform-origin:0 0!important;pointer-events:none}',
     '.slide.t-instant{transition:none!important}',
     '.slide.t-morph-out{transform:none!important}',
+    '.mm-noanim,.mm-noanim *{animation:none!important}',
     '.slide.t-leave{visibility:visible!important;opacity:1!important;transition:none!important;z-index:1!important;pointer-events:none}',
     '.slide.t-in-slide{animation:mmTrIn .7s cubic-bezier(.65,0,.35,1) both}.slide.t-out-slide{animation:mmTrOut .7s cubic-bezier(.65,0,.35,1) both}',
     '.slide.t-in-slide-r{animation:mmTrInR .7s cubic-bezier(.65,0,.35,1) both}.slide.t-out-slide-r{animation:mmTrOutR .7s cubic-bezier(.65,0,.35,1) both}',
@@ -376,7 +377,12 @@ export const NAV_SCRIPT = `(function(){
   }
   function morphPlan(prev, next){
     var a = named(prev), b = named(next), plan = [];
-    for(var k in a){ if(b[k]) plan.push({from:a[k], to:b[k], r:a[k].getBoundingClientRect()}); }
+    for(var k in a){
+      if(!b[k]) continue;
+      plan.push({from:a[k], to:b[k], r:a[k].getBoundingClientRect()});
+      /* quem chega por interpolação não tem animação de entrada (e isso vale antes do slide ficar ativo) */
+      b[k].classList.add('mm-noanim');
+    }
     return plan;
   }
   function morphRun(prev, next, plan){
@@ -438,6 +444,7 @@ export const NAV_SCRIPT = `(function(){
       var pk = tr.indexOf('pkg:') === 0 ? tr.slice(4).replace(':', '-') : '';
       var plan = tr === 'morph' ? morphPlan(prev, s) : null;
       prev.classList.remove('active');
+      [].slice.call(prev.querySelectorAll('.mm-noanim')).forEach(function(el){ el.classList.remove('mm-noanim'); });
       s.classList.add('active');
       nest(n);
       if(tr === 'morph'){

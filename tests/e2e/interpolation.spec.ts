@@ -38,7 +38,7 @@ test('Interpolar: o elemento com o mesmo nome vai do lugar antigo ao novo (não 
 }) => {
   await boot(page, [
     '<section class="slide dark" data-notes=""><div data-name="Caixa" style="position:absolute;left:200px;top:500px;width:300px;height:200px;background:#c33"></div></section>',
-    '<section class="slide light" data-transition="morph" data-notes=""><div data-name="Caixa" style="position:absolute;left:1200px;top:100px;width:600px;height:400px;background:#3c3"></div></section>',
+    '<section class="slide light" data-transition="morph" data-notes=""><div class="anim" data-anim="rise" data-name="Caixa" style="position:absolute;left:1200px;top:100px;width:600px;height:400px;background:#3c3"></div><p class="anim" data-anim="rise" id="solta">sem par</p></section>',
   ]);
 
   const html = await page.evaluate(async () => {
@@ -68,10 +68,22 @@ test('Interpolar: o elemento com o mesmo nome vai do lugar antigo ao novo (não 
       return { x: Math.round(r.left), w: Math.round(r.width) };
     });
 
+  const cssAnims = (selector: string) =>
+    pres.evaluate(
+      (sel) =>
+        (document.querySelector(sel) as Element)
+          .getAnimations()
+          .filter((a) => a.constructor.name === 'CSSAnimation').length,
+      selector
+    );
+
   const start = await boxes();
   await pres.keyboard.press('ArrowRight');
   await pres.waitForTimeout(150);
   const early = await boxes();
+  // quem chega por interpolação não tem animação de entrada; o que não tem par continua tendo
+  expect(await cssAnims('.slide.active [data-name=Caixa]')).toBe(0);
+  expect(await cssAnims('.slide.active #solta')).toBeGreaterThan(0);
   await pres.waitForTimeout(900);
   const end = await boxes();
 
