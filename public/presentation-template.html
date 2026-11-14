@@ -66,7 +66,7 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.92em
 
 /* ---------- anim ---------- */
 .slide.active .anim{animation:rise .85s cubic-bezier(.16,.84,.24,1) both;animation-delay:var(--d,0s)}
-.mm-shine{background-image:linear-gradient(110deg,currentColor 0 40%,#fff 50%,currentColor 60% 100%);background-size:250% 100%;background-repeat:no-repeat;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:mm-shine 3.2s ease-in-out infinite}
+.mm-shine{background-image:linear-gradient(var(--mm-shine-a,110deg),currentColor 0 calc(50% - var(--mm-shine-w,12%)),var(--mm-shine-c,#fff) 50%,currentColor calc(50% + var(--mm-shine-w,12%)) 100%);background-size:250% 100%;background-repeat:no-repeat;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:mm-shine var(--mm-shine-t,3.2s) ease-in-out infinite}
 @keyframes mm-shine{0%{background-position:100% 0}55%,100%{background-position:0 0}}
 @media (prefers-reduced-motion:reduce){.mm-shine{animation:none}}
 @keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}

@@ -246,7 +246,7 @@ test('Dois cliques seleciona a palavra e o trecho pode ser formatado', async ({ 
   await bar.getByRole('button', { name: 'Diminuir o tamanho' }).click();
   await expect(sizeBox).toHaveValue('61');
   // outra fonte só no trecho
-  await bar.getByRole('button', { name: 'Fonte do trecho' }).click();
+  await bar.getByRole('button', { name: 'Fonte', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Georgia' }).click();
   await page.waitForTimeout(200);
   // cor pelo seletor do app
@@ -259,7 +259,7 @@ test('Dois cliques seleciona a palavra e o trecho pode ser formatado', async ({ 
   await page.waitForTimeout(200);
   // efeito avançado: gradiente
   await bar.getByRole('button', { name: 'Efeitos avançados' }).click();
-  await page.getByTestId('text-advanced').getByRole('button', { name: 'Gradiente' }).click();
+  await page.getByTestId('text-advanced').getByRole('radio', { name: 'Gradiente' }).click();
   await page.waitForTimeout(200);
   // Esc sai da edição guardando tudo (antes, descartava)
   await page.keyboard.press('Escape');
@@ -384,4 +384,217 @@ test('Lista de slides base rola e pode ser redimensionada', async ({ page }) => 
   expect(
     await page.getByTestId('bases-list').evaluate((el) => getComputedStyle(el).overflowY)
   ).toBe('auto');
+});
+
+/** Abre a edição com a palavra na posição [start, end) do texto #t selecionada. */
+async function selectWord(page: Page, start: number, end: number) {
+  const t = await box(page, '#t');
+  await page.mouse.dblclick(t.x + 30, t.cy);
+  await page.waitForTimeout(300);
+  await stageEval(
+    page,
+    `var t=document.getElementById('t');var w=document.createTreeWalker(t,NodeFilter.SHOW_TEXT);
+     var r=document.createRange();var pos=0;var n;
+     while((n=w.nextNode())){var len=n.nodeValue.length;
+       if(pos<=${start}&&${start}<=pos+len&&!r.__s){r.setStart(n,${start}-pos);r.__s=1;}
+       if(pos<=${end}&&${end}<=pos+len){r.setEnd(n,${end}-pos);break;}
+       pos+=len;}
+     var s=getSelection();s.removeAllRanges();s.addRange(r);`
+  );
+  await page.waitForTimeout(250);
+}
+
+async function spanStyle(page: Page, text: string): Promise<string | null> {
+  return stageEval<string | null>(
+    page,
+    `var el=[].slice.call(document.querySelectorAll('#t span')).find(function(x){return x.textContent===${JSON.stringify(text)}});return el?el.getAttribute('style'):null`
+  );
+}
+
+test('Efeitos avançados do trecho: gradiente em itálico sem cortar, contorno, sombras e reflexo', async ({
+  page,
+}) => {
+  await boot(page, [
+    '<section class="slide dark" data-notes=""><p class="ed-obj ed-text" id="t" style="position:absolute;left:200px;top:300px;width:1500px;font-size:90px;font-style:italic">Olá mundo final</p></section>',
+  ]);
+  await selectWord(page, 10, 15);
+  const bar = page.getByTestId('text-format-bar');
+  await bar.getByRole('button', { name: 'Efeitos avançados' }).click();
+  const panel = page.getByTestId('text-advanced');
+  await panel.getByRole('radio', { name: 'Gradiente' }).click();
+  await panel.getByRole('button', { name: 'Adicionar cor' }).click();
+  await expect(panel.getByTestId('gradient-stop')).toHaveCount(3);
+  await page.waitForTimeout(200);
+
+  // a caixa do gradiente passa da última letra (itálico): o fundo cobre a ponta inclinada
+  const clip = await stageEval<{ pad: number; margin: number; gap: number }>(
+    page,
+    `var el=[].slice.call(document.querySelectorAll('#t span')).find(function(x){return x.textContent==='final'});
+     var cs=getComputedStyle(el);var r=document.createRange();r.selectNodeContents(el);
+     var rects=r.getClientRects();var last=rects[rects.length-1];var box=el.getBoundingClientRect();
+     return {pad:parseFloat(cs.paddingRight),margin:parseFloat(cs.marginRight),gap:box.right-last.right}`
+  );
+  expect(clip.pad).toBeGreaterThan(10);
+  expect(clip.margin).toBeCloseTo(-clip.pad, 0);
+  // gap em px de tela; a folga é de 0,2em (18px do slide)
+  const scale = (await box(page, '.slide.active')).s;
+  expect(clip.gap / scale).toBeGreaterThan(14);
+
+  // contorno
+  await panel.getByRole('button', { name: 'Contorno' }).click();
+  await panel.getByRole('radio', { name: 'Por fora' }).click();
+  // sombra: preset + camada extra personalizada
+  await panel.getByRole('button', { name: 'Sombra' }).click();
+  await panel.getByRole('button', { name: 'Suave' }).click();
+  await panel.getByRole('button', { name: 'Adicionar sombra' }).click();
+  await expect(panel.getByTestId('shadow-layer')).toHaveCount(2);
+  await panel.getByTestId('shadow-layer').nth(1).getByLabel('X').fill('12');
+  // reflexo (caixa toda)
+  await panel.getByRole('button', { name: 'Reflexo' }).click();
+  await panel.getByRole('radio', { name: 'Abaixo' }).click();
+  await page.waitForTimeout(300);
+
+  const style = (await spanStyle(page, 'final')) ?? '';
+  expect(style).toMatch(
+    /linear-gradient\(90deg, rgb\(247, 217, 139\) 0%, rgb\(199, 124, 138\) 50%, rgb\(199, 124, 138\) 100%\)/
+  );
+  expect(style).toContain('-webkit-text-stroke: 3px');
+  expect(style).toMatch(/paint-order: stroke/);
+  // com gradiente, as sombras viram drop-shadow (blur pela metade)
+  expect(style).toMatch(/filter: .*drop-shadow\(.*12px 6px 8px/);
+  const reflect = await stageEval<string>(
+    page,
+    "return document.getElementById('t').style.getPropertyValue('-webkit-box-reflect')"
+  );
+  expect(reflect).toContain('below');
+
+  // a configuração guardada volta ao reabrir o painel (outro trecho e de volta)
+  // o painel continua aberto e acompanha o trecho selecionado
+  const gradientRadio = page.getByTestId('text-advanced').getByRole('radio', { name: 'Gradiente' });
+  await page.getByTestId('text-advanced').getByRole('button', { name: 'Preenchimento' }).click();
+  await selectWord(page, 0, 3);
+  await expect(gradientRadio).toHaveAttribute('aria-checked', 'false');
+  await selectWord(page, 10, 15);
+  await expect(
+    page.getByTestId('text-advanced').getByRole('radio', { name: 'Gradiente' })
+  ).toHaveAttribute('aria-checked', 'true');
+
+  // Esc grava; o HTML do slide guarda os efeitos
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+  if (await bar.count()) await page.keyboard.press('Escape');
+  await page.waitForTimeout(600);
+  const html = await savedHtml(page);
+  expect(html).toContain('data-fx=');
+  expect(html).toContain('data-reflect=');
+});
+
+test('Trecho dentro de outro com gradiente não fica invisível', async ({ page }) => {
+  await boot(page, [
+    '<section class="slide dark" data-notes=""><p class="ed-obj ed-text" id="t" style="position:absolute;left:200px;top:300px;width:1500px;font-size:90px">Olá mundo final</p></section>',
+  ]);
+  await selectWord(page, 0, 15);
+  const bar = page.getByTestId('text-format-bar');
+  await bar.getByRole('button', { name: 'Efeitos avançados' }).click();
+  await page.getByTestId('text-advanced').getByRole('radio', { name: 'Gradiente' }).click();
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  // dentro do trecho com gradiente, "mundo" vira cor sólida
+  await selectWord(page, 4, 9);
+  await bar.getByRole('button', { name: 'Cor do trecho' }).click();
+  await page
+    .getByRole('dialog', { name: 'Seletor de cor' })
+    .getByLabel('Cor #F7D98B')
+    .first()
+    .click();
+  await page.waitForTimeout(300);
+  const fill = await stageEval<string>(
+    page,
+    "var el=[].slice.call(document.querySelectorAll('#t span')).find(function(x){return x.textContent==='mundo'});return getComputedStyle(el).webkitTextFillColor"
+  );
+  expect(fill).toBe('rgb(247, 217, 139)');
+});
+
+test('Inspetor: mesmas fontes, tamanho e efeitos de texto para a caixa toda', async ({ page }) => {
+  await boot(page, [
+    '<section class="slide dark" data-notes=""><p class="ed-obj ed-text" id="t" style="position:absolute;left:200px;top:300px;width:1500px">Olá mundo</p></section>',
+  ]);
+  const t = await box(page, '#t');
+  await page.mouse.click(t.x + 30, t.cy);
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: 'Tipografia' }).click();
+  // tamanho herdado (sem tamanho próprio) sobe de 1 em 1
+  const size = page.getByLabel('Tamanho da fonte');
+  const before = Number(await size.inputValue());
+  expect(before).toBeGreaterThan(10);
+  await page.getByRole('button', { name: 'Aumentar o tamanho' }).click();
+  await expect(size).toHaveValue(String(before + 1));
+  await page.getByRole('button', { name: 'Fonte', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Cormorant Garamond' }).click();
+  await page.getByRole('button', { name: 'Efeitos de texto' }).click();
+  const panel = page.getByTestId('text-advanced');
+  await panel.getByRole('radio', { name: 'Brilho' }).click();
+  await panel.getByRole('button', { name: 'Sombra' }).click();
+  await panel.getByRole('button', { name: 'Neon' }).click();
+  await page.waitForTimeout(500);
+  const html = await savedHtml(page);
+  expect(html).toContain(`font-size: ${before + 1}px`);
+  expect(html).toContain('Cormorant Garamond');
+  expect(html).toMatch(/class="[^"]*mm-shine/);
+  expect(html).toContain('drop-shadow');
+  expect(html).toContain('data-fx=');
+});
+
+test('Clicar no nome do pai seleciona o pai', async ({ page }) => {
+  await boot(page, [
+    `<section class="slide dark" data-notes=""><div class="ed-obj ed-shape" id="pai" data-name="Moldura" style="position:absolute;left:200px;top:200px;width:800px;height:500px;background:#355"><div class="ed-obj ed-shape" id="f" style="position:absolute;left:100px;top:100px;width:200px;height:200px;background:#c55"></div></div></section>`,
+  ]);
+  const f = await box(page, '#f');
+  await page.mouse.click(f.cx, f.cy);
+  await page.waitForTimeout(300);
+  await page.getByTestId('parent-row').getByRole('button', { name: 'Moldura' }).click();
+  await page.waitForTimeout(400);
+  const path = await page.evaluate(async () => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    const imp = (window as unknown as { __imp: (p: string) => Promise<any> }).__imp;
+    const m = await imp('/src/store/deckStore.ts');
+    return m.useDeckStore.getState().selection?.path as number[];
+  });
+  expect(path).toEqual([0, 0]);
+  await expect(page.getByTestId('parent-row')).toContainText('Sem pai');
+});
+
+test('A barra desliza junto com o trecho em vez de pular', async ({ page }) => {
+  await boot(page, [
+    '<section class="slide dark" data-notes=""><p class="ed-obj ed-text" id="t" style="position:absolute;left:600px;top:400px;width:900px;font-size:60px">Olá mundo bonito</p></section>',
+  ]);
+  await selectWord(page, 4, 9);
+  const bar = page.getByTestId('text-format-bar');
+  await expect(bar).toBeVisible();
+  // aproxima (sem animação) e depois volta ao slide com a câmera animada
+  const w = await box(page, '#t');
+  await page.mouse.move(w.cx, w.cy);
+  await page.keyboard.down('Control');
+  await page.mouse.wheel(0, -300);
+  await page.keyboard.up('Control');
+  await page.waitForTimeout(500);
+  // posições amostradas durante um zoom animado: muitas e próximas entre si (sem saltos)
+  const samples = await page.evaluate(async () => {
+    const el = document.querySelector('[data-testid="text-format-bar"]') as HTMLElement;
+    const out: number[] = [];
+    const btn = [...document.querySelectorAll('button')].find(
+      (b) => b.getAttribute('aria-label') === 'Ir para o slide atual'
+    );
+    btn?.click();
+    const t0 = performance.now();
+    while (performance.now() - t0 < 900) {
+      await new Promise((r) => requestAnimationFrame(r));
+      out.push(el.getBoundingClientRect().top);
+    }
+    return out;
+  });
+  const distinct = new Set(samples.map((v) => Math.round(v))).size;
+  const jumps = samples.slice(1).map((v, i) => Math.abs(v - samples[i]!));
+  expect(distinct).toBeGreaterThan(5);
+  expect(Math.max(...jumps)).toBeLessThan(60);
 });

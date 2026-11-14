@@ -31,7 +31,7 @@ interface ColorFieldProps {
   ariaLabel?: string;
   className?: string;
   /** Área que o seletor não deve cobrir (ex.: a barra inteira onde o campo está). */
-  avoid?: () => DOMRect | null | undefined;
+  avoid?: (() => DOMRect | null | undefined) | undefined;
 }
 
 interface EyeDropperLike {

@@ -38,12 +38,20 @@ describe('StyleTab', () => {
     useUIStore.getState().setOpenSection('style', 'typo');
     render(<StyleTab selection={selection} />);
 
-    fireEvent.change(screen.getByLabelText('Tamanho da fonte'), {
-      target: { value: '2' },
-    });
+    const size = screen.getByLabelText('Tamanho da fonte');
+    expect(size).toHaveProperty('value', '1.2');
+    fireEvent.change(size, { target: { value: '2' } });
+    fireEvent.blur(size);
 
     const html = state().deck.slides[0]?.html ?? '';
     expect(html).toContain('font-size: 2rem;');
+  });
+
+  it('o + e o − mudam a fonte em passos pequenos, na unidade dela', () => {
+    useUIStore.getState().setOpenSection('style', 'typo');
+    render(<StyleTab selection={selection} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Aumentar o tamanho' }));
+    expect(state().deck.slides[0]?.html ?? '').toContain('font-size: 1.25rem;');
   });
 
   it('aplica negrito, itálico, sublinhado, família e espaçamentos', () => {
@@ -53,9 +61,8 @@ describe('StyleTab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Negrito' }));
     fireEvent.click(screen.getByRole('button', { name: 'Itálico' }));
     fireEvent.click(screen.getByRole('button', { name: 'Sublinhado' }));
-    fireEvent.change(screen.getByLabelText('Família da fonte'), {
-      target: { value: "Georgia, 'Times New Roman', serif" },
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'Fonte' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Georgia' }));
     fireEvent.change(screen.getByLabelText('Espaço entre linhas'), {
       target: { value: '1.4' },
     });

@@ -6,6 +6,7 @@ import { useUIStore } from '@stores/uiStore';
 import { Link2, Unlink, X } from 'lucide-react';
 
 import { cancelPickParent, pickParent, releaseFromParent } from '../../editor/arrange';
+import { getActiveBridge } from '../../editor/bridgeRef';
 
 import { mutateSelectedElement, readSelectedElement } from './elementSelection';
 
@@ -51,7 +52,15 @@ export function ParentAndMedia({ selection }: { selection: SelectionInfo }) {
         <span className="min-w-0 flex-1 truncate text-payday-textDim">
           {parent ? (
             <>
-              Dentro de <b className="text-payday-text">{describe(parent)}</b>
+              Dentro de{' '}
+              <button
+                type="button"
+                title="Selecionar o pai"
+                onClick={() => getActiveBridge()?.command('parent')}
+                className="font-semibold text-payday-text underline decoration-white/20 underline-offset-2 transition hover:text-accent hover:decoration-accent"
+              >
+                {describe(parent)}
+              </button>
             </>
           ) : (
             'Sem pai (solto no slide)'

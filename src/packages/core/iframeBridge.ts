@@ -49,9 +49,10 @@ export interface TextFormatInfo {
     strike: boolean;
     sup: boolean;
     sub: boolean;
-    gradient: boolean;
-    shine: boolean;
-    reflect: boolean;
+    /** JSON dos efeitos do trecho (`data-fx`), ou null. */
+    fx: string | null;
+    /** JSON do reflexo da caixa (`data-reflect`), ou null. */
+    reflect: string | null;
   };
 }
 

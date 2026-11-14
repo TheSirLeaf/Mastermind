@@ -1527,13 +1527,15 @@
       scaleLabels();
       drawSelection(selected);
       scheduleGhosts();
-      if (editing) scheduleFormat();
+      if (editing) {
+        if (data.animate) followFormat(650);
+        else scheduleFormat();
+      }
       /* durante a animação da câmera o retângulo medido ainda não é o final */
       clearTimeout(viewTimer);
       if (data.animate)
         viewTimer = setTimeout(function () {
           drawSelection(selected);
-          if (editing) reportFormat();
         }, 620);
     } else if (data.type === 'palette') {
       var pa = activeSlide();
@@ -2119,26 +2121,49 @@
         strike: q('strikeThrough'),
         sup: q('superscript'),
         sub: q('subscript'),
-        gradient:
-          /gradient/.test(cs.backgroundImage) &&
-          !/mm-shine/.test(String(styleOwner(r) && styleOwner(r).className)),
-        shine: !!(styleOwner(r) && styleOwner(r).closest('.mm-shine')),
-        reflect: !!editing.style.getPropertyValue('-webkit-box-reflect'),
+        fx: fxOf(styleOwner(r)),
+        reflect:
+          editing.getAttribute('data-reflect') ||
+          (editing.style.getPropertyValue('-webkit-box-reflect') ? '{}' : null),
       },
     });
+  }
+  /* Configuração de efeitos que vale no trecho: o data-fx mais próximo (até a caixa). */
+  function fxOf(el) {
+    while (el && el !== editing.parentElement) {
+      if (el.nodeType === 1 && el.hasAttribute('data-fx')) return el.getAttribute('data-fx');
+      if (el === editing) break;
+      el = el.parentElement;
+    }
+    return null;
   }
   function styleOwner(range) {
     var t = firstTextIn(range);
     return t ? t.parentElement : null;
   }
   function scheduleFormat() {
-    clearTimeout(fmtTimer);
-    fmtTimer = setTimeout(reportFormat, 16);
+    if (fmtTimer) return;
+    fmtTimer = requestAnimationFrame(function () {
+      fmtTimer = null;
+      reportFormat();
+    });
+  }
+  /* Durante a animação da câmera: informa a posição do trecho a cada quadro. */
+  var followUntil = 0;
+  function followFormat(ms) {
+    var running = followUntil > Date.now();
+    followUntil = Date.now() + ms;
+    if (running) return;
+    (function tick() {
+      if (!editing) return;
+      reportFormat();
+      if (Date.now() < followUntil) requestAnimationFrame(tick);
+    })();
   }
 
   /* Aplica estilos (e classes) só ao trecho: cada pedaço de texto ganha (ou reaproveita)
      um <span>. Previsível em qualquer navegador, ao contrário do execCommand("fontSize"). */
-  function styleRange(styles, addClass, removeClass) {
+  function styleRange(styles, addClass, removeClass, attrs, nestedStyles) {
     if (!restoreRange()) return;
     var r = savedRange;
     if (r.collapsed) return;
@@ -2185,10 +2210,18 @@
         t.parentNode.insertBefore(target, t);
         target.appendChild(t);
       }
-      Object.keys(styles || {}).forEach(function (k) {
-        var v = styles[k];
+      /* dentro de outro trecho (ou caixa) com efeito: valores neutros explícitos */
+      var up = target.parentElement;
+      var nested = nestedStyles && up && editing.contains(up) && !!up.closest('[data-fx]');
+      var use = nested ? nestedStyles : styles;
+      Object.keys(use || {}).forEach(function (k) {
+        var v = use[k];
         if (v === null || v === '') target.style.removeProperty(k);
         else target.style.setProperty(k, v);
+      });
+      Object.keys(attrs || {}).forEach(function (k) {
+        if (attrs[k] === null || attrs[k] === undefined) target.removeAttribute(k);
+        else target.setAttribute(k, attrs[k]);
       });
       (removeClass || []).forEach(function (c) {
         target.classList.remove(c);
@@ -2212,7 +2245,8 @@
         next.tagName === 'SPAN' &&
         targets.indexOf(next) >= 0 &&
         next.getAttribute('style') === t.getAttribute('style') &&
-        next.getAttribute('class') === t.getAttribute('class')
+        next.getAttribute('class') === t.getAttribute('class') &&
+        next.getAttribute('data-fx') === t.getAttribute('data-fx')
       ) {
         while (t.firstChild) next.insertBefore(t.firstChild, next.firstChild);
         if (first === t) first = next;
@@ -2231,22 +2265,14 @@
     reportFormat();
   }
 
-  var GRADIENT_OFF = {
-    'background-image': null,
-    '-webkit-background-clip': null,
-    'background-clip': null,
-    '-webkit-text-fill-color': null,
-    'background-size': null,
-  };
-  function merge(a, b) {
-    var o = {};
-    Object.keys(a).forEach(function (k) {
-      o[k] = a[k];
+  /* Remove spans vazios de estilo que sobraram (sem style, classe nem atributos). */
+  function unwrapBare(root) {
+    Array.prototype.slice.call(root.querySelectorAll('span')).forEach(function (sp) {
+      if (sp.attributes.length === 0) {
+        while (sp.firstChild) sp.parentNode.insertBefore(sp.firstChild, sp);
+        sp.remove();
+      }
     });
-    Object.keys(b || {}).forEach(function (k) {
-      o[k] = b[k];
-    });
-    return o;
   }
 
   function runFormat(arg) {
@@ -2254,8 +2280,12 @@
     var cmd = arg.cmd || arg.command || (arg.color ? 'color' : '');
     var v = arg.cmd ? arg.value : arg.color;
     if (cmd === 'reflect') {
-      if (v) editing.style.setProperty('-webkit-box-reflect', String(v));
+      /* reflexo: vale para a caixa de texto toda */
+      var rv = v || {};
+      if (rv.css) editing.style.setProperty('-webkit-box-reflect', String(rv.css));
       else editing.style.removeProperty('-webkit-box-reflect');
+      if (rv.data) editing.setAttribute('data-reflect', rv.data);
+      else editing.removeAttribute('data-reflect');
       drawSelection(editing);
       restoreRange();
       reportFormat();
@@ -2269,24 +2299,16 @@
       styleRange({ 'font-size': Math.max(4, Math.min(600, Math.round(px))) + 'px' });
     } else if (cmd === 'font') {
       styleRange({ 'font-family': v || null });
-    } else if (cmd === 'color') {
-      styleRange(merge(GRADIENT_OFF, { color: v || null }), null, ['mm-shine']);
-    } else if (cmd === 'gradient') {
+    } else if (cmd === 'fx') {
+      /* efeitos (preenchimento, contorno, sombras…): CSS pronto + configuração no data-fx */
+      var fv = v || {};
       styleRange(
-        v
-          ? {
-              'background-image': v,
-              '-webkit-background-clip': 'text',
-              'background-clip': 'text',
-              '-webkit-text-fill-color': 'transparent',
-              'background-size': null,
-            }
-          : GRADIENT_OFF,
-        null,
-        ['mm-shine']
+        fv.css || {},
+        fv.shine ? ['mm-shine'] : null,
+        fv.shine ? null : ['mm-shine'],
+        { 'data-fx': fv.data || null },
+        fv.nested || null
       );
-    } else if (cmd === 'shine') {
-      styleRange(GRADIENT_OFF, v ? ['mm-shine'] : null, v ? null : ['mm-shine']);
     } else if (cmd === 'style') {
       styleRange(v || {});
     } else {
@@ -2294,18 +2316,12 @@
       document.execCommand('styleWithCSS', false, false);
       if (cmd === 'removeFormat') {
         document.execCommand('removeFormat');
-        styleRange(
-          merge(GRADIENT_OFF, {
-            'font-size': null,
-            'font-family': null,
-            color: null,
-            'text-shadow': null,
-            '-webkit-text-stroke': null,
-            'letter-spacing': null,
-          }),
-          null,
-          ['mm-shine']
-        );
+        var clear = { 'font-size': null, 'font-family': null };
+        (arg.props || []).forEach(function (k) {
+          clear[k] = null;
+        });
+        styleRange(clear, null, ['mm-shine'], { 'data-fx': null });
+        unwrapBare(editing);
         return;
       }
       document.execCommand(cmd);

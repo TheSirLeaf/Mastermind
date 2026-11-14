@@ -3,8 +3,18 @@ import { ColorField } from '@components/common/ColorField';
 import type { SelectionInfo } from '@packages/core/types';
 import type { ReactNode } from 'react';
 
+import { applyElementFx, applyElementReflect } from '../../editor/elementFx';
+import { DEFAULT_FILL, parseReflect, parseTextFx } from '../../editor/textFx';
+import { FontPicker, SizeStepper } from '../Text/TextControls';
+import { TextEffectsPanel } from '../Text/TextEffectsPanel';
+
 import { AppearanceSection } from './AppearanceSection';
-import { mutateSelectedElement, readInlineStyle, readSelectedElement } from './elementSelection';
+import {
+  mutateSelectedElement,
+  readInlineStyle,
+  readSelectedElement,
+  stageComputedStyle,
+} from './elementSelection';
 import { InspectorSection } from './InspectorSection';
 
 export function StyleTab({ selection }: { selection: SelectionInfo }) {
@@ -34,6 +44,12 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
   const fontSize = parseLength(current['font-size']);
   const letterSpacing = parseLength(current['letter-spacing'], 'em');
   const fontFamily = current['font-family'] ?? '';
+  const fx = parseTextFx(element.getAttribute('data-fx'));
+  const reflect = parseReflect(element.getAttribute('data-reflect'));
+  // Sem tamanho próprio: o − / + parte do tamanho herdado (classe do slide).
+  const computedSize = Math.round(
+    Number.parseFloat(stageComputedStyle(selection)?.fontSize ?? '') || 40
+  );
   const fontWeight = current['font-weight'] ?? '';
   const bold = fontWeight === 'bold' || Number.parseInt(fontWeight, 10) >= 600;
   const italic = current['font-style'] === 'italic';
@@ -122,42 +138,47 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
           <Field label="Cor">
             <ColorField
               ariaLabel="Cor do texto"
-              value={toHex(current.color) ?? '#ffffff'}
-              onChange={(hex) => setStyle('color', hex)}
+              value={
+                fx.fill?.kind === 'solid' ? fx.fill.color : (toHex(current.color) ?? '#ffffff')
+              }
+              onChange={(hex) =>
+                applyElementFx(selection, {
+                  ...fx,
+                  fill: {
+                    ...(fx.fill ?? structuredClone(DEFAULT_FILL)),
+                    kind: 'solid',
+                    color: hex,
+                  },
+                })
+              }
             />
           </Field>
-          <Field label="Tamanho">
-            <input
-              type="number"
-              aria-label="Tamanho da fonte"
-              className={inputClass}
-              value={fontSize.value}
-              onChange={(event) => setStyle('font-size', `${event.target.value}${fontSize.unit}`)}
-            />
-          </Field>
-          <Field label="Família">
-            <select
-              className={inputClass}
-              aria-label="Família da fonte"
-              value={fontFamily}
-              onChange={(event) => setStyle('font-family', event.target.value)}
-            >
-              <option value="">Padrão do slide</option>
-              <option value="'DM Sans', system-ui, sans-serif">DM Sans</option>
-              <option value="Georgia, 'Times New Roman', serif">Georgia</option>
-              <option value="ui-monospace, 'Cascadia Mono', Consolas, monospace">
-                Monoespaçada
-              </option>
-              {fontFamily &&
-              ![
-                "'DM Sans', system-ui, sans-serif",
-                "Georgia, 'Times New Roman', serif",
-                "ui-monospace, 'Cascadia Mono', Consolas, monospace",
-              ].includes(fontFamily) ? (
-                <option value={fontFamily}>Personalizada</option>
-              ) : null}
-            </select>
-          </Field>
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <Field label="Família">
+              <FontPicker
+                block
+                emptyLabel="Padrão do slide"
+                font={fontFamily}
+                onPick={(value) => setStyle('font-family', value || null)}
+              />
+            </Field>
+            <Field label="Tamanho">
+              <div className="w-[104px]">
+                <SizeStepper
+                  label="Tamanho da fonte"
+                  size={fontSize.value || computedSize}
+                  onSet={(px) => setStyle('font-size', `${px}${fontSize.unit}`)}
+                  onStep={(delta) => {
+                    // px e %: de 1 em 1; em/rem: de 0,05 em 0,05.
+                    const unitStep = /^r?em$/.test(fontSize.unit) ? 0.05 : 1;
+                    const base = fontSize.value || computedSize;
+                    const next = Math.round((base + delta * unitStep) * 1000) / 1000;
+                    setStyle('font-size', `${Math.max(unitStep, next)}${fontSize.unit}`);
+                  }}
+                />
+              </div>
+            </Field>
+          </div>
           <div className="flex items-center gap-1">
             <FormatButton
               label="Negrito"
@@ -206,6 +227,21 @@ export function StyleTab({ selection }: { selection: SelectionInfo }) {
             </Field>
           </div>
         </div>
+      </InspectorSection>
+      <InspectorSection
+        id="textfx"
+        group="style"
+        title="Efeitos de texto"
+        icon={
+          <Icon path="M12 3l1.9 5.8L20 10l-5 3.6L16.5 20 12 16.4 7.5 20 9 13.6 4 10l6.1-1.2z" />
+        }
+      >
+        <TextEffectsPanel
+          fx={fx}
+          onFx={(next) => applyElementFx(selection, next)}
+          reflect={reflect}
+          onReflect={(next) => applyElementReflect(selection, next)}
+        />
       </InspectorSection>
       <AppearanceSection selection={selection} />
     </div>

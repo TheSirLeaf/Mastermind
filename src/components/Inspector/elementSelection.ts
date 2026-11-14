@@ -70,3 +70,19 @@ export function readInlineStyle(element: Element | null): Record<string, string>
   }
   return output;
 }
+
+/** Estilo calculado do elemento selecionado, lido no palco (para valores herdados da classe). */
+export function stageComputedStyle(selection: SelectionInfo): CSSStyleDeclaration | null {
+  const frame = document.querySelector<HTMLIFrameElement>('iframe[title="Palco da apresentação"]');
+  const doc = frame?.contentDocument;
+  const index = slideIndexFromSelection(selection);
+  if (!doc || index === null) return null;
+  const slides = Array.from(doc.querySelectorAll('#deck > .slide'));
+  let node: Element | null = slides[index] ?? null;
+  for (const part of selection.path.slice(1)) {
+    if (typeof part !== 'number' || !node) return null;
+    // A camada da base (.mm-bgl) não conta nos índices do editor.
+    node = Array.from(node.children).filter((c) => !c.classList.contains('mm-bgl'))[part] ?? null;
+  }
+  return node && frame?.contentWindow ? frame.contentWindow.getComputedStyle(node) : null;
+}
