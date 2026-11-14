@@ -159,6 +159,53 @@ export async function insertImageFile(file: File): Promise<boolean> {
   }
 }
 
+/** Tamanho máximo de vídeo embutido no arquivo da apresentação. */
+export const MAX_VIDEO_BYTES = 40 * 1024 * 1024;
+
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+/** Insere um vídeo do computador (fica dentro do arquivo da apresentação). */
+export async function insertVideoFile(file: File): Promise<boolean> {
+  const { showToast } = useUIStore.getState();
+  if (!file.type.startsWith('video/')) {
+    showToast('Selecione um arquivo de vídeo.', 'error');
+    return false;
+  }
+  if (file.size > MAX_VIDEO_BYTES) {
+    showToast('Vídeo grande demais (máx. 40 MB). Use “Vídeo por link”.', 'error');
+    return false;
+  }
+  try {
+    const src = await readAsDataUrl(file);
+    const result = insertElement('video', { src, width: 900 });
+    if (result) showToast('Vídeo inserido no slide', 'success');
+    return result !== null;
+  } catch {
+    showToast('Não foi possível ler o vídeo.', 'error');
+    return false;
+  }
+}
+
+/** Insere um vídeo por endereço (arquivo .mp4/.webm na internet). */
+export function insertVideoUrl(url: string): boolean {
+  const { showToast } = useUIStore.getState();
+  const clean = url.trim();
+  if (!/^https?:\/\//i.test(clean)) {
+    showToast('Informe um endereço que comece com http:// ou https://', 'error');
+    return false;
+  }
+  const result = insertElement('video', { src: clean, width: 900 });
+  if (result) showToast('Vídeo inserido no slide', 'success');
+  return result !== null;
+}
+
 /** Abre um `.html` de apresentação (editor original, exportado ou deste editor). */
 export async function openDeckFile(file: File): Promise<boolean> {
   const { showToast } = useUIStore.getState();

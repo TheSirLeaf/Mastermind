@@ -1,8 +1,12 @@
 // Lista de slides base (fundos) abaixo da lista de slides.
 import { baseName, baseOwnId, slidesUsingBase } from '@packages/core/bases';
 import { useDeckStore } from '@store/deckStore';
+import { useUIStore } from '@stores/uiStore';
 import { clsx } from 'clsx';
 import { Copy, Plus, Trash2 } from 'lucide-react';
+import type { PointerEvent } from 'react';
+
+import { baseListMenu } from '../../editor/contextMenus';
 
 export function BaseList() {
   const deck = useDeckStore((state) => state.deck);
@@ -13,9 +17,41 @@ export function BaseList() {
   const addBase = useDeckStore((state) => state.addBase);
   const bases = deck.bases ?? [];
   const offset = deck.slides.length;
+  const height = useUIStore((state) => state.basesPanelHeight);
+
+  // Arrastar a borda de cima muda a altura da lista (ela rola por dentro).
+  const startResize = (event: PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const startY = event.clientY;
+    const startH = height;
+    const max = Math.max(120, window.innerHeight * 0.6);
+    const onMove = (e: globalThis.PointerEvent) => {
+      useUIStore.getState().setBasesPanelHeight(Math.min(max, startH + (startY - e.clientY)));
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      document.body.style.cursor = '';
+    };
+    document.body.style.cursor = 'row-resize';
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
 
   return (
-    <div className="border-t border-white/10 px-2 pb-2 pt-1.5">
+    <div
+      data-testid="bases-panel"
+      className="relative flex shrink-0 flex-col border-t border-white/10 px-2 pb-2 pt-1.5"
+      style={{ height }}
+    >
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Redimensionar a lista de slides base"
+        title="Arraste para mudar a altura"
+        onPointerDown={startResize}
+        className="absolute inset-x-0 -top-1 h-2 cursor-row-resize hover:bg-accent/30"
+      />
       <div className="flex items-center justify-between px-1 py-1 text-[10px] uppercase tracking-[0.2em] text-payday-textDim">
         <span>Slides base ({bases.length})</span>
         <button
@@ -28,7 +64,7 @@ export function BaseList() {
           <Plus className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="space-y-1">
+      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto" data-testid="bases-list">
         {bases.map((base, k) => {
           const id = baseOwnId(base.html) ?? '';
           const uses = slidesUsingBase(deck, id).length;
@@ -39,6 +75,13 @@ export function BaseList() {
               role="button"
               tabIndex={0}
               onClick={() => selectSlide(offset + k)}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                selectSlide(offset + k);
+                useUIStore
+                  .getState()
+                  .openContextMenu(event.clientX, event.clientY, baseListMenu(offset + k));
+              }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') selectSlide(offset + k);
               }}

@@ -1,4 +1,5 @@
 // components/Layout/Layout.tsx
+import { ContextMenu } from '@components/common/ContextMenu';
 import { Toast } from '@components/common/Toast';
 import { WelcomeModal } from '@components/common/WelcomeModal';
 import { Inspector } from '@components/Inspector/Inspector';
@@ -82,6 +83,7 @@ export function Layout() {
       <PackageManagerModal />
       <NewSlideModal />
       <PresentationPrefsModal />
+      <ContextMenu />
       <SettingsModal />
       {toast && <Toast message={toast.message} type={toast.type} onDismiss={hideToast} />}
     </div>

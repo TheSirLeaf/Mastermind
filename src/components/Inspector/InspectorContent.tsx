@@ -6,13 +6,13 @@ import type { InspectorTab, Workspace } from '@stores/uiStore';
 import { RenameLabel } from '../common/RenameLabel';
 
 import { AnimationTab } from './AnimationTab';
-import { BaseFxButtons } from './BaseBlocks';
 import { ContentTab } from './ContentTab';
 import { CounterSection } from './CounterSection';
 import { ElementActions } from './ElementActions';
 import { readSelectedElement } from './elementSelection';
 import { EmptyState } from './EmptyState';
 import { PackageTab } from './PackageTab';
+import { ParentAndMedia } from './ParentAndMedia';
 import { SlideTab } from './SlideTab';
 import { StyleTab } from './StyleTab';
 
@@ -27,7 +27,6 @@ export function InspectorContent({
   selection,
   workspace = 'editor',
 }: InspectorContentProps) {
-  const isBase = useDeckStore((state) => state.currentIndex >= state.deck.slides.length);
   // Reage às mudanças do slide para o nome renomeado aparecer na hora.
   useDeckStore((state) => state.deck);
   const shownName =
@@ -50,14 +49,6 @@ export function InspectorContent({
     return (
       <>
         <EmptyState message="Clique em um elemento do slide para selecioná-lo" icon="layout" />
-        {isBase ? (
-          <div className="px-4 pb-4">
-            <div className="mb-2 text-[10px] uppercase tracking-widest text-sky-400">
-              Slide base — adicionar ao fundo
-            </div>
-            <BaseFxButtons />
-          </div>
-        ) : null}
       </>
     );
   }
@@ -83,7 +74,12 @@ export function InspectorContent({
         <ElementActions />
       </div>
 
-      {activeTab === 'style' && <StyleTab selection={selection} />}
+      {activeTab === 'style' && (
+        <>
+          <ParentAndMedia selection={selection} />
+          <StyleTab selection={selection} />
+        </>
+      )}
       {activeTab === 'content' && <ContentTab selection={selection} />}
       {activeTab === 'animation' && (
         <>

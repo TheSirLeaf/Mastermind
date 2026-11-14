@@ -4,6 +4,8 @@ export interface StageViewHandlers {
   wheel: (deltaY: number, x: number, y: number) => void;
   /** Deslocamento do botão do meio, em px da tela. */
   pan: (dx: number, dy: number) => void;
+  /** Enquadra um slide (ou todos, com `null`). */
+  frame?: (index: number | null) => void;
 }
 
 let handlers: StageViewHandlers | null = null;

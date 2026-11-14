@@ -21,17 +21,26 @@ export const BASE_ELEMENT_LABELS: Array<[BaseElementKind, string]> = (
   Object.keys(ELEMENTS) as BaseElementKind[]
 ).map((kind) => [kind, ELEMENTS[kind].label]);
 
-/** Insere marca d'água, luz ou contador no slide base atual e o seleciona. */
+/** Insere marca d'água, luz ou contador no slide atual (comum ou base) e o seleciona. */
 export function insertBaseElement(kind: BaseElementKind): boolean {
   const state = useDeckStore.getState();
   const index = state.currentIndex;
   const item = itemAt(state.deck, index);
-  if (!item || index < state.deck.slides.length) return false;
+  if (!item) return false;
   const doc = new DOMParser().parseFromString(item.html, 'text/html');
   const section = doc.body.firstElementChild;
   if (!section) return false;
   const holder = doc.createElement('div');
-  holder.innerHTML = ELEMENTS[kind].html;
+  // Num slide comum o contador já sai com o número certo (nas bases ele é preenchido por slide).
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const isBase = index >= state.deck.slides.length;
+  holder.innerHTML =
+    kind === 'counter' && !isBase
+      ? ELEMENTS[kind].html.replace(
+          '00 <span>/ 00</span>',
+          `${pad(index + 1)} <span>/ ${pad(state.deck.slides.length)}</span>`
+        )
+      : ELEMENTS[kind].html;
   const element = holder.firstElementChild;
   if (!element) return false;
   section.appendChild(element);

@@ -25,6 +25,12 @@ export interface BridgeEvents {
   onPalette?: (colors: string[]) => void;
   /** O elemento em pose de keyframe foi arrastado/empurrado: nova posição (X/Y) do keyframe. */
   onPoseEdit?: (pose: KeyframePose) => void;
+  /** Botão direito no palco (coordenadas dentro do iframe). */
+  onContext?: (context: StageContext) => void;
+  /** Elemento mudou de camada: posição (1 = fundo) entre os irmãos. */
+  onLayer?: (index: number, total: number) => void;
+  onPicking?: (on: boolean) => void;
+  onNotice?: (text: string) => void;
   onElementMoved?: (index: number, path: number[]) => void;
 }
 
@@ -36,6 +42,17 @@ export interface KeyframePose {
   s: number;
   r: number;
   o: number;
+}
+
+/** O que estava sob o botão direito no palco. */
+export interface StageContext {
+  x: number;
+  y: number;
+  kind: 'element' | 'slide' | 'canvas';
+  index: number | null;
+  text: boolean;
+  nested: boolean;
+  locked: boolean;
 }
 
 export type StageMode = 'edit' | 'arrange';
@@ -61,6 +78,12 @@ export const BRIDGE_COMMANDS = [
   'copy',
   'paste',
   'format',
+  'forward',
+  'backward',
+  'align',
+  'set-parent',
+  'unparent',
+  'cancel-pick',
 ] as const;
 
 export type BridgeCommand = (typeof BRIDGE_COMMANDS)[number];
@@ -79,7 +102,11 @@ type DeckMessage =
   | { __mm: 'deck'; type: 'slide-open'; index: number }
   | { __mm: 'deck'; type: 'element-moved'; index: number; path: number[] }
   | { __mm: 'deck'; type: 'palette'; colors: string[] }
-  | { __mm: 'deck'; type: 'pose-edit'; pose: KeyframePose };
+  | { __mm: 'deck'; type: 'pose-edit'; pose: KeyframePose }
+  | ({ __mm: 'deck'; type: 'context' } & StageContext)
+  | { __mm: 'deck'; type: 'layer'; index: number; total: number }
+  | { __mm: 'deck'; type: 'picking'; on: boolean }
+  | { __mm: 'deck'; type: 'notice'; text: string };
 
 /**
  * Ponte com o iframe do palco.
@@ -161,6 +188,18 @@ export class IframeBridge {
         break;
       case 'slide-open':
         this.events.onSlideOpen?.(data.index);
+        break;
+      case 'context':
+        this.events.onContext?.(data);
+        break;
+      case 'layer':
+        this.events.onLayer?.(data.index, data.total);
+        break;
+      case 'picking':
+        this.events.onPicking?.(data.on);
+        break;
+      case 'notice':
+        this.events.onNotice?.(data.text);
         break;
       case 'pose-edit':
         this.events.onPoseEdit?.(data.pose);

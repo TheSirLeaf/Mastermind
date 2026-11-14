@@ -84,8 +84,9 @@ export function renumberFooters(slides: Slide[]): Slide[] {
   const pad = (n: number) => String(n).padStart(2, '0');
   return slides.map((slide, index) => {
     const html = slide.html.replace(
-      /<div class="foot-r">[^<]*(?:<span>[^<]*<\/span>)?<\/div>/,
-      `<div class="foot-r">${pad(index + 1)} <span>/ ${pad(slides.length)}</span></div>`
+      /<div class="foot-r([^"]*)"([^>]*)>[^<]*(?:<span>[^<]*<\/span>)?<\/div>/g,
+      (_m, cls: string, attrs: string) =>
+        `<div class="foot-r${cls}"${attrs}>${pad(index + 1)} <span>/ ${pad(slides.length)}</span></div>`
     );
     return { id: slide.id, html };
   });

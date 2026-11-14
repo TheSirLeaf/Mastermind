@@ -1,7 +1,7 @@
 {
   "name": "mastermind",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "description": "Editor de apresentações Mastermind — substituto React do editor monolítico Dialcron",
   "scripts": {

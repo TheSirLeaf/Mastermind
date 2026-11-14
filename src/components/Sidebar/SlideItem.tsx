@@ -2,8 +2,11 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Slide } from '@packages/core/types';
+import { useUIStore } from '@stores/uiStore';
 import { clsx } from 'clsx';
 import { Copy, Trash2 } from 'lucide-react';
+
+import { slideListMenu } from '../../editor/contextMenus';
 
 interface SlideItemProps {
   slide: Slide;
@@ -53,6 +56,11 @@ export function SlideItem({
         isActive ? 'bg-accent/15 text-payday-text' : 'text-payday-textMuted'
       )}
       onClick={onSelect}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        onSelect();
+        useUIStore.getState().openContextMenu(event.clientX, event.clientY, slideListMenu(index));
+      }}
       {...attributes}
       {...listeners}
     >

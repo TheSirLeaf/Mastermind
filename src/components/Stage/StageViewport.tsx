@@ -4,10 +4,12 @@
 // scroll dá zoom e o botão do meio move. Na aba Slide os slides podem ser movidos e redimensionados.
 import { slideLayout, SLIDE_GAP, SLIDE_H, SLIDE_W } from '@packages/core/deck';
 import { useDeckStore } from '@store/deckStore';
+import { useUIStore } from '@stores/uiStore';
 import { clsx } from 'clsx';
 import { Maximize2, ScanSearch } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react';
 
+import { cancelPickParent } from '../../editor/arrange';
 import { getActiveBridge } from '../../editor/bridgeRef';
 import { consumeCanvasClick, setStageViewHandlers } from '../../editor/stageView';
 import { Tooltip } from '../common/Tooltip';
@@ -38,6 +40,7 @@ export function StageViewport({ highlighted, arrange = false }: StageViewportPro
   cvRef.current = cv;
   const panRef = useRef<{ x: number; y: number } | null>(null);
   const currentIndex = useDeckStore((state) => state.currentIndex);
+  const picking = useUIStore((state) => state.pickingParent);
   const slides = useDeckStore((state) => state.deck.slides);
   const bases = useDeckStore((state) => state.deck.bases);
   const slidesRef = useRef(slides);
@@ -162,9 +165,10 @@ export function StageViewport({ highlighted, arrange = false }: StageViewportPro
     setStageViewHandlers({
       wheel: (deltaY, x, y) => zoomAt(Math.exp(-deltaY * 0.0015), x, y),
       pan: panBy,
+      frame: (index) => frame(index, true),
     });
     return () => setStageViewHandlers(null);
-  }, [zoomAt, panBy]);
+  }, [zoomAt, panBy, frame]);
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 1) return;
@@ -200,6 +204,21 @@ export function StageViewport({ highlighted, arrange = false }: StageViewportPro
       >
         <Stage />
       </div>
+
+      {picking ? (
+        <div className="absolute left-1/2 top-3 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-accent/50 bg-payday-surface/95 px-4 py-1.5 text-xs text-payday-text shadow-xl">
+          <span>
+            Clique no elemento que vai ser o <b className="text-accent">pai</b> do selecionado
+          </span>
+          <button
+            type="button"
+            onClick={cancelPickParent}
+            className="rounded-full border border-payday-border px-2 py-0.5 text-[11px] text-payday-textMuted hover:text-accent"
+          >
+            Cancelar (Esc)
+          </button>
+        </div>
+      ) : null}
 
       <div className="absolute bottom-2 right-3 flex items-center gap-1 rounded-md border border-white/10 bg-payday-surface/90 px-1.5 py-1 text-[11px] text-payday-textMuted">
         <span className="w-9 text-right tabular-nums">{Math.round(cv.zoom * 100)}%</span>

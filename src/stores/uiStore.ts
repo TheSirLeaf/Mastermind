@@ -1,8 +1,18 @@
 // stores/uiStore.ts
+import type { LucideIcon } from 'lucide-react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 
 export type InspectorTab = 'style' | 'content' | 'package' | 'animation' | 'slide';
+
+export interface ContextMenuItem {
+  label: string;
+  icon?: LucideIcon;
+  shortcut?: string;
+  disabled?: boolean;
+  danger?: boolean;
+  onSelect: () => void;
+}
 
 export type Workspace = 'editor' | 'animation' | 'slide' | 'integration' | 'presentation';
 
@@ -27,6 +37,16 @@ interface UIState {
   activeKeyframe: { path: number[]; index: number } | null;
   setActiveKeyframe: (value: { path: number[]; index: number } | null) => void;
   isPrefsOpen: boolean;
+  /** Menu de contexto aberto (posição na tela e itens). */
+  contextMenu: { x: number; y: number; items: Array<ContextMenuItem | 'separator'> } | null;
+  openContextMenu: (x: number, y: number, items: Array<ContextMenuItem | 'separator'>) => void;
+  closeContextMenu: () => void;
+  /** O palco espera o clique que escolhe o pai do elemento selecionado. */
+  pickingParent: boolean;
+  setPickingParent: (on: boolean) => void;
+  /** Altura da lista de slides base na barra da esquerda (px). */
+  basesPanelHeight: number;
+  setBasesPanelHeight: (px: number) => void;
   setPrefsOpen: (open: boolean) => void;
   /** Cores mais comuns do slide ativo (aba Slides). */
   slidePalette: string[];
@@ -111,6 +131,15 @@ function writeWelcomePref(show: boolean): void {
   }
 }
 
+function readBasesHeight(): number {
+  try {
+    const n = Number(localStorage.getItem('mm-bases-height'));
+    return Number.isFinite(n) && n >= 70 ? n : 150;
+  } catch {
+    return 150;
+  }
+}
+
 export const useUIStore = create<UIState>()(
   immer((set) => ({
     workspace: 'editor',
@@ -127,6 +156,21 @@ export const useUIStore = create<UIState>()(
     activeKeyframe: null,
     setActiveKeyframe: (value) => set({ activeKeyframe: value }),
     isPrefsOpen: false,
+    contextMenu: null,
+    openContextMenu: (x, y, items) => set({ contextMenu: { x, y, items } }),
+    closeContextMenu: () => set({ contextMenu: null }),
+    pickingParent: false,
+    setPickingParent: (on) => set({ pickingParent: on }),
+    basesPanelHeight: readBasesHeight(),
+    setBasesPanelHeight: (px) => {
+      const value = Math.round(Math.max(70, Math.min(800, px)));
+      try {
+        localStorage.setItem('mm-bases-height', String(value));
+      } catch {
+        // sem armazenamento: só não lembra
+      }
+      set({ basesPanelHeight: value });
+    },
     setPrefsOpen: (open) => set({ isPrefsOpen: open }),
     slidePalette: [],
     setSlidePalette: (colors) => set({ slidePalette: colors }),

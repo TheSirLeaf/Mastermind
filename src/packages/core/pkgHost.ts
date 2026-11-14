@@ -148,11 +148,27 @@ export const PKG_HOST_SRC = `(function(){
     };
   }
 
+  /* Vídeos: só os do slide atual tocam (do começo, se forem automáticos); os outros param. */
+  function syncVideos(slide) {
+    [].slice.call(document.querySelectorAll('video')).forEach(function (v) {
+      if (slide && slide.contains(v)) {
+        if (v.hasAttribute('autoplay')) {
+          try { v.currentTime = 0; } catch (e) {}
+          var p = v.play();
+          if (p && p.catch) p.catch(function () {});
+        }
+      } else if (!v.paused) {
+        v.pause();
+      }
+    });
+  }
+
   function animate(slide) {
     if (!slide) return;
     if (current) current.final();
     current = mountSlide(slide);
     current.play();
+    syncVideos(slide);
   }
 
   window.__anim = animate;

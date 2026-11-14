@@ -1,6 +1,6 @@
 import { itemAt, useDeckStore } from '@store/deckStore';
 
-export type InsertableElement = 'text' | 'image' | 'rect' | 'ellipse' | 'line';
+export type InsertableElement = 'text' | 'image' | 'video' | 'rect' | 'ellipse' | 'line';
 
 export interface InsertElementOptions {
   /** Data URL ou URL da imagem (obrigatório para `image`). */
@@ -17,6 +17,7 @@ export interface InsertElementResult {
 const LABELS: Record<InsertableElement, string> = {
   text: 'Texto',
   image: 'Imagem',
+  video: 'Vídeo',
   rect: 'Retângulo',
   ellipse: 'Elipse',
   line: 'Linha',
@@ -46,7 +47,22 @@ export function insertElement(
   const top = 400 + offset;
 
   let element: Element;
-  if (kind === 'image') {
+  if (kind === 'video') {
+    if (!options.src) return null;
+    const video = doc.createElement('video');
+    video.setAttribute('src', options.src);
+    video.setAttribute('class', 'ed-obj ed-video');
+    // Toca sozinho, sem som e em loop por padrão (dá para mudar no inspetor).
+    video.setAttribute('autoplay', '');
+    video.setAttribute('muted', '');
+    video.setAttribute('loop', '');
+    video.setAttribute('playsinline', '');
+    video.setAttribute(
+      'style',
+      `position:absolute;left:${left}px;top:${top}px;width:${Math.round(options.width ?? 720)}px;height:auto;z-index:3;object-fit:contain`
+    );
+    element = video;
+  } else if (kind === 'image') {
     if (!options.src) return null;
     const img = doc.createElement('img');
     img.setAttribute('src', options.src);

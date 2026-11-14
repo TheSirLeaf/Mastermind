@@ -15,6 +15,7 @@ import { useRef, useEffect, useState } from 'react';
 
 import { handleDroppedFile } from '../../editor/actions';
 import { setActiveBridge } from '../../editor/bridgeRef';
+import { canvasMenu, elementMenu, slideMenu } from '../../editor/contextMenus';
 import { handleBridgeKey } from '../../editor/shortcuts';
 import { getStageViewHandlers, markCanvasClick } from '../../editor/stageView';
 
@@ -98,6 +99,22 @@ export function Stage() {
           );
       },
       onPalette: (colors) => useUIStore.getState().setSlidePalette(colors),
+      onContext: (ctx) => {
+        const rect = iframeRef.current?.getBoundingClientRect();
+        const x = (rect?.left ?? 0) + ctx.x;
+        const y = (rect?.top ?? 0) + ctx.y;
+        const items =
+          ctx.kind === 'element'
+            ? elementMenu(ctx)
+            : ctx.kind === 'slide' && ctx.index !== null
+              ? slideMenu(ctx.index)
+              : canvasMenu();
+        useUIStore.getState().openContextMenu(x, y, items);
+      },
+      onLayer: (index, total) =>
+        useUIStore.getState().showToast(`Camada ${index} de ${total}`, 'info'),
+      onPicking: (on) => useUIStore.getState().setPickingParent(on),
+      onNotice: (text) => useUIStore.getState().showToast(text, 'error'),
       onPan: (dx, dy) => getStageViewHandlers()?.pan(dx, dy),
     });
     bridgeRef.current = bridge;

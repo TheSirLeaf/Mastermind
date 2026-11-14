@@ -64,7 +64,8 @@
     'html,body,#stage{background:#17171b!important}',
     '#mm-grid{position:absolute;left:-200000px;top:-200000px;width:400000px;height:400000px;z-index:0;pointer-events:none}',
     /* elementos podem ser arrastados para fora do slide (grid); a apresentação continua cortando */
-    'body.mm-canvas:not(.mm-preview) .slide{overflow:visible!important}',
+    /* o que sai do slide é cortado (como na apresentação); só no arrasto aparece inteiro */
+    'body.mm-lift #deck>.slide.active{overflow:visible!important}',
     'body.mm-canvas:not(.mm-preview) .slide.light::before{clip-path:inset(300px 260px 0 0)}',
     'body.mm-canvas:not(.mm-preview) .slide::after{clip-path:inset(0 70px 110px 0)}',
     'body.mm-lift #deck>.slide.active{z-index:2000000!important}',
@@ -103,6 +104,18 @@
       INK +
       ';font:600 12px "Segoe UI",system-ui,sans-serif;white-space:nowrap;pointer-events:none}',
     'body.mm-dragging,body.mm-dragging *{cursor:grabbing!important}',
+    '#mm-ghosts,#mm-guides{position:absolute;left:0;top:0;width:0;height:0;z-index:2999990;pointer-events:none}',
+    '.mm-ghost{position:absolute;box-sizing:border-box;border-style:dashed;border-color:rgba(247,217,139,.55);border-radius:2px;pointer-events:none}',
+    '.mm-ghost-off{pointer-events:auto;cursor:pointer;background:rgba(247,217,139,.06)}',
+    'body.mm-preview #mm-ghosts,body.mm-arrange #mm-ghosts{display:none}',
+    '.mm-guide{position:absolute;background:#ff3d8b;box-shadow:0 0 0 .5px rgba(255,61,139,.4)}',
+    'body.mm-picking .slide.active *{cursor:crosshair!important}',
+    '#mm-fmt{position:fixed;z-index:2147483000;display:none;align-items:center;gap:2px;padding:4px;border-radius:10px;background:#1b1b20;border:1px solid rgba(247,217,139,.35);box-shadow:0 10px 30px rgba(0,0,0,.5);font:600 13px "Segoe UI",system-ui,sans-serif;-webkit-user-select:none;user-select:none}',
+    '#mm-fmt button{min-width:26px;height:26px;border:0;border-radius:6px;background:transparent;color:#eee;cursor:pointer;font:inherit}',
+    '#mm-fmt button:hover{background:rgba(255,255,255,.12);color:#F7D98B}',
+    '#mm-fmt .mm-fmt-sw{min-width:16px;width:16px;height:16px;border-radius:4px;border:1px solid rgba(255,255,255,.35);margin:0 1px}',
+    '#mm-fmt .mm-fmt-size{width:52px;height:24px;border-radius:6px;border:1px solid rgba(255,255,255,.2);background:#111;color:#eee;padding:0 4px;font:inherit}',
+    '#mm-fmt .mm-fmt-color{width:26px;height:24px;padding:0;border:0;background:transparent;cursor:pointer}',
   ].join('\n');
   document.head.appendChild(style);
 
@@ -302,6 +315,7 @@
       p: 'Parágrafo',
       li: 'Item',
       img: 'Imagem',
+      video: 'Vídeo',
       svg: 'Gráfico/ícone',
       div: 'Caixa',
       span: 'Texto',
@@ -318,7 +332,7 @@
     return names[t] || t;
   }
   function isMedia(el) {
-    return /^(img|svg)$/i.test(el.tagName);
+    return /^(img|svg|video)$/i.test(el.tagName);
   }
   function pkgRoot(el, slide) {
     for (var a = el; a && a !== slide; a = a.parentElement) {
@@ -387,6 +401,7 @@
     var idx = slideList().indexOf(s);
     if (idx < 0) return;
     post({ type: 'slide-html', index: idx, html: serialize(s), key: key || '' });
+    scheduleGhosts();
   }
 
   /* ---------- seleção ---------- */
@@ -582,6 +597,8 @@
     if (!editing) return;
     var el = editing;
     editing = null;
+    fmt.style.display = 'none';
+    savedRange = null;
     el.removeAttribute('contenteditable');
     el.removeAttribute('data-mm-editing');
     el.removeAttribute('spellcheck');
@@ -634,24 +651,6 @@
   }
   function ensurePos(el) {
     if (window.getComputedStyle(el).position === 'static') el.style.position = 'relative';
-  }
-  function zFront() {
-    if (!selected) return;
-    var s = slideOf(selected);
-    var m = 3;
-    Array.prototype.forEach.call(s.querySelectorAll('*'), function (x) {
-      var z = parseInt(x.style && x.style.zIndex, 10);
-      if (!isNaN(z) && z > m) m = z;
-    });
-    ensurePos(selected);
-    selected.style.zIndex = String(m + 1);
-    commit('');
-  }
-  function zBack() {
-    if (!selected) return;
-    ensurePos(selected);
-    selected.style.zIndex = '-1';
-    commit('');
   }
   function resetPos() {
     if (!selected) return;
@@ -815,6 +814,7 @@
     function (e) {
       /* impede seleção nativa e foco; o texto em edição mantém o comportamento normal */
       if (editing && editing.contains(e.target)) return;
+      if (e.target === sizeBox || e.target === colorBox) return;
       e.preventDefault();
     },
     true
@@ -906,6 +906,20 @@
         capture(e);
         return;
       }
+      if (pickingParent) {
+        e.preventDefault();
+        var cand = deck.contains(t) ? pick(t) : null;
+        finishPickParent(cand);
+        return;
+      }
+      var gh = t.closest ? t.closest('.mm-ghost-off') : null;
+      if (gh && gh.__el) {
+        if (editing) endEdit(true);
+        select(gh.__el);
+        if (isLocked(gh.__el)) return;
+        startMove(gh.__el, e);
+        return;
+      }
       if (!deck.contains(t)) return;
       if (editing) endEdit(true);
       var clicked = slideOf(t);
@@ -918,19 +932,32 @@
       var el = pick(t);
       select(el);
       if (!el || isLocked(el)) return;
-      drag = {
-        mode: 'move',
-        el: el,
-        sx: e.clientX,
-        sy: e.clientY,
-        base: getTrans(el),
-        on: false,
-        id: e.pointerId,
-      };
-      capture(e);
+      startMove(el, e);
     },
     true
   );
+  function startMove(el, e) {
+    drag = {
+      mode: 'move',
+      el: el,
+      sx: e.clientX,
+      sy: e.clientY,
+      base: getTrans(el),
+      on: false,
+      id: e.pointerId,
+      alt: e.altKey,
+    };
+    capture(e);
+  }
+  /* dados para o alinhamento, calculados uma vez no começo do arrasto */
+  function prepareSnap(d) {
+    var s = slideOf(d.el);
+    if (!s) return;
+    d.slide = s;
+    d.ls = layoutOf(s, slideIndexOf(s)).s;
+    d.r0 = localRect(d.el, s, d.ls);
+    d.snap = snapTargets(d.el, s, d.ls);
+  }
   function capture(e) {
     try {
       document.documentElement.setPointerCapture(e.pointerId);
@@ -948,15 +975,35 @@
         if (Math.hypot(dx, dy) < 4) return;
         drag.on = true;
         document.body.classList.add('mm-dragging');
-        if (drag.mode === 'move') document.body.classList.add('mm-lift');
+        ghosts.innerHTML = '';
+        if (drag.mode === 'move') {
+          document.body.classList.add('mm-lift');
+          /* Alt + arrastar: deixa uma cópia no lugar e leva o original */
+          if (drag.alt && isSlideChild(drag.el)) {
+            var copy = drag.el.cloneNode(true);
+            copy.removeAttribute('id');
+            drag.el.before(copy);
+          }
+        }
+        prepareSnap(drag);
       }
       var es = scale * esOf(drag.el);
       var ax = dx / es;
       var ay = dy / es;
       if (drag.mode === 'move') {
         if (e.shiftKey) {
-          if (Math.abs(ax) > Math.abs(ay)) ay = 0;
-          else ax = 0;
+          if (Math.abs(ax) > Math.abs(ay)) {
+            ay = 0;
+            drag.lock = 'x';
+          } else {
+            ax = 0;
+            drag.lock = 'y';
+          }
+        }
+        if (drag.r0) {
+          var sn = snapMove(drag, ax, ay, e);
+          ax = sn.ax;
+          ay = sn.ay;
         }
         setTrans(drag.el, drag.base.x + ax, drag.base.y + ay);
       } else {
@@ -964,6 +1011,11 @@
         var w = drag.w0 + ax;
         var h = drag.h0 + ay;
         var keep = isMedia(el) && !e.shiftKey && drag.h === 'se';
+        if (drag.r0 && !keep) {
+          var sr2 = snapResize(drag, w, h, e);
+          w = sr2.w;
+          h = sr2.h;
+        }
         if (drag.h !== 's') {
           w = Math.max(16, w);
           el.style.width = Math.round(w) + 'px';
@@ -1103,6 +1155,8 @@
       /* ignore */
     }
     document.body.classList.remove('mm-lift');
+    clearGuides();
+    scheduleGhosts();
     if (d.on && d.mode === 'move' && e && e.type === 'pointerup' && dropIntoOtherSlide(d.el, e)) {
       return;
     }
@@ -1128,6 +1182,7 @@
     'click',
     function (e) {
       if (editing && editing.contains(e.target)) return;
+      if (fmt.contains(e.target)) return;
       e.preventDefault();
       e.stopPropagation();
     },
@@ -1141,6 +1196,8 @@
       /* com pointer capture o alvo do evento é o <html>; resolve pelo ponto real */
       var t = document.elementFromPoint(e.clientX, e.clientY) || e.target;
       if (!t || !(t instanceof Element) || !deck.contains(t)) return;
+      /* já editando: o duplo clique é do navegador (seleciona a palavra) */
+      if (editing && editing.contains(t)) return;
       var dslide = slideOf(t);
       if (mode === 'arrange' || (dslide && dslide !== activeSlide())) {
         e.preventDefault();
@@ -1164,6 +1221,15 @@
         if (r && s && el.contains(r.startContainer)) {
           s.removeAllRanges();
           s.addRange(r);
+          /* começa já com a palavra sob o cursor selecionada */
+          try {
+            s.modify('move', 'backward', 'word');
+            s.modify('extend', 'forward', 'word');
+            var picked = s.toString();
+            if (/\s$/.test(picked)) s.modify('extend', 'backward', 'character');
+          } catch (err) {
+            /* navegador sem Selection.modify: fica só o cursor */
+          }
         }
       }
     },
@@ -1210,6 +1276,7 @@
       var k = e.key;
       var c = e.ctrlKey || e.metaKey;
       var low = k.length === 1 ? k.toLowerCase() : k;
+      if (e.target === sizeBox || e.target === colorBox) return;
       if (c && low === 's') {
         e.preventDefault();
         post({ type: 'key', key: 'save' });
@@ -1248,6 +1315,12 @@
         dupEl();
         return;
       }
+      if (c && (e.code === 'BracketRight' || e.code === 'BracketLeft') && selected) {
+        e.preventDefault();
+        var up = e.code === 'BracketRight';
+        zOrder(e.shiftKey ? (up ? 'top' : 'bottom') : up ? 'forward' : 'backward');
+        return;
+      }
       if (c && low === 'c') {
         e.preventDefault();
         if (selected && mode !== 'arrange') copyEl();
@@ -1262,6 +1335,10 @@
         return;
       }
       if (k === 'Escape') {
+        if (pickingParent) {
+          stopPickParent();
+          return;
+        }
         select(null);
         return;
       }
@@ -1374,6 +1451,8 @@
         window.scrollTo(0, 0);
         post({ type: 'slide', index: data.index });
       }
+      stopPickParent();
+      scheduleGhosts();
     } else if (data.type === 'select') {
       /* não silencioso: o inspetor, a linha do tempo e o dock precisam saber da seleção */
       select(elAt(data.path));
@@ -1392,6 +1471,10 @@
       if (wasEditing) editing = null;
       old.replaceWith(next);
       buildCanvasCss();
+      Array.prototype.forEach.call(next.querySelectorAll('video'), function (v) {
+        if (!previewing) v.pause();
+      });
+      scheduleGhosts();
       if (wasActive) {
         next.classList.add('active');
         if (!previewing) next.classList.add('mm-static');
@@ -1441,6 +1524,7 @@
       sel.classList.toggle('mm-arr', mode === 'arrange');
       select(null, true);
       if (mode === 'arrange') select(activeSlide(), true);
+      scheduleGhosts();
     } else if (data.type === 'view') {
       scale = data.zoom || 1;
       deck.style.transition = data.animate ? 'transform .55s cubic-bezier(.4,0,.2,1)' : 'none';
@@ -1449,6 +1533,7 @@
       updateGrid();
       scaleLabels();
       drawSelection(selected);
+      scheduleGhosts();
       /* durante a animação da câmera o retângulo medido ainda não é o final */
       clearTimeout(viewTimer);
       if (data.animate)
@@ -1597,11 +1682,583 @@
     });
   }
 
+  /* ======================================================================
+     Contornos-fantasma: o que sai do slide é cortado (como na apresentação);
+     um contorno tracejado mostra onde está o elemento.
+     ====================================================================== */
+  var ghosts = document.createElement('div');
+  ghosts.id = 'mm-ghosts';
+  deck.appendChild(ghosts);
+  var ghostQueued = false;
+  function scheduleGhosts() {
+    if (ghostQueued) return;
+    ghostQueued = true;
+    requestAnimationFrame(function () {
+      ghostQueued = false;
+      drawGhosts();
+    });
+  }
+  function isOverlay(el) {
+    return (
+      el.classList &&
+      (el.classList.contains('mm-bgl') ||
+        el.id === 'mm-sel' ||
+        el.id === 'mm-ghosts' ||
+        el.id === 'mm-guides')
+    );
+  }
+  function drawGhosts() {
+    ghosts.innerHTML = '';
+    if (mode !== 'edit' || previewing || document.body.classList.contains('mm-dragging')) return;
+    var s = activeSlide();
+    if (!s) return;
+    var sr = rectOf(s);
+    var pad = 0.5;
+    function visit(node, depth) {
+      kidsOf(node).forEach(function (el) {
+        if (isOverlay(el)) return;
+        var cs = window.getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden') return;
+        var r = rectOf(el);
+        if (r.width < 1 || r.height < 1) return;
+        var inside =
+          r.left >= sr.left - pad &&
+          r.top >= sr.top - pad &&
+          r.left + r.width <= sr.left + sr.width + pad &&
+          r.top + r.height <= sr.top + sr.height + pad;
+        if (inside) {
+          if (depth < 3) visit(el, depth + 1);
+          return;
+        }
+        var outside =
+          r.left >= sr.left + sr.width ||
+          r.top >= sr.top + sr.height ||
+          r.left + r.width <= sr.left ||
+          r.top + r.height <= sr.top;
+        var g = document.createElement('div');
+        g.className = 'mm-ghost' + (outside ? ' mm-ghost-off' : '');
+        g.title = outside
+          ? 'Fora do slide (não aparece na apresentação) — clique para selecionar'
+          : 'Parte fora do slide (cortada na apresentação)';
+        g.style.left = r.left + 'px';
+        g.style.top = r.top + 'px';
+        g.style.width = r.width + 'px';
+        g.style.height = r.height + 'px';
+        g.style.borderWidth = Math.max(1, 1.5 / scale).toFixed(2) + 'px';
+        g.__el = el;
+        ghosts.appendChild(g);
+      });
+    }
+    visit(s, 0);
+  }
+
+  /* ======================================================================
+     Alinhamento inteligente: guias para as bordas/centro do slide e dos outros
+     elementos. Ctrl desliga; Shift trava o eixo; Alt + arrastar duplica.
+     ====================================================================== */
+  var guides = document.createElement('div');
+  guides.id = 'mm-guides';
+  deck.appendChild(guides);
+  function clearGuides() {
+    guides.innerHTML = '';
+  }
+  function localRect(el, slide, ls) {
+    var sr = rectOf(slide);
+    var r = rectOf(el);
+    return {
+      left: (r.left - sr.left) / ls,
+      top: (r.top - sr.top) / ls,
+      width: r.width / ls,
+      height: r.height / ls,
+    };
+  }
+  /* Alvos de alinhamento (em px do slide): bordas e centro do slide e dos outros elementos. */
+  function snapTargets(el, slide, ls) {
+    var xs = [0, SLIDE_W / 2, SLIDE_W];
+    var ys = [0, SLIDE_H / 2, SLIDE_H];
+    Array.prototype.forEach.call(slide.querySelectorAll('*'), function (o) {
+      if (o === el || el.contains(o) || o.contains(el) || isOverlay(o)) return;
+      if (o.closest('.mm-bgl')) return;
+      var cs = window.getComputedStyle(o);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.display === 'inline') return;
+      var r = localRect(o, slide, ls);
+      if (r.width < 4 || r.height < 4) return;
+      if (r.width > SLIDE_W * 0.98 && r.height > SLIDE_H * 0.9) return;
+      xs.push(r.left, r.left + r.width / 2, r.left + r.width);
+      ys.push(r.top, r.top + r.height / 2, r.top + r.height);
+    });
+    return { xs: xs, ys: ys };
+  }
+  /* Menor ajuste para encostar alguma das posições `edges` num alvo (ou null). */
+  function bestSnap(edges, targets, thr) {
+    var best = null;
+    edges.forEach(function (e) {
+      targets.forEach(function (t) {
+        var d = t - e;
+        if (Math.abs(d) <= thr && (best === null || Math.abs(d) < Math.abs(best.d))) {
+          best = { d: d, at: t };
+        }
+      });
+    });
+    return best;
+  }
+  function drawGuide(slide, ls, axis, at) {
+    var sr = rectOf(slide);
+    var g = document.createElement('div');
+    g.className = 'mm-guide';
+    var w = Math.max(1, 1 / scale);
+    if (axis === 'x') {
+      g.style.left = sr.left + at * ls - w / 2 + 'px';
+      g.style.top = sr.top + 'px';
+      g.style.width = w + 'px';
+      g.style.height = sr.height + 'px';
+    } else {
+      g.style.left = sr.left + 'px';
+      g.style.top = sr.top + at * ls - w / 2 + 'px';
+      g.style.width = sr.width + 'px';
+      g.style.height = w + 'px';
+    }
+    guides.appendChild(g);
+  }
+  /* Aplica o alinhamento no arrasto (move) e devolve o deslocamento ajustado (px do slide). */
+  function snapMove(d, ax, ay, e) {
+    clearGuides();
+    if (e.ctrlKey || e.metaKey || !d.snap) return { ax: ax, ay: ay };
+    var thr = 7 / (scale * d.ls);
+    var L = d.r0.left + ax;
+    var T = d.r0.top + ay;
+    var W = d.r0.width;
+    var H = d.r0.height;
+    var sx = ax !== 0 || !e.shiftKey ? bestSnap([L, L + W / 2, L + W], d.snap.xs, thr) : null;
+    var sy = ay !== 0 || !e.shiftKey ? bestSnap([T, T + H / 2, T + H], d.snap.ys, thr) : null;
+    if (sx && !(e.shiftKey && d.lock === 'y')) {
+      ax += sx.d;
+      drawGuide(d.slide, d.ls, 'x', sx.at);
+    }
+    if (sy && !(e.shiftKey && d.lock === 'x')) {
+      ay += sy.d;
+      drawGuide(d.slide, d.ls, 'y', sy.at);
+    }
+    return { ax: ax, ay: ay };
+  }
+  /* Alinhamento no redimensionar: a borda direita/inferior encosta nos alvos. */
+  function snapResize(d, w, h, e) {
+    clearGuides();
+    if (e.ctrlKey || e.metaKey || !d.snap) return { w: w, h: h };
+    var thr = 7 / (scale * d.ls);
+    if (d.h !== 's') {
+      var sx = bestSnap([d.r0.left + w], d.snap.xs, thr);
+      if (sx) {
+        w += sx.d;
+        drawGuide(d.slide, d.ls, 'x', sx.at);
+      }
+    }
+    if (d.h !== 'e') {
+      var sy = bestSnap([d.r0.top + h], d.snap.ys, thr);
+      if (sy) {
+        h += sy.d;
+        drawGuide(d.slide, d.ls, 'y', sy.at);
+      }
+    }
+    return { w: w, h: h };
+  }
+
+  /* Alinha o elemento ao slide (h: left|center|right; v: top|middle|bottom). */
+  function alignToSlide(h, v) {
+    if (!selected || !isSlideChild(selected) || isLocked(selected)) return;
+    var s = slideOf(selected);
+    if (!s) return;
+    var ls = layoutOf(s, slideIndexOf(s)).s;
+    var r = localRect(selected, s, ls);
+    var t = getTrans(selected);
+    var dx = 0;
+    var dy = 0;
+    if (h === 'left') dx = -r.left;
+    else if (h === 'center') dx = (SLIDE_W - r.width) / 2 - r.left;
+    else if (h === 'right') dx = SLIDE_W - r.width - r.left;
+    if (v === 'top') dy = -r.top;
+    else if (v === 'middle') dy = (SLIDE_H - r.height) / 2 - r.top;
+    else if (v === 'bottom') dy = SLIDE_H - r.height - r.top;
+    setTrans(selected, t.x + dx, t.y + dy);
+    drawSelection(selected);
+    commit('');
+  }
+
+  /* ======================================================================
+     Camadas: a ordem entre irmãos vira z-index explícito (1, 2, 3…), então
+     "frente/trás" anda exatamente uma posição entre os que se sobrepõem.
+     ====================================================================== */
+  function zOf(el) {
+    var z = parseInt(window.getComputedStyle(el).zIndex, 10);
+    return isNaN(z) ? 0 : z;
+  }
+  function overlaps(a, b) {
+    var ra = a.getBoundingClientRect();
+    var rb = b.getBoundingClientRect();
+    return ra.left < rb.right && rb.left < ra.right && ra.top < rb.bottom && rb.top < ra.bottom;
+  }
+  function zOrder(dir) {
+    if (!selected || !isSlideChild(selected)) return;
+    var el = selected;
+    var parent = el.parentElement;
+    var sibs = kidsOf(parent).filter(function (x) {
+      return !isOverlay(x) && x.nodeType === 1;
+    });
+    var order = sibs
+      .map(function (x, i) {
+        return { el: x, z: zOf(x), i: i };
+      })
+      .sort(function (a, b) {
+        return a.z - b.z || a.i - b.i;
+      })
+      .map(function (o) {
+        return o.el;
+      });
+    var at = order.indexOf(el);
+    if (at < 0) return;
+    order.splice(at, 1);
+    var to = at;
+    if (dir === 'top') to = order.length;
+    else if (dir === 'bottom') to = 0;
+    else if (dir === 'forward') {
+      to = order.length;
+      for (var i = at; i < order.length; i++) {
+        if (overlaps(order[i], el)) {
+          to = i + 1;
+          break;
+        }
+      }
+    } else if (dir === 'backward') {
+      to = 0;
+      for (var j = at - 1; j >= 0; j--) {
+        if (overlaps(order[j], el)) {
+          to = j;
+          break;
+        }
+      }
+    }
+    order.splice(to, 0, el);
+    order.forEach(function (x, k) {
+      ensurePos(x);
+      x.style.zIndex = String(k + 1);
+    });
+    drawSelection(el);
+    commit('');
+    post({ type: 'layer', index: order.indexOf(el) + 1, total: order.length });
+  }
+
+  /* ======================================================================
+     Pai e filho: o filho passa a morar dentro do pai (move, anima e some junto).
+     ====================================================================== */
+  var pickingParent = null;
+  function canBeParent(p, child) {
+    if (!p || p === child || child.contains(p)) return false;
+    if (/^(img|video|svg|input|br|hr|iframe|textarea)$/i.test(p.tagName)) return false;
+    if (p.closest && p.closest('svg') && p.tagName.toLowerCase() !== 'svg') return false;
+    return slideOf(p) === slideOf(child);
+  }
+  /* Coloca `child` dentro de `parent` (ou da raiz do slide) sem mudar onde ele aparece. */
+  function moveInto(child, parent) {
+    var s = slideOf(child);
+    var es = layoutOf(s, slideIndexOf(s)).s;
+    var before = rectOf(child);
+    if (parent !== s) ensurePos(parent);
+    parent.appendChild(child);
+    child.style.position = 'absolute';
+    child.style.removeProperty('translate');
+    child.style.removeProperty('inset');
+    child.style.removeProperty('right');
+    child.style.removeProperty('bottom');
+    if (!child.style.width) child.style.width = Math.round(before.width / es) + 'px';
+    child.style.left = '0px';
+    child.style.top = '0px';
+    var now = rectOf(child);
+    child.style.left = Math.round((before.left - now.left) / es) + 'px';
+    child.style.top = Math.round((before.top - now.top) / es) + 'px';
+  }
+  function startPickParent() {
+    if (!selected || !isSlideChild(selected)) return;
+    pickingParent = selected;
+    document.body.classList.add('mm-picking');
+    post({ type: 'picking', on: true });
+  }
+  function stopPickParent() {
+    if (!pickingParent) return;
+    pickingParent = null;
+    document.body.classList.remove('mm-picking');
+    post({ type: 'picking', on: false });
+  }
+  function finishPickParent(target) {
+    var child = pickingParent;
+    stopPickParent();
+    if (!child) return;
+    if (!canBeParent(target, child)) {
+      post({
+        type: 'notice',
+        text: 'Esse elemento não pode ser o pai (escolha uma caixa, forma ou bloco do mesmo slide).',
+      });
+      return;
+    }
+    moveInto(child, target);
+    select(child);
+    commit('', child);
+  }
+  function unparent() {
+    if (!selected || !isSlideChild(selected)) return;
+    var s = slideOf(selected);
+    if (!s || selected.parentElement === s) return;
+    moveInto(selected, s);
+    select(selected);
+    commit('', selected);
+  }
+
+  /* ======================================================================
+     Formatação de trecho do texto em edição (negrito, itálico, tamanho, cor…).
+     ====================================================================== */
+  var fmt = document.createElement('div');
+  fmt.id = 'mm-fmt';
+  fmt.setAttribute('role', 'toolbar');
+  fmt.setAttribute('aria-label', 'Formatar trecho');
+  var savedRange = null;
+  var FMT_BUTTONS = [
+    ['bold', 'B', 'Negrito (Ctrl+B)', 'font-weight:700'],
+    ['italic', 'I', 'Itálico (Ctrl+I)', 'font-style:italic'],
+    ['underline', 'U', 'Sublinhado (Ctrl+U)', 'text-decoration:underline'],
+    ['strikeThrough', 'S', 'Tachado', 'text-decoration:line-through'],
+    ['superscript', 'x²', 'Sobrescrito', ''],
+    ['subscript', 'x₂', 'Subscrito', ''],
+    ['smaller', 'A−', 'Diminuir o tamanho', ''],
+    ['bigger', 'A+', 'Aumentar o tamanho', ''],
+  ];
+  var FMT_COLORS = ['#FFFFFF', '#F7D98B', '#C77C8A', '#8E3B52', '#72A68A', '#8FB8D8', '#000000'];
+  FMT_BUTTONS.forEach(function (b) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.setAttribute('data-fmt', b[0]);
+    btn.setAttribute('aria-label', b[2]);
+    btn.title = b[2];
+    btn.textContent = b[1];
+    if (b[3]) btn.setAttribute('style', b[3]);
+    fmt.appendChild(btn);
+  });
+  var sizeBox = document.createElement('input');
+  sizeBox.type = 'number';
+  sizeBox.min = '6';
+  sizeBox.max = '400';
+  sizeBox.title = 'Tamanho do trecho (px)';
+  sizeBox.setAttribute('aria-label', 'Tamanho do trecho em px');
+  sizeBox.className = 'mm-fmt-size';
+  fmt.appendChild(sizeBox);
+  FMT_COLORS.forEach(function (c) {
+    var sw = document.createElement('button');
+    sw.type = 'button';
+    sw.className = 'mm-fmt-sw';
+    sw.setAttribute('data-color', c);
+    sw.setAttribute('aria-label', 'Cor ' + c);
+    sw.title = c;
+    sw.style.background = c;
+    fmt.appendChild(sw);
+  });
+  var colorBox = document.createElement('input');
+  colorBox.type = 'color';
+  colorBox.title = 'Outra cor';
+  colorBox.setAttribute('aria-label', 'Outra cor do trecho');
+  colorBox.className = 'mm-fmt-color';
+  fmt.appendChild(colorBox);
+  var clearBtn = document.createElement('button');
+  clearBtn.type = 'button';
+  clearBtn.setAttribute('data-fmt', 'removeFormat');
+  clearBtn.setAttribute('aria-label', 'Limpar formatação');
+  clearBtn.title = 'Limpar formatação';
+  clearBtn.textContent = '⌫';
+  fmt.appendChild(clearBtn);
+  document.body.appendChild(fmt);
+
+  function selectionInEditing() {
+    var s = window.getSelection();
+    if (!editing || !s || s.rangeCount === 0 || s.isCollapsed) return null;
+    var r = s.getRangeAt(0);
+    return editing.contains(r.commonAncestorContainer) ? r : null;
+  }
+  function restoreRange() {
+    if (!savedRange) return false;
+    var s = window.getSelection();
+    s.removeAllRanges();
+    s.addRange(savedRange);
+    return true;
+  }
+  function fontSizeAt(range) {
+    var node = range.startContainer;
+    var el = node.nodeType === 1 ? node : node.parentElement;
+    return Math.round(parseFloat(window.getComputedStyle(el).fontSize) || 24);
+  }
+  function placeFmt() {
+    var r = selectionInEditing();
+    if (!r) {
+      fmt.style.display = 'none';
+      return;
+    }
+    savedRange = r.cloneRange();
+    var b = r.getBoundingClientRect();
+    fmt.style.display = 'flex';
+    var w = fmt.offsetWidth || 360;
+    var left = Math.max(6, Math.min(window.innerWidth - w - 6, b.left + b.width / 2 - w / 2));
+    var top = b.top - 44 < 6 ? b.bottom + 8 : b.top - 44;
+    fmt.style.left = left + 'px';
+    fmt.style.top = top + 'px';
+    if (document.activeElement !== sizeBox) sizeBox.value = String(fontSizeAt(r));
+  }
+  /* Envolve o trecho num <span> com o tamanho dado (px). */
+  function setSize(px) {
+    if (!restoreRange() || !editing) return;
+    px = Math.max(6, Math.min(400, Math.round(px)));
+    document.execCommand('styleWithCSS', false, false);
+    document.execCommand('fontSize', false, '7');
+    var marks = Array.prototype.slice.call(editing.querySelectorAll('font[size="7"]'));
+    var first = null;
+    var last = null;
+    marks.forEach(function (f) {
+      var span = document.createElement('span');
+      span.style.fontSize = px + 'px';
+      while (f.firstChild) span.appendChild(f.firstChild);
+      f.replaceWith(span);
+      if (!first) first = span;
+      last = span;
+    });
+    if (first && last) {
+      var r = document.createRange();
+      r.setStartBefore(first);
+      r.setEndAfter(last);
+      var s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(r);
+      savedRange = r.cloneRange();
+    }
+    sizeBox.value = String(px);
+    drawSelection(editing);
+  }
+  function applyFmt(cmd) {
+    if (!restoreRange()) return;
+    if (cmd === 'smaller' || cmd === 'bigger') {
+      var cur = fontSizeAt(savedRange);
+      var step = Math.max(2, Math.round(cur * 0.12));
+      setSize(cur + (cmd === 'bigger' ? step : -step));
+      return;
+    }
+    document.execCommand('styleWithCSS', false, false);
+    document.execCommand(cmd);
+    placeFmt();
+    drawSelection(editing);
+  }
+  function applyColor(c) {
+    if (!restoreRange()) return;
+    document.execCommand('styleWithCSS', false, true);
+    document.execCommand('foreColor', false, c);
+    document.execCommand('styleWithCSS', false, false);
+    placeFmt();
+  }
+  fmt.addEventListener('mousedown', function (e) {
+    var t = e.target;
+    if (t === sizeBox || t === colorBox) return;
+    e.preventDefault();
+    var btn = t.closest ? t.closest('button') : null;
+    if (!btn) return;
+    if (btn.hasAttribute('data-color')) applyColor(btn.getAttribute('data-color'));
+    else if (btn.hasAttribute('data-fmt')) applyFmt(btn.getAttribute('data-fmt'));
+  });
+  sizeBox.addEventListener('keydown', function (e) {
+    e.stopPropagation();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      setSize(parseFloat(sizeBox.value) || 24);
+      if (editing) editing.focus();
+      restoreRange();
+    }
+  });
+  sizeBox.addEventListener('change', function () {
+    setSize(parseFloat(sizeBox.value) || 24);
+  });
+  colorBox.addEventListener('input', function () {
+    applyColor(colorBox.value);
+  });
+  document.addEventListener('selectionchange', function () {
+    if (document.activeElement === sizeBox || document.activeElement === colorBox) return;
+    placeFmt();
+  });
+
+  /* ======================================================================
+     Vídeos: no editor ficam parados (só tocam na pré-visualização/apresentação).
+     ====================================================================== */
+  document.addEventListener(
+    'play',
+    function (e) {
+      if (!previewing && e.target && e.target.tagName === 'VIDEO') e.target.pause();
+    },
+    true
+  );
+  Array.prototype.forEach.call(document.querySelectorAll('video'), function (v) {
+    v.pause();
+  });
+
+  /* ======================================================================
+     Menu de contexto: o editor desenha o menu; aqui só dizemos onde e sobre o quê.
+     ====================================================================== */
+  document.addEventListener(
+    'contextmenu',
+    function (e) {
+      if (editing && editing.contains(e.target)) return;
+      e.preventDefault();
+      if (previewing) return;
+      var t = document.elementFromPoint(e.clientX, e.clientY) || e.target;
+      var kind = 'canvas';
+      var index = null;
+      if (t && t instanceof Element && deck.contains(t)) {
+        var g = t.closest ? t.closest('.mm-ghost') : null;
+        var sl = g && g.__el ? slideOf(g.__el) : slideOf(t);
+        if (sl) {
+          index = slideIndexOf(sl);
+          kind = 'slide';
+          if (mode === 'edit' && sl === activeSlide()) {
+            var el = g && g.__el ? g.__el : pick(t);
+            if (el) {
+              select(el);
+              kind = 'element';
+            }
+          } else if (sl !== activeSlide()) {
+            post({ type: 'slide-click', index: index });
+          }
+        }
+      }
+      post({
+        type: 'context',
+        x: e.clientX,
+        y: e.clientY,
+        kind: kind,
+        index: index,
+        text:
+          kind === 'element' && selected
+            ? isTextElement(selected) &&
+              (selected.classList.contains('ed-text') || selected.textContent.trim() !== '')
+            : false,
+        nested:
+          kind === 'element' && selected ? selected.parentElement !== slideOf(selected) : false,
+        locked: kind === 'element' && selected ? isLocked(selected) : false,
+      });
+    },
+    true
+  );
+
   function runCommand(name, arg) {
     if (name === 'delete') delEl();
     else if (name === 'duplicate') dupEl();
-    else if (name === 'front') zFront();
-    else if (name === 'back') zBack();
+    else if (name === 'front') zOrder('top');
+    else if (name === 'back') zOrder('bottom');
+    else if (name === 'forward') zOrder('forward');
+    else if (name === 'backward') zOrder('backward');
+    else if (name === 'align' && arg) alignToSlide(arg.h || null, arg.v || null);
+    else if (name === 'set-parent') startPickParent();
+    else if (name === 'unparent') unparent();
+    else if (name === 'cancel-pick') stopPickParent();
     else if (name === 'reset') resetPos();
     else if (name === 'copy') {
       if (selected) copyEl();

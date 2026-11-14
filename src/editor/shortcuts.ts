@@ -98,6 +98,12 @@ export function handleGlobalKey(event: KeyboardEvent): void {
     return;
   }
   if (!bridge) return;
+  if (ctrl && (event.code === 'BracketRight' || event.code === 'BracketLeft') && deck.selection) {
+    event.preventDefault();
+    const up = event.code === 'BracketRight';
+    bridge.command(event.shiftKey ? (up ? 'front' : 'back') : up ? 'forward' : 'backward');
+    return;
+  }
   if (ctrl && key === 'd' && deck.selection) {
     event.preventDefault();
     bridge.command('duplicate');
