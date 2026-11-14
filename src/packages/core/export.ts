@@ -375,11 +375,29 @@ export const NAV_SCRIPT = `(function(){
     });
     return map;
   }
+  /* Textos interpolam a formatação (tamanho, cor, peso, sombras…) em vez de esticar com scale. */
+  var TEXT_PROPS = ['color','fontSize','fontWeight','letterSpacing','wordSpacing','lineHeight','textShadow',
+    'webkitTextStrokeWidth','webkitTextStrokeColor','webkitTextFillColor','opacity','filter','backgroundColor','boxShadow'];
+  function textual(el){
+    return (el.textContent || '').trim() !== '' && !el.hasAttribute('data-pkg') &&
+      !el.querySelector('img,svg,video,canvas,iframe,[data-pkg]');
+  }
+  function treeOf(el){ return [el].concat([].slice.call(el.querySelectorAll('*'))); }
+  function shapeOf(list){ return list.map(function(n){ return n.tagName; }).join(','); }
+  function styleOf(el){
+    var cs = window.getComputedStyle(el), o = {};
+    TEXT_PROPS.forEach(function(p){ o[p] = cs[p]; });
+    o.width = cs.width;
+    o.display = cs.display;
+    return o;
+  }
   function morphPlan(prev, next){
     var a = named(prev), b = named(next), plan = [];
     for(var k in a){
       if(!b[k]) continue;
-      plan.push({from:a[k], to:b[k], r:a[k].getBoundingClientRect()});
+      var tx = textual(a[k]) && textual(b[k]);
+      plan.push({from:a[k], to:b[k], r:a[k].getBoundingClientRect(), text: tx,
+        styles: tx ? treeOf(a[k]).map(styleOf) : null, shape: tx ? shapeOf(treeOf(a[k])) : ''});
       /* quem chega por interpolação não tem animação de entrada (e isso vale antes do slide ficar ativo) */
       b[k].classList.add('mm-noanim');
     }
@@ -399,6 +417,7 @@ export const NAV_SCRIPT = `(function(){
       p.from.style.visibility = 'hidden';
       hidden.push(p.from);
       matched.push(p.to);
+      if(p.text){ morphText(p, b, z, own, D); return; }
       /* sai da posição/tamanho do elemento antigo e chega na dele (dois keyframes: de -> para) */
       p.to.animate([
         {transform:'translate(' + dx + 'px,' + dy + 'px) scale(' + (p.r.width/b.width) + ',' + (p.r.height/b.height) + ')'},
@@ -420,6 +439,32 @@ export const NAV_SCRIPT = `(function(){
       prev.classList.remove('t-morph-out');
       clean([prev, next]);
     }, D + 60);
+  }
+
+  /* Texto: vai do canto do antigo ao do novo e a formatação passa de uma à outra; os trechos
+     (spans) formatados se pareiam um a um quando os dois textos têm a mesma estrutura. */
+  function morphText(p, b, z, own, D){
+    var ease = 'cubic-bezier(.65,0,.35,1)';
+    var dx = (p.r.left - b.left) / z, dy = (p.r.top - b.top) / z;
+    var base = own && own !== 'none' ? ' ' + own : '';
+    p.to.animate([
+      {transform:'translate(' + dx + 'px,' + dy + 'px)' + base},
+      {transform: own || 'none'}
+    ], {duration:D, easing:ease});
+    var targets = treeOf(p.to);
+    var pairs = shapeOf(targets) === p.shape ? targets : [p.to];
+    pairs.forEach(function(el, i){
+      var from = p.styles[i], to = styleOf(el), a = {}, z2 = {}, any = false;
+      TEXT_PROPS.forEach(function(prop){
+        if(from[prop] !== to[prop]){ a[prop] = from[prop]; z2[prop] = to[prop]; any = true; }
+      });
+      /* a largura da caixa acompanha (o texto vai reorganizando as linhas no caminho) */
+      if(i === 0 && to.display !== 'inline' && from.width !== to.width &&
+         /px$/.test(from.width) && /px$/.test(to.width)){
+        a.width = from.width; z2.width = to.width; any = true;
+      }
+      if(any) el.animate([a, z2], {duration:D, easing:ease});
+    });
   }
 
   function clean(list){

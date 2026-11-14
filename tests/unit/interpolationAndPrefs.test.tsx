@@ -3,6 +3,7 @@ import { createDefaultDeck, presentationSettings, SLIDE_TRANSITIONS } from '@pac
 import { buildPresentationHTML, NAV_SCRIPT } from '@packages/core/export';
 import { parseDeckHTML } from '@packages/core/importDeck';
 import {
+  hasTextKeys,
   keyframesEnd,
   keyframesPatch,
   normalizeKeyframe,
@@ -24,6 +25,38 @@ describe('keyframes (interpolação no slide)', () => {
     const list = normalizeKeyframes([{ t: 2 }, { t: 0.5 }]);
     expect(list.map((x) => x.t)).toEqual([0.5, 2]);
     expect(keyframesEnd(list)).toBe(2);
+  });
+
+  it('formatação do texto: só guarda o que é válido e limita os valores', () => {
+    const k = normalizeKeyframe({
+      t: 1,
+      c: '#ff0000',
+      fs: 5000,
+      w: 50,
+      ls: 0.12345,
+      g: 12,
+      bl: -2,
+    });
+    expect(k).toMatchObject({
+      c: '#FF0000',
+      fs: 1000,
+      w: 100,
+      ls: 0.123,
+      g: 12,
+      gc: '#F7D98B',
+      bl: 0,
+    });
+    expect(hasTextKeys(k)).toBe(true);
+    const plain = normalizeKeyframe({ t: 1, c: 'vermelho', fs: Number.NaN, gc: '#00FF00' });
+    expect(plain).not.toHaveProperty('c');
+    expect(plain).not.toHaveProperty('fs');
+    // cor do brilho só existe com brilho
+    expect(plain).not.toHaveProperty('gc');
+    expect(hasTextKeys(plain)).toBe(false);
+    // limpar um campo (undefined) tira ele do JSON gravado
+    const cleared = normalizeKeyframe({ ...k, fs: undefined, g: undefined });
+    expect(JSON.parse(JSON.stringify(cleared))).not.toHaveProperty('fs');
+    expect(JSON.parse(JSON.stringify(cleared))).not.toHaveProperty('gc');
   });
 
   it('grava e lê do atributo data-kf; lista vazia remove o atributo', () => {

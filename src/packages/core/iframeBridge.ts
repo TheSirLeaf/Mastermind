@@ -64,6 +64,14 @@ export interface KeyframePose {
   s: number;
   r: number;
   o: number;
+  /** Formatação do texto no keyframe (ausente = natural). */
+  c?: string | undefined;
+  fs?: number | undefined;
+  w?: number | undefined;
+  ls?: number | undefined;
+  g?: number | undefined;
+  gc?: string | undefined;
+  bl?: number | undefined;
 }
 
 /** O que estava sob o botão direito no palco. */

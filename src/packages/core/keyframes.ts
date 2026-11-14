@@ -3,6 +3,8 @@
 // Os valores são relativos ao estado natural do elemento (X/Y em px do slide, escala 1 = 100%,
 // giro em graus, opacidade 0–1) e ficam no atributo `data-kf` (JSON). O host da apresentação
 // (`pkgHost.ts`) os executa com a Web Animations API.
+// Textos também podem interpolar a formatação: cor, tamanho, peso, espaço entre letras, brilho e
+// desfoque. Esses são absolutos e opcionais: ausente = o valor natural do texto.
 import type { ElementPatch } from './animation';
 
 export interface Keyframe {
@@ -18,7 +20,32 @@ export interface Keyframe {
   o: number;
   /** Curva até o próximo keyframe. */
   ease: string;
+  /** Cor do texto (#RRGGBB). */
+  c?: string | undefined;
+  /** Tamanho da fonte (px do slide). */
+  fs?: number | undefined;
+  /** Peso da fonte (100–900). */
+  w?: number | undefined;
+  /** Espaço entre letras (em). */
+  ls?: number | undefined;
+  /** Brilho: tamanho (px) e cor do neon. */
+  g?: number | undefined;
+  gc?: string | undefined;
+  /** Desfoque (px). */
+  bl?: number | undefined;
 }
+
+/** Campos de texto dos keyframes (opcionais). */
+export const KEYFRAME_TEXT_KEYS = ['c', 'fs', 'w', 'ls', 'g', 'gc', 'bl'] as const;
+export type KeyframeTextKey = (typeof KEYFRAME_TEXT_KEYS)[number];
+
+const isHex = (v: unknown): v is string => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
+const opt = (v: unknown, min: number, max: number, digits: number): number | undefined => {
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? Number.parseFloat(v) : NaN;
+  if (!Number.isFinite(n)) return undefined;
+  const f = 10 ** digits;
+  return Math.round(Math.min(max, Math.max(min, n)) * f) / f;
+};
 
 export const KEYFRAME_EASINGS: Array<[string, string]> = [
   ['ease-in-out', 'Suave'],
@@ -48,7 +75,7 @@ export function normalizeKeyframe(input: Partial<Keyframe>): Keyframe {
   const ease = KEYFRAME_EASINGS.some(([value]) => value === input.ease)
     ? (input.ease as string)
     : KEYFRAME_DEFAULT.ease;
-  return {
+  const out: Keyframe = {
     t: Math.round(clamp(input.t, 1, 0, 120) * 100) / 100,
     x: Math.round(clamp(input.x, 0, -4000, 4000)),
     y: Math.round(clamp(input.y, 0, -4000, 4000)),
@@ -57,6 +84,22 @@ export function normalizeKeyframe(input: Partial<Keyframe>): Keyframe {
     o: Math.round(clamp(input.o, 1, 0, 1) * 100) / 100,
     ease,
   };
+  // Formatação do texto: só entra o que é válido (o resto fica no natural).
+  if (isHex(input.c)) out.c = input.c.toUpperCase();
+  const fs = opt(input.fs, 1, 1000, 1);
+  if (fs !== undefined) out.fs = fs;
+  const w = opt(input.w, 100, 900, 0);
+  if (w !== undefined) out.w = w;
+  const ls = opt(input.ls, -0.5, 2, 3);
+  if (ls !== undefined) out.ls = ls;
+  const g = opt(input.g, 0, 300, 1);
+  if (g !== undefined) {
+    out.g = g;
+    out.gc = isHex(input.gc) ? input.gc.toUpperCase() : '#F7D98B';
+  }
+  const bl = opt(input.bl, 0, 100, 1);
+  if (bl !== undefined) out.bl = bl;
+  return out;
 }
 
 /** Normaliza e ordena por tempo. */
@@ -85,4 +128,9 @@ export function keyframesPatch(list: Keyframe[]): ElementPatch {
 /** Quando o último keyframe acontece, em segundos. */
 export function keyframesEnd(list: Keyframe[]): number {
   return list.reduce((max, k) => Math.max(max, k.t), 0);
+}
+
+/** O keyframe mexe em alguma formatação de texto? */
+export function hasTextKeys(k: Keyframe): boolean {
+  return KEYFRAME_TEXT_KEYS.some((key) => k[key] !== undefined);
 }

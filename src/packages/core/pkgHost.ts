@@ -81,8 +81,29 @@ export const PKG_HOST_SRC = `(function(){
       }
       var useMove = used('x', 0) || used('y', 0), useScale = used('s', 1);
       var useRot = used('r', 0), useOpa = used('o', 1);
+      /* Formatação do texto (absoluta; ausente = o valor natural lido agora). */
+      function has(key) {
+        return kfs.some(function (k) { return k[key] !== undefined && k[key] !== null; });
+      }
+      var cs = window.getComputedStyle(el);
+      var nat = {
+        c: cs.color, fs: cs.fontSize, w: cs.fontWeight,
+        ls: cs.letterSpacing === 'normal' ? '0px' : cs.letterSpacing,
+        ts: cs.textShadow, fl: cs.filter
+      };
+      var uC = has('c'), uFs = has('fs'), uW = has('w'), uLs = has('ls'), uG = has('g'), uBl = has('bl');
+      function glow(g, c) {
+        c = c || '#F7D98B';
+        return '0 0 ' + (num(g) * 0.35) + 'px ' + c + ', 0 0 ' + num(g) + 'px ' + c;
+      }
       function frame(k, offset, easing) {
         var f = { offset: offset, easing: easing };
+        if (uC) f.color = k.c !== undefined ? k.c : nat.c;
+        if (uFs) f.fontSize = k.fs !== undefined ? num(k.fs) + 'px' : nat.fs;
+        if (uW) f.fontWeight = k.w !== undefined ? String(num(k.w)) : nat.w;
+        if (uLs) f.letterSpacing = k.ls !== undefined ? num(k.ls) + 'em' : nat.ls;
+        if (uG) f.textShadow = k.g !== undefined ? glow(k.g, k.gc) : nat.ts;
+        if (uBl) f.filter = k.bl !== undefined ? 'blur(' + num(k.bl) + 'px)' : nat.fl;
         if (useMove) f.translate = (bx + num(k.x)) + 'px ' + (by + num(k.y)) + 'px';
         if (useScale) f.scale = bs * (k.s === undefined ? 1 : num(k.s));
         if (useRot) f.rotate = (br + num(k.r)) + 'deg';

@@ -666,9 +666,23 @@
     var n = parseFloat(v);
     return isNaN(n) ? 0 : n;
   }
+  /* formatação do texto que um keyframe pode mudar (estilo inline original guardado) */
+  var POSE_TEXT = [
+    ['c', 'color'],
+    ['fs', 'font-size'],
+    ['w', 'font-weight'],
+    ['ls', 'letter-spacing'],
+    ['g', 'text-shadow'],
+    ['bl', 'filter'],
+  ];
   function baseOf(el) {
     var t = (el.style.translate || '').split(' ').filter(Boolean);
+    var text = {};
+    POSE_TEXT.forEach(function (p) {
+      text[p[1]] = el.style.getPropertyValue(p[1]);
+    });
     return {
+      text: text,
       translate: el.style.translate || '',
       scale: el.style.scale || '',
       rotate: el.style.rotate || '',
@@ -683,6 +697,10 @@
   function restoreBase(el, b) {
     ['translate', 'scale', 'rotate', 'opacity'].forEach(function (p) {
       if (b[p]) el.style.setProperty(p, b[p]);
+      else el.style.removeProperty(p);
+    });
+    Object.keys(b.text || {}).forEach(function (p) {
+      if (b.text[p]) el.style.setProperty(p, b.text[p]);
       else el.style.removeProperty(p);
     });
     if (el.getAttribute('style') === '') el.removeAttribute('style');
@@ -711,6 +729,24 @@
     target.style.scale = String(b.s * pose.s);
     target.style.rotate = b.r + pose.r + 'deg';
     target.style.opacity = String(b.o * pose.o);
+    POSE_TEXT.forEach(function (p) {
+      var v = pose[p[0]];
+      var css = null;
+      if (v !== undefined && v !== null) {
+        if (p[0] === 'fs') css = v + 'px';
+        else if (p[0] === 'ls') css = v + 'em';
+        else if (p[0] === 'w') css = String(v);
+        else if (p[0] === 'g') {
+          var gc = pose.gc || '#F7D98B';
+          css = '0 0 ' + v * 0.35 + 'px ' + gc + ', 0 0 ' + v + 'px ' + gc;
+        } else if (p[0] === 'bl') css = 'blur(' + v + 'px)';
+        else css = String(v);
+      }
+      /* sem valor no keyframe: o natural (o inline original, se havia) */
+      if (css === null) css = b.text[p[1]] || '';
+      if (css) target.style.setProperty(p[1], css);
+      else target.style.removeProperty(p[1]);
+    });
     if (selected === target) drawSelection(target);
   }
   /* depois de arrastar/empurrar o elemento posado: avisa o editor da nova posição do keyframe */

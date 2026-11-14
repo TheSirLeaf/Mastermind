@@ -224,7 +224,9 @@ export function Stage() {
       useUIStore.getState().setActiveKeyframe(null);
       return;
     }
-    bridge.pose(activeKeyframe.path, { x: k.x, y: k.y, s: k.s, r: k.r, o: k.o });
+    // Inclui a formatação do texto do keyframe (cor, tamanho…), quando houver.
+    const { t: _t, ease: _ease, ...pose } = k;
+    bridge.pose(activeKeyframe.path, pose);
   }, [booted, activeKeyframe, workspace, deck, currentIndex]);
 
   // Aba Slides: paleta de cores do slide ativo (espera o DOM assentar depois de cada mudança).

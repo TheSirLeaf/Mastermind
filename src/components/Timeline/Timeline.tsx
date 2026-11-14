@@ -230,6 +230,18 @@ interface DragState {
   path: number[];
 }
 
+/** Resumo da formatação de texto do keyframe (para a dica da linha do tempo). */
+function keyframeTextSummary(k: Keyframe): string {
+  const parts: string[] = [];
+  if (k.c) parts.push(`cor ${k.c}`);
+  if (k.fs !== undefined) parts.push(`${k.fs}px`);
+  if (k.w !== undefined) parts.push(`peso ${k.w}`);
+  if (k.ls !== undefined) parts.push(`letras ${k.ls}em`);
+  if (k.g !== undefined) parts.push(`brilho ${k.g}px`);
+  if (k.bl !== undefined) parts.push(`desfoque ${k.bl}px`);
+  return parts.length ? ` · texto: ${parts.join(', ')}` : '';
+}
+
 export function Timeline() {
   const deck = useDeckStore((state) => state.deck);
   const currentIndex = useDeckStore((state) => state.currentIndex);
@@ -664,7 +676,7 @@ export function Timeline() {
             >
               <Tooltip
                 title={`Keyframe ${index + 1} · ${fmt(k.t)}`}
-                description={`X ${k.x}, Y ${k.y} · escala ${Math.round(k.s * 100)}% · giro ${k.r}° · opacidade ${Math.round(k.o * 100)}%. Arraste para mudar o tempo.`}
+                description={`X ${k.x}, Y ${k.y} · escala ${Math.round(k.s * 100)}% · giro ${k.r}° · opacidade ${Math.round(k.o * 100)}%${keyframeTextSummary(k)}. Arraste para mudar o tempo.`}
                 side="top"
                 className="h-full w-full"
               >
