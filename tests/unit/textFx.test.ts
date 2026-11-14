@@ -91,8 +91,8 @@ describe('efeitos de texto', () => {
     );
     expect(css.color).toBe('#C77C8A');
     expect(css['--mm-shine-t']).toBe('2s');
-    // meia largura na linha do gradiente, que tem 4× o texto: 20% / 8
-    expect(css['--mm-shine-w']).toBe('2.5%');
+    // meia largura na linha do gradiente, que tem 3× o texto: 20% / 6
+    expect(css['--mm-shine-w']).toBe('3.333%');
     expect(css['--mm-shine-a']).toBe('100deg');
     expect(css['background-image']).toBeNull();
   });

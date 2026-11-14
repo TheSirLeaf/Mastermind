@@ -278,7 +278,7 @@ function keyframeTextSummary(k: Keyframe): string {
   if (k.fs !== undefined) parts.push(`${k.fs}px`);
   if (k.w !== undefined) parts.push(`peso ${k.w}`);
   if (k.ls !== undefined) parts.push(`letras ${k.ls}em`);
-  if (k.g !== undefined) parts.push(`brilho ${k.g}px`);
+  if (k.g !== undefined) parts.push(`neon ${k.g}px`);
   if (k.bl !== undefined) parts.push(`desfoque ${k.bl}px`);
   return parts.length ? ` · texto: ${parts.join(', ')}` : '';
 }

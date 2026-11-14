@@ -422,7 +422,7 @@ export const NAV_SCRIPT = `(function(){
       p.to.animate([
         {transform:'translate(' + dx + 'px,' + dy + 'px) scale(' + (p.r.width/b.width) + ',' + (p.r.height/b.height) + ')'},
         {transform: own || 'none'}
-      ], {duration:D, easing:'cubic-bezier(.65,0,.35,1)'});
+      ], {duration:D, easing:'cubic-bezier(.65,0,.35,1)'}).id = 'mm-morph';
     });
     /* o que não tem par aparece com um fade (os elementos com par ficam sempre opacos) */
     function fadeUnmatched(node){
@@ -450,7 +450,7 @@ export const NAV_SCRIPT = `(function(){
     p.to.animate([
       {transform:'translate(' + dx + 'px,' + dy + 'px)' + base},
       {transform: own || 'none'}
-    ], {duration:D, easing:ease});
+    ], {duration:D, easing:ease}).id = 'mm-morph';
     var targets = treeOf(p.to);
     var pairs = shapeOf(targets) === p.shape ? targets : [p.to];
     pairs.forEach(function(el, i){
@@ -463,7 +463,7 @@ export const NAV_SCRIPT = `(function(){
          /px$/.test(from.width) && /px$/.test(to.width)){
         a.width = from.width; z2.width = to.width; any = true;
       }
-      if(any) el.animate([a, z2], {duration:D, easing:ease});
+      if(any) el.animate([a, z2], {duration:D, easing:ease}).id = 'mm-morph';
     });
   }
 

@@ -45,6 +45,9 @@ export function Dropdown({
       if (ref.current?.contains(target) || menuRef.current?.contains(target)) return;
       // Popovers do seletor de cor ficam fora (portal): clicar neles não fecha a lista.
       if (target.closest?.('[aria-label="Seletor de cor"]')) return;
+      // Outros botões da mesma barra (negrito, tamanho…) não fecham a lista; abrir outra lista sim.
+      const toolbar = ref.current?.closest('[role="toolbar"]');
+      if (toolbar?.contains(target) && !target.closest?.('[data-dropdown]')) return;
       setOpen(false);
     };
     const onKey = (event: KeyboardEvent) => {
@@ -68,7 +71,7 @@ export function Dropdown({
   const room = rect ? (up ? rect.top : window.innerHeight - rect.bottom) - 16 : 400;
   const left = rect ? Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)) : 0;
   return (
-    <div ref={ref} className={clsx('relative', block && 'w-full')}>
+    <div ref={ref} data-dropdown="" className={clsx('relative', block && 'w-full')}>
       <button
         type="button"
         title={title}

@@ -598,3 +598,75 @@ test('A barra desliza junto com o trecho em vez de pular', async ({ page }) => {
   expect(distinct).toBeGreaterThan(5);
   expect(Math.max(...jumps)).toBeLessThan(60);
 });
+
+test('Trechos: combinações de efeitos não se atropelam e limpar/desfazer voltam ao texto puro', async ({
+  page,
+}) => {
+  const original =
+    '<section class="slide dark" data-notes=""><p class="ed-obj ed-text" id="t" style="position:absolute;left:200px;top:300px;width:1500px;font-size:90px">Olá mundo final</p></section>';
+  await boot(page, [original]);
+  const bar = page.getByTestId('text-format-bar');
+  const live = () => stageEval<string>(page, "return document.getElementById('t').innerHTML");
+  const fillOf = (text: string) =>
+    stageEval<string>(
+      page,
+      `var w=document.createTreeWalker(document.getElementById('t'),NodeFilter.SHOW_TEXT);var n;while((n=w.nextNode())){if(n.nodeValue.indexOf(${JSON.stringify(text)})>=0){var cs=getComputedStyle(n.parentElement);return cs.webkitTextFillColor+' | '+cs.fontWeight+' | '+cs.fontSize+' | '+cs.backgroundImage.slice(0,15)}}return 'none'`
+    );
+
+  // gradiente em "mundo", depois negrito e tamanho: o gradiente continua
+  await selectWord(page, 4, 9);
+  await bar.getByRole('button', { name: 'Efeitos avançados' }).click();
+  const panel = page.getByTestId('text-advanced');
+  await panel.getByRole('radio', { name: 'Gradiente' }).click();
+  await bar.getByRole('button', { name: /Negrito/ }).click();
+  await bar.getByRole('button', { name: 'Aumentar o tamanho' }).click();
+  await page.waitForTimeout(300);
+  const mundo = await fillOf('mundo');
+  expect(mundo).toContain('rgba(0, 0, 0, 0)');
+  expect(mundo).toContain('| 700 |');
+  expect(mundo).toContain('91px');
+
+  // sombra com tamanho e contorno por fora num trecho de cor sólida ("Olá")
+  await selectWord(page, 0, 3);
+  await panel.getByRole('button', { name: 'Contorno' }).click();
+  await panel.getByRole('radio', { name: 'Por fora' }).click();
+  await panel.getByRole('button', { name: 'Sombra' }).click();
+  await panel.getByRole('button', { name: 'Suave' }).click();
+  await panel.getByTestId('shadow-layer').first().getByLabel('Tamanho').fill('10');
+  await page.waitForTimeout(300);
+  const ola = (await spanStyle(page, 'Olá')) ?? '';
+  // por fora com cor sólida: traço de 6px (3px visíveis) sob a letra
+  expect(ola).toContain('-webkit-text-stroke: 6px');
+  expect(ola).toMatch(/paint-order: stroke/);
+  // tamanho: a sombra vira um anel de 9 cópias
+  expect((/text-shadow: ([^;]+)/.exec(ola)?.[1] ?? '').split('px, ').length).toBe(9);
+
+  // seleção que pega metade do trecho com gradiente e o texto seguinte: cor sólida nos dois
+  await selectWord(page, 6, 12);
+  await bar.getByRole('button', { name: 'Cor do trecho' }).click();
+  await page
+    .getByRole('dialog', { name: 'Seletor de cor' })
+    .getByLabel('Cor #F7D98B')
+    .last()
+    .click();
+  await page.waitForTimeout(300);
+  expect(await fillOf('ndo')).toContain('rgb(247, 217, 139)');
+  expect(await fillOf(' fi')).toContain('rgb(247, 217, 139)');
+  // a outra metade continua com o gradiente
+  expect(await fillOf('mu')).toContain('rgba(0, 0, 0, 0)');
+  expect(await stageEval<string>(page, "return document.getElementById('t').textContent")).toBe(
+    'Olá mundo final'
+  );
+
+  // limpar tudo: volta ao texto puro
+  await page.keyboard.press('Escape');
+  await selectWord(page, 0, 15);
+  await bar.getByRole('button', { name: 'Limpar formatação do trecho' }).click();
+  await page.waitForTimeout(300);
+  expect(await live()).toBe('Olá mundo final');
+
+  // Esc grava; Ctrl+Z desfaz a edição inteira
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(600);
+  expect(await savedHtml(page)).toContain('>Olá mundo final</p>');
+});

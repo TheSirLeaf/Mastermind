@@ -2364,6 +2364,18 @@
         (arg.props || []).forEach(function (k) {
           clear[k] = null;
         });
+        /* trechos inteiros dentro da seleção (inclusive os que têm outros trechos dentro) */
+        var selNow = window.getSelection();
+        Array.prototype.slice.call(editing.querySelectorAll('span')).forEach(function (sp) {
+          if (!selNow || !selNow.containsNode(sp, false)) return;
+          Object.keys(clear).forEach(function (k) {
+            sp.style.removeProperty(k);
+          });
+          sp.classList.remove('mm-shine');
+          sp.removeAttribute('data-fx');
+          if (!sp.getAttribute('style')) sp.removeAttribute('style');
+          if (!sp.getAttribute('class')) sp.removeAttribute('class');
+        });
         styleRange(clear, null, ['mm-shine'], { 'data-fx': null });
         unwrapBare(editing);
         return;

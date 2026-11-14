@@ -211,7 +211,7 @@ export function shadowCss(shadows: TextShadow[]): string | null {
 }
 
 /**
- * Variáveis do brilho que passa. A imagem do brilho tem 4× o tamanho do texto e anda na diagonal
+ * Variáveis do brilho que passa. A imagem do brilho tem 3× o tamanho do texto e anda na diagonal
  * do quadrante do ângulo: assim a faixa sempre atravessa o texto inteiro (inclusive em 0° e
  * 180°) e fica totalmente fora dele no começo e no fim (não se vê a faixa "parada").
  */
@@ -223,8 +223,8 @@ export function shineVars(shine: TextShine): Record<string, string> {
   return {
     '--mm-shine-c': shine.color,
     '--mm-shine-t': `${round(Math.max(0.2, shine.seconds), 2)}s`,
-    // meia largura da faixa, em % da linha do gradiente (que tem 4× o texto)
-    '--mm-shine-w': `${round(Math.max(0.5, shine.width) / 8, 3)}%`,
+    // meia largura da faixa, em % da linha do gradiente (que tem 3× o texto)
+    '--mm-shine-w': `${round(Math.max(0.5, shine.width) / 6, 3)}%`,
     '--mm-shine-a': `${round(shine.angle, 1)}deg`,
     '--mm-shine-d': `${round(Math.max(0, shine.delay), 2)}s`,
     '--mm-shine-p0': `${50 + 50 * dx}% ${50 + 50 * dy}%`,

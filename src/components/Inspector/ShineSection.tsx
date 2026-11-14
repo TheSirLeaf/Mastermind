@@ -60,7 +60,7 @@ export function ShineSection({ path, element }: { path: number[]; element: Eleme
             Cor da luz
           </div>
           <Slider
-            label="Começa em"
+            label="Começa"
             value={shine.delay}
             min={0}
             max={10}
@@ -69,7 +69,7 @@ export function ShineSection({ path, element }: { path: number[]; element: Eleme
             onChange={(delay) => set({ delay })}
           />
           <Slider
-            label="Repete a cada"
+            label="Intervalo"
             value={shine.seconds}
             min={0.6}
             max={12}

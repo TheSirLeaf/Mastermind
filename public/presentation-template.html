@@ -66,7 +66,8 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.92em
 
 /* ---------- anim ---------- */
 .slide.active .anim{animation:rise .85s cubic-bezier(.16,.84,.24,1) both;animation-delay:var(--d,0s)}
-.mm-shine{background-image:linear-gradient(var(--mm-shine-a,110deg),currentColor 0 calc(50% - var(--mm-shine-w,1.5%)),var(--mm-shine-c,#fff) 50%,currentColor calc(50% + var(--mm-shine-w,1.5%)) 100%)!important;background-size:400% 400%!important;background-repeat:no-repeat!important;background-position:var(--mm-shine-p0,100% 100%);-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important}
+.mm-shine{background-image:linear-gradient(var(--mm-shine-a,110deg),currentColor 0 calc(50% - var(--mm-shine-w,2%)),var(--mm-shine-c,#fff) 50%,currentColor calc(50% + var(--mm-shine-w,2%)) 100%)!important;background-size:300% 300%!important;background-repeat:no-repeat!important;background-position:var(--mm-shine-p0,100% 100%);-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important}
+.mm-shine [style*="color"]{-webkit-text-fill-color:currentcolor}
 @keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.slide.active .anim{animation:none}.slide.active .chart .bar{animation:none!important;transform:none!important}.slide.active .chart .cv{animation:none!important;opacity:1!important}.branch-svg .draw{stroke-dashoffset:0!important;animation:none!important}.branch-svg .pop{animation:none!important;opacity:1!important}.slide.active .sw-chip,.slide.active .tbar-track i{animation:none!important;transform:none!important}}
 

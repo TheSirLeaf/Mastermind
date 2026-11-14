@@ -90,10 +90,16 @@ export const PKG_HOST_SRC = `(function(){
          elas são levadas ao fim por um instante e voltam ao ponto em que estavam. */
       var others = el.getAnimations().filter(function (a) { return a.id !== 'mm-kf'; });
       var saved = others.map(function (a) { return { a: a, t: a.currentTime, paused: a.playState === 'paused' }; });
+      /* chegando por transição Interpolar: os keyframes só começam quando ela termina
+         (senão o tamanho/cor do keyframe passariam por cima da transição) */
+      var wait = 0;
       saved.forEach(function (o) {
         try {
           var end = o.a.effect && o.a.effect.getComputedTiming ? o.a.effect.getComputedTiming().endTime : null;
-          if (end !== null && isFinite(end)) o.a.currentTime = end;
+          if (end !== null && isFinite(end)) {
+            if (o.a.id === 'mm-morph') wait = Math.max(wait, end - num(o.t));
+            o.a.currentTime = end;
+          }
         } catch (e) {}
       });
       var cs = window.getComputedStyle(el);
@@ -135,7 +141,9 @@ export const PKG_HOST_SRC = `(function(){
         var off = lastT > 0 ? Math.min(1, num(k.t) / lastT) : 1;
         frames.push(frame(k, off, k.ease || 'ease-in-out'));
       });
-      var anim = el.animate(frames, { duration: total * 1000, fill: 'both', easing: 'linear' });
+      var anim = el.animate(frames, {
+        duration: total * 1000, delay: Math.max(0, wait), fill: wait > 0 ? 'forwards' : 'both', easing: 'linear'
+      });
       anim.id = 'mm-kf';
       anim.pause();
       anim.currentTime = 0;

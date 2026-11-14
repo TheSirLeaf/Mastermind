@@ -176,7 +176,7 @@ function KeyframeText({
               onCommit={(ls) => onChange({ ls })}
             />
             <OptNumberCell
-              label="Brilho (px)"
+              label="Neon (px)"
               value={k.g}
               onCommit={(g) => onChange({ g, gc: k.gc })}
             />
@@ -189,12 +189,12 @@ function KeyframeText({
             {k.g !== undefined ? (
               <div className="flex flex-col gap-0.5">
                 <span className="text-[9px] uppercase tracking-wider text-payday-textDim/60">
-                  Cor do brilho
+                  Cor do neon
                 </span>
                 <ColorField
                   compact
                   value={k.gc ?? '#F7D98B'}
-                  ariaLabel={`Cor do brilho no ${label}`}
+                  ariaLabel={`Cor do neon no ${label}`}
                   onChange={(gc) => onChange({ gc })}
                 />
               </div>
@@ -244,7 +244,7 @@ export function KeyframesSection({ path, element }: { path: number[]; element: E
       <p className="text-[11px] leading-snug text-payday-textDim">
         O elemento parte do lugar em que está e passa por cada keyframe no tempo indicado. Valores
         relativos ao estado natural dele.
-        {isText ? ' Em textos, cada keyframe também pode mudar cor, tamanho, peso e brilho.' : ''}
+        {isText ? ' Em textos, cada keyframe também pode mudar cor, tamanho, peso e neon.' : ''}
       </p>
 
       {list.map((k, index) => (
