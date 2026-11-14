@@ -269,7 +269,7 @@ const KEYFRAMES = `
 @keyframes mmSlideLeft{from{opacity:0;transform:translateX(calc(var(--anim-distance,26px) * -1))}to{opacity:1;transform:none}}
 @keyframes mmSlideRight{from{opacity:0;transform:translateX(var(--anim-distance,26px))}to{opacity:1;transform:none}}
 @keyframes mmZoom{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
-@keyframes mmBlur{from{opacity:0;filter:blur(14px)}to{opacity:1;filter:blur(0)}}
+@keyframes mmBlur{from{opacity:0;filter:blur(14px)}to{opacity:1}}
 @keyframes mmFlip{from{opacity:0;transform:perspective(900px) rotateY(75deg)}to{opacity:1;transform:none}}
 `;
 
@@ -295,11 +295,11 @@ ${KEYFRAMES}
 .slide.active .anim[data-anim="zoom"]{animation-name:mmZoom}
 .slide.active .anim[data-anim="blur"]{animation-name:mmBlur}
 .slide.active .anim[data-anim="flip"]{animation-name:mmFlip}
-.slide.mm-static .anim{animation:none!important;opacity:1!important;transform:none!important;filter:none!important}
+.slide.mm-static .anim{animation:none!important;opacity:1!important;transform:none!important}
 @media (prefers-reduced-motion:reduce){
-  .slide.active .anim{animation:none!important;opacity:1!important;transform:none!important;filter:none!important}
+  .slide.active .anim{animation:none!important;opacity:1!important;transform:none!important}
 }
 @media print{
-  .slide.active .anim{animation:none!important;opacity:1!important;transform:none!important;filter:none!important}
+  .slide.active .anim{animation:none!important;opacity:1!important;transform:none!important}
 }
 `.trim();

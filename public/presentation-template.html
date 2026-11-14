@@ -66,9 +66,7 @@ code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:.92em
 
 /* ---------- anim ---------- */
 .slide.active .anim{animation:rise .85s cubic-bezier(.16,.84,.24,1) both;animation-delay:var(--d,0s)}
-.mm-shine{background-image:linear-gradient(var(--mm-shine-a,110deg),currentColor 0 calc(50% - var(--mm-shine-w,12%)),var(--mm-shine-c,#fff) 50%,currentColor calc(50% + var(--mm-shine-w,12%)) 100%);background-size:250% 100%;background-repeat:no-repeat;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:mm-shine var(--mm-shine-t,3.2s) ease-in-out infinite}
-@keyframes mm-shine{0%{background-position:100% 0}55%,100%{background-position:0 0}}
-@media (prefers-reduced-motion:reduce){.mm-shine{animation:none}}
+.mm-shine{background-image:linear-gradient(var(--mm-shine-a,110deg),currentColor 0 calc(50% - var(--mm-shine-w,1.5%)),var(--mm-shine-c,#fff) 50%,currentColor calc(50% + var(--mm-shine-w,1.5%)) 100%)!important;background-size:400% 400%!important;background-repeat:no-repeat!important;background-position:var(--mm-shine-p0,100% 100%);-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important}
 @keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.slide.active .anim{animation:none}.slide.active .chart .bar{animation:none!important;transform:none!important}.slide.active .chart .cv{animation:none!important;opacity:1!important}.branch-svg .draw{stroke-dashoffset:0!important;animation:none!important}.branch-svg .pop{animation:none!important;opacity:1!important}.slide.active .sw-chip,.slide.active .tbar-track i{animation:none!important;transform:none!important}}
 

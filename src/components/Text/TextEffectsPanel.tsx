@@ -190,7 +190,6 @@ export function TextEffectsPanel({
             ['none', 'Padrão'],
             ['solid', 'Cor'],
             ['gradient', 'Gradiente'],
-            ['shine', 'Brilho'],
           ]}
           onChange={(kind) =>
             update((d) => {
@@ -311,41 +310,10 @@ export function TextEffectsPanel({
           </div>
         ) : null}
         {fx.fill?.kind === 'shine' ? (
-          <div className="space-y-2">
-            <ColorRow
-              label="Cor do brilho"
-              color={fx.fill.shine.color}
-              onColor={(c) => fill((f) => (f.shine.color = c))}
-              avoid={avoid}
-            />
-            <Slider
-              label="Duração"
-              value={fx.fill.shine.seconds}
-              min={0.6}
-              max={10}
-              step={0.1}
-              unit="s"
-              onChange={(v) => fill((f) => (f.shine.seconds = v))}
-            />
-            <Slider
-              label="Largura"
-              value={fx.fill.shine.width}
-              min={2}
-              max={40}
-              step={1}
-              unit="%"
-              onChange={(v) => fill((f) => (f.shine.width = v))}
-            />
-            <Slider
-              label="Ângulo"
-              value={fx.fill.shine.angle}
-              min={0}
-              max={180}
-              step={1}
-              unit="°"
-              onChange={(v) => fill((f) => (f.shine.angle = v))}
-            />
-          </div>
+          <p className="text-[10px] leading-snug text-payday-textDim">
+            Este trecho usa o brilho antigo. O brilho que passa agora fica na aba Animação (vale
+            para a caixa de texto e aparece na linha do tempo).
+          </p>
         ) : null}
       </Section>
 
@@ -469,6 +437,15 @@ export function TextEffectsPanel({
               unit="px"
               onChange={(v) => shadowFor(i, (x) => (x.blur = v))}
             />
+            <Slider
+              label="Tamanho"
+              value={s.size ?? 0}
+              min={0}
+              max={40}
+              step={0.5}
+              unit="px"
+              onChange={(v) => shadowFor(i, (x) => (x.size = v))}
+            />
             <ColorRow
               label={`Cor da sombra ${i + 1}`}
               color={s.color}
@@ -484,7 +461,7 @@ export function TextEffectsPanel({
             type="button"
             onClick={() =>
               update((d) =>
-                d.shadows.push({ x: 0, y: 6, blur: 16, color: '#000000', opacity: 0.5 })
+                d.shadows.push({ x: 0, y: 6, blur: 16, size: 0, color: '#000000', opacity: 0.5 })
               )
             }
             className="flex items-center gap-1 text-[11px] text-payday-textMuted transition hover:text-accent"

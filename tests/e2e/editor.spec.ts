@@ -458,8 +458,8 @@ test('Efeitos avançados do trecho: gradiente em itálico sem cortar, contorno, 
   expect(style).toMatch(
     /linear-gradient\(90deg, rgb\(247, 217, 139\) 0%, rgb\(199, 124, 138\) 50%, rgb\(199, 124, 138\) 100%\)/
   );
-  expect(style).toContain('-webkit-text-stroke: 3px');
-  expect(style).toMatch(/paint-order: stroke/);
+  // por fora + gradiente: contorno feito de sombras duras (a letra é transparente)
+  expect(style).toMatch(/drop-shadow\(rgb\(16, 6, 11\) 3px 0px 0px\)/);
   // com gradiente, as sombras viram drop-shadow (blur pela metade)
   expect(style).toMatch(/filter: .*drop-shadow\(.*12px 6px 8px/);
   const reflect = await stageEval<string>(
@@ -533,14 +533,14 @@ test('Inspetor: mesmas fontes, tamanho e efeitos de texto para a caixa toda', as
   await page.getByRole('menuitem', { name: 'Cormorant Garamond' }).click();
   await page.getByRole('button', { name: 'Efeitos de texto' }).click();
   const panel = page.getByTestId('text-advanced');
-  await panel.getByRole('radio', { name: 'Brilho' }).click();
+  await panel.getByRole('radio', { name: 'Gradiente' }).click();
   await panel.getByRole('button', { name: 'Sombra' }).click();
   await panel.getByRole('button', { name: 'Neon' }).click();
   await page.waitForTimeout(500);
   const html = await savedHtml(page);
   expect(html).toContain(`font-size: ${before + 1}px`);
   expect(html).toContain('Cormorant Garamond');
-  expect(html).toMatch(/class="[^"]*mm-shine/);
+  expect(html).toContain('linear-gradient');
   expect(html).toContain('drop-shadow');
   expect(html).toContain('data-fx=');
 });

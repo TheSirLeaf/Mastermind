@@ -29,9 +29,31 @@ export interface TextShadow {
   x: number;
   y: number;
   blur: number;
+  /** Tamanho: quanto a sombra cresce para além da letra (px). */
+  size: number;
   color: string;
   opacity: number;
 }
+
+/** Brilho que passa pelo texto (animação contínua; configurado na aba Animação). */
+export interface TextShine {
+  color: string;
+  /** Intervalo entre uma passada e a próxima (s). */
+  seconds: number;
+  /** Largura da faixa de luz (% do texto). */
+  width: number;
+  angle: number;
+  /** Quando a primeira passada começa, desde a entrada do slide (s). */
+  delay: number;
+}
+
+export const DEFAULT_SHINE: TextShine = {
+  color: '#FFFFFF',
+  seconds: 3.2,
+  width: 12,
+  angle: 110,
+  delay: 0,
+};
 
 export interface TextHighlight {
   color: string;
@@ -102,6 +124,9 @@ export const FX_PROPS = [
   '--mm-shine-t',
   '--mm-shine-w',
   '--mm-shine-a',
+  '--mm-shine-d',
+  '--mm-shine-p0',
+  '--mm-shine-p1',
   '-webkit-text-stroke',
   'paint-order',
   'text-shadow',
@@ -141,6 +166,10 @@ export function withAlpha(hex: string, alpha: number): string {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
 }
 
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
+const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
+const str = (v: unknown, d: string) => (typeof v === 'string' && v ? v : d);
+
 const round = (n: number, d = 3) => Math.round(n * 10 ** d) / 10 ** d;
 
 export function gradientCss(g: TextFill['gradient']): string {
@@ -153,13 +182,71 @@ export function gradientCss(g: TextFill['gradient']): string {
     : `linear-gradient(${round(g.angle, 1)}deg, ${stops})`;
 }
 
+/**
+ * `text-shadow` não tem "tamanho" (spread): ele é imitado com cópias da sombra num anel ao redor
+ * da original. A opacidade de cada cópia é reduzida para a soma ficar próxima da pedida.
+ */
 export function shadowCss(shadows: TextShadow[]): string | null {
   if (!shadows.length) return null;
-  return shadows
-    .map(
-      (s) => `${round(s.x)}px ${round(s.y)}px ${round(s.blur)}px ${withAlpha(s.color, s.opacity)}`
-    )
-    .join(', ');
+  const out: string[] = [];
+  for (const s of shadows) {
+    const size = Math.max(0, s.size || 0);
+    if (size < 0.01) {
+      out.push(
+        `${round(s.x)}px ${round(s.y)}px ${round(s.blur)}px ${withAlpha(s.color, s.opacity)}`
+      );
+      continue;
+    }
+    const alpha = 1 - (1 - Math.min(1, Math.max(0, s.opacity))) ** (1 / 3);
+    const color = withAlpha(s.color, round(alpha));
+    out.push(`${round(s.x)}px ${round(s.y)}px ${round(s.blur)}px ${color}`);
+    for (let i = 0; i < 8; i += 1) {
+      const a = (i / 8) * Math.PI * 2;
+      out.push(
+        `${round(s.x + Math.cos(a) * size, 2)}px ${round(s.y + Math.sin(a) * size, 2)}px ${round(s.blur)}px ${color}`
+      );
+    }
+  }
+  return out.join(', ');
+}
+
+/**
+ * Variáveis do brilho que passa. A imagem do brilho tem 4× o tamanho do texto e anda na diagonal
+ * do quadrante do ângulo: assim a faixa sempre atravessa o texto inteiro (inclusive em 0° e
+ * 180°) e fica totalmente fora dele no começo e no fim (não se vê a faixa "parada").
+ */
+export function shineVars(shine: TextShine): Record<string, string> {
+  const rad = (shine.angle * Math.PI) / 180;
+  const sign = (v: number) => (Math.abs(v) < 0.02 ? 0 : Math.sign(v));
+  const dx = sign(Math.sin(rad));
+  const dy = sign(-Math.cos(rad));
+  return {
+    '--mm-shine-c': shine.color,
+    '--mm-shine-t': `${round(Math.max(0.2, shine.seconds), 2)}s`,
+    // meia largura da faixa, em % da linha do gradiente (que tem 4× o texto)
+    '--mm-shine-w': `${round(Math.max(0.5, shine.width) / 8, 3)}%`,
+    '--mm-shine-a': `${round(shine.angle, 1)}deg`,
+    '--mm-shine-d': `${round(Math.max(0, shine.delay), 2)}s`,
+    '--mm-shine-p0': `${50 + 50 * dx}% ${50 + 50 * dy}%`,
+    '--mm-shine-p1': `${50 - 50 * dx}% ${50 - 50 * dy}%`,
+  };
+}
+
+export function parseShine(raw: string | null | undefined): TextShine | null {
+  if (!raw) return null;
+  try {
+    const d: unknown = JSON.parse(raw);
+    if (!isObj(d)) return null;
+    return {
+      color: str(d.color, DEFAULT_SHINE.color),
+      seconds: num(d.seconds, DEFAULT_SHINE.seconds),
+      width: num(d.width, DEFAULT_SHINE.width),
+      angle: num(d.angle, DEFAULT_SHINE.angle),
+      delay: num(d.delay, 0),
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** CSS completo dos efeitos: toda propriedade de `FX_PROPS` aparece (null = remover). */
@@ -184,30 +271,48 @@ export function textFxToCss(fx: TextFx): Record<string, string | null> {
         css['background-image'] = gradientCss(fill.gradient);
       } else {
         css.color = withAlpha(fill.color, fill.opacity);
-        css['--mm-shine-c'] = fill.shine.color;
-        css['--mm-shine-t'] = `${round(fill.shine.seconds, 2)}s`;
-        css['--mm-shine-w'] = `${round(fill.shine.width, 1)}%`;
-        css['--mm-shine-a'] = `${round(fill.shine.angle, 1)}deg`;
+        Object.assign(css, shineVars({ ...fill.shine, delay: 0 }));
       }
     }
   }
+  const filters: string[] = [];
   if (fx.stroke && fx.stroke.width > 0) {
-    css['-webkit-text-stroke'] =
-      `${round(fx.stroke.width, 2)}px ${withAlpha(fx.stroke.color, fx.stroke.opacity)}`;
-    if (fx.stroke.outside) css['paint-order'] = 'stroke fill';
+    const w = fx.stroke.width;
+    const color = withAlpha(fx.stroke.color, fx.stroke.opacity);
+    if (!fx.stroke.outside) {
+      // No meio: o traço fica metade para dentro e metade para fora da letra.
+      css['-webkit-text-stroke'] = `${round(w, 2)}px ${color}`;
+    } else if (clipPad === 0) {
+      // Por fora (cor sólida): a letra é pintada por cima do traço, que tem o dobro da largura
+      // para sobrar a espessura pedida do lado de fora.
+      css['-webkit-text-stroke'] = `${round(w * 2, 2)}px ${color}`;
+      css['paint-order'] = 'stroke fill';
+    } else {
+      // Por fora (gradiente/brilho): a letra é transparente, então pintar "por cima" não esconde
+      // nada. O contorno vem de quatro sombras duras encadeadas (dilatam a forma da letra).
+      const o = round(w, 2);
+      filters.push(
+        `drop-shadow(${o}px 0 0 ${color})`,
+        `drop-shadow(${-o}px 0 0 ${color})`,
+        `drop-shadow(0 ${o}px 0 ${color})`,
+        `drop-shadow(0 ${-o}px 0 ${color})`
+      );
+    }
   }
-  if (clipPad > 0 && fx.shadows.length) {
+  if (clipPad > 0) {
     // Com o preenchimento recortado (letra transparente), o text-shadow apareceria através da
-    // letra e desbotaria o gradiente; drop-shadow fica por trás do que foi pintado.
-    css.filter = fx.shadows
-      .map(
-        (s) =>
-          `drop-shadow(${round(s.x)}px ${round(s.y)}px ${round(s.blur / 2)}px ${withAlpha(s.color, s.opacity)})`
-      )
-      .join(' ');
+    // letra e desbotaria o gradiente; drop-shadow fica por trás do que foi pintado. Ele não tem
+    // "tamanho", então o tamanho entra como desfoque extra.
+    for (const s of fx.shadows) {
+      const blur = s.blur / 2 + Math.max(0, s.size || 0) * 0.6;
+      filters.push(
+        `drop-shadow(${round(s.x)}px ${round(s.y)}px ${round(blur)}px ${withAlpha(s.color, s.opacity)})`
+      );
+    }
   } else {
     css['text-shadow'] = shadowCss(fx.shadows);
   }
+  if (filters.length) css.filter = filters.join(' ');
   let pad = clipPad;
   if (fx.highlight) {
     const h = fx.highlight;
@@ -240,10 +345,6 @@ export function reflectToCss(r: TextReflect | null): string | null {
   const a = round(r.opacity);
   return `${r.side} ${round(r.gap)}px linear-gradient(transparent ${round(r.fade, 1)}%, rgba(255, 255, 255, ${a}))`;
 }
-
-const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
-const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
-const str = (v: unknown, d: string) => (typeof v === 'string' && v ? v : d);
 
 /** Lê o JSON do `data-fx` tolerando campos faltando ou inválidos. */
 export function parseTextFx(raw: string | null | undefined): TextFx {
@@ -296,6 +397,7 @@ export function parseTextFx(raw: string | null | undefined): TextFx {
           x: num(x.x, 0),
           y: num(x.y, 4),
           blur: num(x.blur, 12),
+          size: num(x.size, 0),
           color: str(x.color, '#000000'),
           opacity: num(x.opacity, 0.5),
         }))
@@ -350,22 +452,22 @@ export function isEmptyFx(fx: TextFx): boolean {
 export const SHADOW_PRESETS: Array<[id: string, label: string, make: (c: string) => TextShadow[]]> =
   [
     ['none', 'Nenhuma', () => []],
-    ['soft', 'Suave', () => [{ x: 0, y: 4, blur: 14, color: '#000000', opacity: 0.45 }]],
+    ['soft', 'Suave', () => [{ x: 0, y: 4, blur: 14, size: 0, color: '#000000', opacity: 0.45 }]],
     [
       'strong',
       'Forte',
       () => [
-        { x: 5, y: 7, blur: 0, color: '#000000', opacity: 0.85 },
-        { x: 0, y: 10, blur: 30, color: '#000000', opacity: 0.5 },
+        { x: 5, y: 7, blur: 0, size: 0, color: '#000000', opacity: 0.85 },
+        { x: 0, y: 10, blur: 30, size: 0, color: '#000000', opacity: 0.5 },
       ],
     ],
     [
       'glow',
       'Neon',
       (c) => [
-        { x: 0, y: 0, blur: 8, color: c, opacity: 1 },
-        { x: 0, y: 0, blur: 24, color: c, opacity: 0.9 },
-        { x: 0, y: 0, blur: 60, color: c, opacity: 0.7 },
+        { x: 0, y: 0, blur: 8, size: 0, color: c, opacity: 1 },
+        { x: 0, y: 0, blur: 24, size: 0, color: c, opacity: 0.9 },
+        { x: 0, y: 0, blur: 60, size: 0, color: c, opacity: 0.7 },
       ],
     ],
     [
@@ -376,6 +478,7 @@ export const SHADOW_PRESETS: Array<[id: string, label: string, make: (c: string)
           x: i * 2,
           y: i * 2,
           blur: 0,
+          size: 0,
           color: '#10060B',
           opacity: 0.9 - i * 0.1,
         })),

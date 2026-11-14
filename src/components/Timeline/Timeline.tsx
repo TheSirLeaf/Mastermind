@@ -29,6 +29,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 
+import { shinePatch } from '../../editor/elementFx';
+import { parseShine, type TextShine } from '../../editor/textFx';
 import { RenameLabel } from '../common/RenameLabel';
 import { Tooltip } from '../common/Tooltip';
 import { getElementSpec, updatePackageSpec } from '../Inspector/packageSpec';
@@ -58,6 +60,21 @@ interface ElementGroup {
   anim?: Track;
   pkg?: PackageTrack;
   kf?: KeyframeTrack;
+  shine?: ShineTrack;
+}
+
+/** Brilho que passa pelo texto (animação contínua do elemento). */
+interface ShineTrack {
+  path: number[];
+  key: string;
+  label: string;
+  shine: TextShine;
+}
+
+interface ShineDrag {
+  track: ShineTrack;
+  mode: 'move' | 'resize';
+  startX: number;
 }
 
 function comparePaths(a: number[], b: number[]): number {
@@ -103,6 +120,10 @@ const KIND_LABELS: Record<AnimationKind, string> = {
   blur: 'Desfoque',
   flip: 'Flip',
 };
+
+/** Parte do intervalo em que a faixa de luz está passando (o resto é espera). */
+const SHINE_SWEEP = 0.6;
+const SHINE_COLOR = '#F3E9C6';
 
 const TEXT_TAGS = new Set(['h1', 'h2', 'h3', 'h4', 'p', 'span', 'b', 'i', 'em', 'strong', 'li']);
 const SNAP = 0.05;
@@ -166,6 +187,26 @@ function collectPackageTracks(html: string, slideIndex: number): PackageTrack[] 
           def,
           spec: getElementSpec(child),
         });
+      }
+      walk(child, childPath);
+    });
+  };
+  walk(root, [slideIndex]);
+  return out;
+}
+
+function collectShineTracks(html: string, slideIndex: number): ShineTrack[] {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const root = doc.body.firstElementChild;
+  if (!root) return [];
+  const out: ShineTrack[] = [];
+  const walk = (element: Element, path: number[]): void => {
+    Array.from(element.children).forEach((child, index) => {
+      if (child.id === 'mm-sel') return;
+      const childPath = [...path, index];
+      const shine = parseShine(child.getAttribute('data-shine'));
+      if (shine) {
+        out.push({ path: childPath, key: childPath.join('.'), label: labelOf(child), shine });
       }
       walk(child, childPath);
     });
@@ -302,6 +343,18 @@ export function Timeline() {
     const prefix = selection.path.join('.');
     return allKfTracks.filter((t) => t.key === prefix || t.key.startsWith(`${prefix}.`));
   }, [allKfTracks, scope, selection]);
+  const allShineTracks = useMemo(
+    () => collectShineTracks(html, currentIndex),
+    [html, currentIndex]
+  );
+  const shineTracks = useMemo(() => {
+    if (scope === 'slide' || !selection) return allShineTracks;
+    const prefix = selection.path.join('.');
+    return allShineTracks.filter((t) => t.key === prefix || t.key.startsWith(`${prefix}.`));
+  }, [allShineTracks, scope, selection]);
+  const [shineDraft, setShineDraft] = useState<Record<string, TextShine>>({});
+  const shineDragRef = useRef<ShineDrag | null>(null);
+  const shineOf = (track: ShineTrack): TextShine => shineDraft[track.key] ?? track.shine;
   const [kfDraft, setKfDraft] = useState<Record<string, Keyframe[]>>({});
   const kfDragRef = useRef<KeyframeDrag | null>(null);
   const kfsOf = (track: KeyframeTrack): Keyframe[] => kfDraft[track.key] ?? track.kfs;
@@ -327,8 +380,13 @@ export function Timeline() {
       if (found) found.kf = kf;
       else byKey.set(kf.key, { key: kf.key, path: kf.path, label: kf.label, kf });
     }
+    for (const sh of shineTracks) {
+      const found = byKey.get(sh.key);
+      if (found) found.shine = sh;
+      else byKey.set(sh.key, { key: sh.key, path: sh.path, label: sh.label, shine: sh });
+    }
     return Array.from(byKey.values()).sort((a, b) => comparePaths(a.path, b.path));
-  }, [tracks, pkgTracks, kfTracks]);
+  }, [tracks, pkgTracks, kfTracks, shineTracks]);
 
   const pkgEnd = Math.max(
     0,
@@ -337,9 +395,15 @@ export function Timeline() {
     )
   );
   const kfEnd = Math.max(0, ...kfTracks.map((track) => keyframesEnd(kfsOf(track))));
+  // O brilho repete para sempre: na conta do tempo total entra a primeira passada.
+  const shineEnd = Math.max(
+    0,
+    ...shineTracks.map((track) => shineOf(track).delay + shineOf(track).seconds * SHINE_SWEEP)
+  );
   const total = Math.max(
     pkgEnd,
     kfEnd,
+    shineEnd,
     ...tracks.map((track) => animationDuration(effective(track)) / 1000)
   );
   const span = Math.max(3, Math.ceil((total + 0.4) * 2) / 2);
@@ -546,6 +610,123 @@ export function Timeline() {
     if (active && active.path.join('.') === drag.track.key && active.index === drag.index) {
       ui.setActiveKeyframe({ path: drag.track.path, index: Math.max(0, newIndex) });
     }
+  };
+
+  const beginShineDrag = (
+    event: ReactPointerEvent,
+    track: ShineTrack,
+    mode: 'move' | 'resize'
+  ): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    shineDragRef.current = { track, mode, startX: event.clientX };
+    useDeckStore.getState().requestSelection(track.path);
+  };
+  const moveShineDrag = (event: ReactPointerEvent): void => {
+    const drag = shineDragRef.current;
+    const area = trackAreaRef.current;
+    if (!drag || !area) return;
+    const seconds = ((event.clientX - drag.startX) / area.clientWidth) * span;
+    const base = drag.track.shine;
+    const next: TextShine =
+      drag.mode === 'move'
+        ? { ...base, delay: round(Math.max(0, base.delay + seconds)) }
+        : // a ponta da barra é o fim da passada (60% do intervalo)
+          { ...base, seconds: Math.max(0.6, round(base.seconds + seconds / SHINE_SWEEP)) };
+    setShineDraft((prev) => ({ ...prev, [drag.track.key]: next }));
+  };
+  const endShineDrag = (): void => {
+    const drag = shineDragRef.current;
+    shineDragRef.current = null;
+    if (!drag) return;
+    const next = shineDraft[drag.track.key];
+    setShineDraft((prev) => {
+      const rest = { ...prev };
+      delete rest[drag.track.key];
+      return rest;
+    });
+    if (next) useDeckStore.getState().patchElement(drag.track.path, shinePatch(next));
+  };
+
+  /** Linha do brilho que passa: uma barra por passada (a primeira é a que se arrasta). */
+  const shineRow = (track: ShineTrack, sub?: string) => {
+    const shine = shineOf(track);
+    const selected = selectedKey === track.key;
+    const sweep = shine.seconds * SHINE_SWEEP;
+    const starts: number[] = [];
+    for (let t = shine.delay; t < span && starts.length < 60; t += shine.seconds) starts.push(t);
+    return (
+      <div
+        key={`shine-${track.key}`}
+        data-testid="timeline-shine"
+        className={clsx(
+          'flex h-8',
+          !sub && 'border-b border-payday-border/40',
+          selected && 'bg-accent/[0.07]'
+        )}
+      >
+        {sub ? (
+          <div
+            className="w-[190px] shrink-0 truncate border-r border-payday-border pr-2 text-[11px] leading-8 text-payday-textDim"
+            style={{ paddingLeft: 26 }}
+          >
+            ↳ {sub}
+          </div>
+        ) : (
+          nameCell(track.path, track.label, selected, 12)
+        )}
+        <div className="relative min-w-0 flex-1 overflow-hidden">
+          {gridLines}
+          {starts.map((start, index) => (
+            <div
+              key={index}
+              className="absolute top-1.5 h-5"
+              style={{
+                left: `${(start / span) * 100}%`,
+                width: `${Math.max(1.2, (sweep / span) * 100)}%`,
+                opacity: index === 0 ? 1 : 0.45,
+              }}
+            >
+              {index === 0 ? (
+                <Tooltip
+                  title={`Brilho · começa em ${fmt(shine.delay)} · repete a cada ${fmt(shine.seconds)}`}
+                  description="Arraste a barra para mudar o começo e a ponta para o intervalo. As barras claras são as repetições."
+                  side="top"
+                  className="h-full w-full"
+                >
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Brilho de ${track.label}`}
+                    onPointerDown={(event) => beginShineDrag(event, track, 'move')}
+                    onPointerMove={moveShineDrag}
+                    onPointerUp={endShineDrag}
+                    onPointerCancel={endShineDrag}
+                    className="relative flex h-full w-full cursor-grab touch-none items-center overflow-hidden rounded-[5px] border border-black/30 px-1.5 text-[10px] font-medium text-black/70 active:cursor-grabbing"
+                    style={{ background: SHINE_COLOR }}
+                  >
+                    <span className="truncate">Brilho ∞</span>
+                    <span
+                      aria-hidden="true"
+                      onPointerDown={(event) => beginShineDrag(event, track, 'resize')}
+                      onPointerMove={moveShineDrag}
+                      onPointerUp={endShineDrag}
+                      className="absolute inset-y-0 right-0 w-2 cursor-ew-resize bg-black/25"
+                    />
+                  </div>
+                </Tooltip>
+              ) : (
+                <div
+                  className="h-full w-full rounded-[5px] border border-black/30"
+                  style={{ background: SHINE_COLOR }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   const gridLines = ticks.map((t) => (
@@ -798,7 +979,8 @@ export function Timeline() {
             disabled={
               tracks.every((track) => !effective(track)) &&
               pkgTracks.length === 0 &&
-              kfTracks.length === 0
+              kfTracks.length === 0 &&
+              shineTracks.length === 0
             }
             className="grid h-7 w-7 place-items-center rounded-md bg-accent/15 text-accent transition hover:bg-accent/25 disabled:pointer-events-none disabled:opacity-35"
           >
@@ -884,13 +1066,14 @@ export function Timeline() {
           </div>
         ) : (
           groups.map((group) => {
-            const parts = [group.anim, group.pkg, group.kf].filter(Boolean).length;
+            const parts = [group.anim, group.pkg, group.kf, group.shine].filter(Boolean).length;
             if (parts >= 2) {
               const selected = selectedKey === group.key;
               const events =
                 (group.anim ? 1 : 0) +
                 (group.pkg ? packageEvents(group.pkg, specOf(group.pkg)).length : 0) +
-                (group.kf ? group.kf.kfs.length : 0);
+                (group.kf ? group.kf.kfs.length : 0) +
+                (group.shine ? 1 : 0);
               return (
                 <div
                   key={group.key}
@@ -907,12 +1090,14 @@ export function Timeline() {
                   {group.anim ? animRow(group.anim, 'Entrada') : null}
                   {group.pkg ? pkgRow(group.pkg, group.pkg.def.name) : null}
                   {group.kf ? kfRow(group.kf, 'Interpolação') : null}
+                  {group.shine ? shineRow(group.shine, 'Brilho') : null}
                 </div>
               );
             }
             if (group.anim) return animRow(group.anim);
             if (group.pkg) return pkgRow(group.pkg);
-            return group.kf ? kfRow(group.kf) : null;
+            if (group.kf) return kfRow(group.kf);
+            return group.shine ? shineRow(group.shine) : null;
           })
         )}
 

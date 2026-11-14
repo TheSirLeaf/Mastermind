@@ -66,6 +66,8 @@
     /* elementos podem ser arrastados para fora do slide (grid); a apresentação continua cortando */
     /* o que sai do slide é cortado (como na apresentação); só no arrasto aparece inteiro */
     'body.mm-lift #deck>.slide.active{overflow:visible!important}',
+    /* keyframe no palco: o elemento pode estar fora do slide (entrando/saindo) e precisa ser visto */
+    'body.mm-posing:not(.mm-preview) #deck>.slide.active{overflow:visible!important}',
     'body.mm-canvas:not(.mm-preview) .slide.light::before{clip-path:inset(300px 260px 0 0)}',
     'body.mm-canvas:not(.mm-preview) .slide::after{clip-path:inset(0 70px 110px 0)}',
     'body.mm-lift #deck>.slide.active{z-index:2000000!important}',
@@ -681,7 +683,10 @@
     POSE_TEXT.forEach(function (p) {
       text[p[1]] = el.style.getPropertyValue(p[1]);
     });
+    var ccs = window.getComputedStyle(el);
     return {
+      keepTs: ccs.textShadow && ccs.textShadow !== 'none' ? ', ' + ccs.textShadow : '',
+      keepFl: ccs.filter && ccs.filter !== 'none' ? ' ' + ccs.filter : '',
       text: text,
       translate: el.style.translate || '',
       scale: el.style.scale || '',
@@ -710,6 +715,7 @@
     if (poseState.el.isConnected) restoreBase(poseState.el, poseState.base);
     poseState = null;
     sel.classList.remove('mm-pose');
+    document.body.classList.remove('mm-posing');
   }
   function setPose(path, pose) {
     if (poseState && !poseState.el.isConnected) poseState = null;
@@ -722,6 +728,7 @@
     if (!poseState) {
       poseState = { el: target, base: baseOf(target), pose: pose };
       sel.classList.add('mm-pose');
+      document.body.classList.add('mm-posing');
     }
     poseState.pose = pose;
     var b = poseState.base;
@@ -738,8 +745,8 @@
         else if (p[0] === 'w') css = String(v);
         else if (p[0] === 'g') {
           var gc = pose.gc || '#F7D98B';
-          css = '0 0 ' + v * 0.35 + 'px ' + gc + ', 0 0 ' + v + 'px ' + gc;
-        } else if (p[0] === 'bl') css = 'blur(' + v + 'px)';
+          css = '0 0 ' + v * 0.35 + 'px ' + gc + ', 0 0 ' + v + 'px ' + gc + b.keepTs;
+        } else if (p[0] === 'bl') css = 'blur(' + v + 'px)' + b.keepFl;
         else css = String(v);
       }
       /* sem valor no keyframe: o natural (o inline original, se havia) */
@@ -2248,7 +2255,8 @@
       }
       /* dentro de outro trecho (ou caixa) com efeito: valores neutros explícitos */
       var up = target.parentElement;
-      var nested = nestedStyles && up && editing.contains(up) && !!up.closest('[data-fx]');
+      var fxUp = nestedStyles && up ? up.closest('[data-fx]') : null;
+      var nested = !!fxUp && editing.contains(fxUp);
       var use = nested ? nestedStyles : styles;
       Object.keys(use || {}).forEach(function (k) {
         var v = use[k];

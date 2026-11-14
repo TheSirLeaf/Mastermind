@@ -74,7 +74,8 @@ export const PKG_HOST_SRC = `(function(){
       var bx = num(tr[0]), by = num(tr[1]);
       var bs = num(el.style.scale) || 1, br = num(el.style.rotate);
       var bo = el.style.opacity === '' ? 1 : num(el.style.opacity);
-      var total = Math.max(0.05, num(kfs[kfs.length - 1].t));
+      var lastT = num(kfs[kfs.length - 1].t);
+      var total = Math.max(0.05, lastT);
       /* Só mexe no que os keyframes usam: a entrada (fade/subir) do elemento continua valendo. */
       function used(key, neutral) {
         return kfs.some(function (k) { return k[key] !== undefined && num(k[key]) !== neutral; });
@@ -85,13 +86,30 @@ export const PKG_HOST_SRC = `(function(){
       function has(key) {
         return kfs.some(function (k) { return k[key] !== undefined && k[key] !== null; });
       }
+      /* O "natural" é lido sem as outras animações em curso (entrada, transição Interpolar):
+         elas são levadas ao fim por um instante e voltam ao ponto em que estavam. */
+      var others = el.getAnimations().filter(function (a) { return a.id !== 'mm-kf'; });
+      var saved = others.map(function (a) { return { a: a, t: a.currentTime, paused: a.playState === 'paused' }; });
+      saved.forEach(function (o) {
+        try {
+          var end = o.a.effect && o.a.effect.getComputedTiming ? o.a.effect.getComputedTiming().endTime : null;
+          if (end !== null && isFinite(end)) o.a.currentTime = end;
+        } catch (e) {}
+      });
       var cs = window.getComputedStyle(el);
       var nat = {
         c: cs.color, fs: cs.fontSize, w: cs.fontWeight,
         ls: cs.letterSpacing === 'normal' ? '0px' : cs.letterSpacing,
         ts: cs.textShadow, fl: cs.filter
       };
+      saved.forEach(function (o) { try { o.a.currentTime = o.t; if (!o.paused && o.a.playState !== 'running') o.a.play(); } catch (e) {} });
+      /* brilho e desfoque do keyframe somam-se à sombra/filtro que o texto já tem */
+      var keepTs = nat.ts && nat.ts !== 'none' ? ', ' + nat.ts : '';
+      var keepFl = nat.fl && nat.fl !== 'none' ? ' ' + nat.fl : '';
       var uC = has('c'), uFs = has('fs'), uW = has('w'), uLs = has('ls'), uG = has('g'), uBl = has('bl');
+      /* keyframes sem brilho usam brilho 0 na cor do vizinho (a cor não "pisca" no caminho) */
+      var gcDefault = '#F7D98B';
+      kfs.forEach(function (k) { if (k.g !== undefined && k.gc) gcDefault = k.gc; });
       function glow(g, c) {
         c = c || '#F7D98B';
         return '0 0 ' + (num(g) * 0.35) + 'px ' + c + ', 0 0 ' + num(g) + 'px ' + c;
@@ -102,8 +120,8 @@ export const PKG_HOST_SRC = `(function(){
         if (uFs) f.fontSize = k.fs !== undefined ? num(k.fs) + 'px' : nat.fs;
         if (uW) f.fontWeight = k.w !== undefined ? String(num(k.w)) : nat.w;
         if (uLs) f.letterSpacing = k.ls !== undefined ? num(k.ls) + 'em' : nat.ls;
-        if (uG) f.textShadow = k.g !== undefined ? glow(k.g, k.gc) : nat.ts;
-        if (uBl) f.filter = k.bl !== undefined ? 'blur(' + num(k.bl) + 'px)' : nat.fl;
+        if (uG) f.textShadow = glow(k.g !== undefined ? k.g : 0, k.gc || gcDefault) + keepTs;
+        if (uBl) f.filter = 'blur(' + (k.bl !== undefined ? num(k.bl) : 0) + 'px)' + keepFl;
         if (useMove) f.translate = (bx + num(k.x)) + 'px ' + (by + num(k.y)) + 'px';
         if (useScale) f.scale = bs * (k.s === undefined ? 1 : num(k.s));
         if (useRot) f.rotate = (br + num(k.r)) + 'deg';
@@ -113,7 +131,9 @@ export const PKG_HOST_SRC = `(function(){
       var frames = [];
       if (num(kfs[0].t) > 0) frames.push(frame({}, 0, 'linear'));
       kfs.forEach(function (k) {
-        frames.push(frame(k, Math.min(1, num(k.t) / total), k.ease || 'ease-in-out'));
+        /* tudo em t=0: o último keyframe é o estado final (offset 1), não um instante que some */
+        var off = lastT > 0 ? Math.min(1, num(k.t) / lastT) : 1;
+        frames.push(frame(k, off, k.ease || 'ease-in-out'));
       });
       var anim = el.animate(frames, { duration: total * 1000, fill: 'both', easing: 'linear' });
       anim.id = 'mm-kf';
@@ -122,6 +142,30 @@ export const PKG_HOST_SRC = `(function(){
       controllers.push({
         play: function () { if (reduced) anim.finish(); else anim.play(); },
         final: function () { try { anim.finish(); } catch (e) {} }
+      });
+    });
+  }
+
+  /* Brilho que passa pelo texto (.mm-shine): a faixa de luz atravessa o texto e espera fora dele
+     até a próxima passada. Roda aqui (e não em CSS) para conviver com a animação de entrada. */
+  function mountShine(slide, controllers) {
+    [].slice.call(slide.querySelectorAll('.mm-shine')).forEach(function (el) {
+      if (!el.animate) return;
+      el.getAnimations().forEach(function (a) { if (a.id === 'mm-shine') a.cancel(); });
+      var cs = window.getComputedStyle(el);
+      var p0 = (cs.getPropertyValue('--mm-shine-p0') || '').trim() || '100% 100%';
+      var p1 = (cs.getPropertyValue('--mm-shine-p1') || '').trim() || '0% 0%';
+      var secs = num(cs.getPropertyValue('--mm-shine-t')) || 3.2;
+      var delay = num(cs.getPropertyValue('--mm-shine-d'));
+      var anim = el.animate(
+        [{ backgroundPosition: p0, offset: 0 }, { backgroundPosition: p1, offset: 0.6 }, { backgroundPosition: p1, offset: 1 }],
+        { duration: Math.max(0.2, secs) * 1000, delay: delay * 1000, iterations: Infinity, easing: 'linear', fill: 'both' }
+      );
+      anim.id = 'mm-shine';
+      anim.pause();
+      controllers.push({
+        play: function () { if (reduced) anim.cancel(); else anim.play(); },
+        final: function () { try { anim.cancel(); } catch (e) {} }
       });
     });
   }
@@ -151,6 +195,7 @@ export const PKG_HOST_SRC = `(function(){
     });
 
     try { mountKeyframes(slide, controllers); } catch (e) { /* não deve quebrar a apresentação */ }
+    try { mountShine(slide, controllers); } catch (e) { /* idem */ }
 
     return {
       play: function () {
