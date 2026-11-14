@@ -14,6 +14,7 @@ import { useUIStore } from '@stores/uiStore';
 import { PlugZap } from 'lucide-react';
 
 import { SettingsModal } from '../common/SettingsModal';
+import { TextFormatBar } from '../Stage/TextFormatBar';
 import { Timeline } from '../Timeline/Timeline';
 
 import { BottomDock } from './BottomDock';
@@ -84,6 +85,7 @@ export function Layout() {
       <NewSlideModal />
       <PresentationPrefsModal />
       <ContextMenu />
+      <TextFormatBar />
       <SettingsModal />
       {toast && <Toast message={toast.message} type={toast.type} onDismiss={hideToast} />}
     </div>

@@ -110,12 +110,6 @@
     'body.mm-preview #mm-ghosts,body.mm-arrange #mm-ghosts{display:none}',
     '.mm-guide{position:absolute;background:#ff3d8b;box-shadow:0 0 0 .5px rgba(255,61,139,.4)}',
     'body.mm-picking .slide.active *{cursor:crosshair!important}',
-    '#mm-fmt{position:fixed;z-index:2147483000;display:none;align-items:center;gap:2px;padding:4px;border-radius:10px;background:#1b1b20;border:1px solid rgba(247,217,139,.35);box-shadow:0 10px 30px rgba(0,0,0,.5);font:600 13px "Segoe UI",system-ui,sans-serif;-webkit-user-select:none;user-select:none}',
-    '#mm-fmt button{min-width:26px;height:26px;border:0;border-radius:6px;background:transparent;color:#eee;cursor:pointer;font:inherit}',
-    '#mm-fmt button:hover{background:rgba(255,255,255,.12);color:#F7D98B}',
-    '#mm-fmt .mm-fmt-sw{min-width:16px;width:16px;height:16px;border-radius:4px;border:1px solid rgba(255,255,255,.35);margin:0 1px}',
-    '#mm-fmt .mm-fmt-size{width:52px;height:24px;border-radius:6px;border:1px solid rgba(255,255,255,.2);background:#111;color:#eee;padding:0 4px;font:inherit}',
-    '#mm-fmt .mm-fmt-color{width:26px;height:24px;padding:0;border:0;background:transparent;cursor:pointer}',
   ].join('\n');
   document.head.appendChild(style);
 
@@ -544,7 +538,8 @@
     el.setAttribute('contenteditable', 'true');
     el.setAttribute('data-mm-editing', '1');
     el.setAttribute('spellcheck', 'false');
-    el.focus();
+    el.focus({ preventScroll: true });
+    resetScroll();
     var range = document.createRange();
     range.selectNodeContents(el);
     if (!all) range.collapse(false);
@@ -597,8 +592,8 @@
     if (!editing) return;
     var el = editing;
     editing = null;
-    fmt.style.display = 'none';
     savedRange = null;
+    reportFormat();
     el.removeAttribute('contenteditable');
     el.removeAttribute('data-mm-editing');
     el.removeAttribute('spellcheck');
@@ -814,7 +809,6 @@
     function (e) {
       /* impede seleção nativa e foco; o texto em edição mantém o comportamento normal */
       if (editing && editing.contains(e.target)) return;
-      if (e.target === sizeBox || e.target === colorBox) return;
       e.preventDefault();
     },
     true
@@ -1182,7 +1176,6 @@
     'click',
     function (e) {
       if (editing && editing.contains(e.target)) return;
-      if (fmt.contains(e.target)) return;
       e.preventDefault();
       e.stopPropagation();
     },
@@ -1276,7 +1269,6 @@
       var k = e.key;
       var c = e.ctrlKey || e.metaKey;
       var low = k.length === 1 ? k.toLowerCase() : k;
-      if (e.target === sizeBox || e.target === colorBox) return;
       if (c && low === 's') {
         e.preventDefault();
         post({ type: 'key', key: 'save' });
@@ -1285,7 +1277,8 @@
       if (editing) {
         if (k === 'Escape') {
           e.preventDefault();
-          endEdit(false);
+          /* Esc sai da edição guardando o que foi feito (como no Figma); desfazer é Ctrl+Z */
+          endEdit(true);
         } else if (k === 'Enter' && !e.shiftKey) {
           var t = editing.tagName.toLowerCase();
           if (t !== 'p' && t !== 'li' && t !== 'div') {
@@ -1534,11 +1527,13 @@
       scaleLabels();
       drawSelection(selected);
       scheduleGhosts();
+      if (editing) scheduleFormat();
       /* durante a animação da câmera o retângulo medido ainda não é o final */
       clearTimeout(viewTimer);
       if (data.animate)
         viewTimer = setTimeout(function () {
           drawSelection(selected);
+          if (editing) reportFormat();
         }, 620);
     } else if (data.type === 'palette') {
       var pa = activeSlide();
@@ -2013,66 +2008,38 @@
   }
 
   /* ======================================================================
-     Formatação de trecho do texto em edição (negrito, itálico, tamanho, cor…).
+     Formatação de trecho do texto em edição. A barra fica no app (fora do iframe);
+     aqui ficam o trecho guardado, os comandos e o aviso de onde ele está na tela.
      ====================================================================== */
-  var fmt = document.createElement('div');
-  fmt.id = 'mm-fmt';
-  fmt.setAttribute('role', 'toolbar');
-  fmt.setAttribute('aria-label', 'Formatar trecho');
   var savedRange = null;
-  var FMT_BUTTONS = [
-    ['bold', 'B', 'Negrito (Ctrl+B)', 'font-weight:700'],
-    ['italic', 'I', 'Itálico (Ctrl+I)', 'font-style:italic'],
-    ['underline', 'U', 'Sublinhado (Ctrl+U)', 'text-decoration:underline'],
-    ['strikeThrough', 'S', 'Tachado', 'text-decoration:line-through'],
-    ['superscript', 'x²', 'Sobrescrito', ''],
-    ['subscript', 'x₂', 'Subscrito', ''],
-    ['smaller', 'A−', 'Diminuir o tamanho', ''],
-    ['bigger', 'A+', 'Aumentar o tamanho', ''],
-  ];
-  var FMT_COLORS = ['#FFFFFF', '#F7D98B', '#C77C8A', '#8E3B52', '#72A68A', '#8FB8D8', '#000000'];
-  FMT_BUTTONS.forEach(function (b) {
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.setAttribute('data-fmt', b[0]);
-    btn.setAttribute('aria-label', b[2]);
-    btn.title = b[2];
-    btn.textContent = b[1];
-    if (b[3]) btn.setAttribute('style', b[3]);
-    fmt.appendChild(btn);
-  });
-  var sizeBox = document.createElement('input');
-  sizeBox.type = 'number';
-  sizeBox.min = '6';
-  sizeBox.max = '400';
-  sizeBox.title = 'Tamanho do trecho (px)';
-  sizeBox.setAttribute('aria-label', 'Tamanho do trecho em px');
-  sizeBox.className = 'mm-fmt-size';
-  fmt.appendChild(sizeBox);
-  FMT_COLORS.forEach(function (c) {
-    var sw = document.createElement('button');
-    sw.type = 'button';
-    sw.className = 'mm-fmt-sw';
-    sw.setAttribute('data-color', c);
-    sw.setAttribute('aria-label', 'Cor ' + c);
-    sw.title = c;
-    sw.style.background = c;
-    fmt.appendChild(sw);
-  });
-  var colorBox = document.createElement('input');
-  colorBox.type = 'color';
-  colorBox.title = 'Outra cor';
-  colorBox.setAttribute('aria-label', 'Outra cor do trecho');
-  colorBox.className = 'mm-fmt-color';
-  fmt.appendChild(colorBox);
-  var clearBtn = document.createElement('button');
-  clearBtn.type = 'button';
-  clearBtn.setAttribute('data-fmt', 'removeFormat');
-  clearBtn.setAttribute('aria-label', 'Limpar formatação');
-  clearBtn.title = 'Limpar formatação';
-  clearBtn.textContent = '⌫';
-  fmt.appendChild(clearBtn);
-  document.body.appendChild(fmt);
+
+  /* O slide corta o que vaza (overflow:hidden), mas ainda pode ser rolado pelo navegador
+     (foco, cursor no fim do texto…): isso "puxava" o slide inteiro. Mantém tudo no lugar. */
+  function resetScroll() {
+    [deck].concat(slideList()).forEach(function (n) {
+      if (n.scrollLeft || n.scrollTop) {
+        n.scrollLeft = 0;
+        n.scrollTop = 0;
+      }
+    });
+    if (document.scrollingElement) {
+      document.scrollingElement.scrollLeft = 0;
+      document.scrollingElement.scrollTop = 0;
+    }
+  }
+  document.addEventListener(
+    'scroll',
+    function (e) {
+      var t = e.target;
+      if (t === document || t === deck || (t && t.classList && t.classList.contains('slide')))
+        resetScroll();
+      else if (t && t.nodeType === 1 && deck.contains(t) && (t.scrollLeft || t.scrollTop)) {
+        t.scrollLeft = 0;
+        t.scrollTop = 0;
+      }
+    },
+    true
+  );
 
   function selectionInEditing() {
     var s = window.getSelection();
@@ -2080,111 +2047,277 @@
     var r = s.getRangeAt(0);
     return editing.contains(r.commonAncestorContainer) ? r : null;
   }
-  function restoreRange() {
-    if (!savedRange) return false;
+  /* Sem `focus`: a barra fica no app e seus campos (cor, tamanho) não podem perder o foco. */
+  function restoreRange(focus) {
+    if (!savedRange || !editing) return false;
+    if (focus && document.activeElement !== editing) editing.focus({ preventScroll: true });
     var s = window.getSelection();
     s.removeAllRanges();
     s.addRange(savedRange);
     return true;
   }
-  function fontSizeAt(range) {
-    var node = range.startContainer;
-    var el = node.nodeType === 1 ? node : node.parentElement;
-    return Math.round(parseFloat(window.getComputedStyle(el).fontSize) || 24);
+  /* Primeiro pedaço de texto dentro do trecho (o início pode cair entre elementos). */
+  function firstTextIn(range) {
+    var root = range.commonAncestorContainer;
+    if (root.nodeType === 3) return root;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var n;
+    while ((n = walker.nextNode())) {
+      if (!n.nodeValue || !range.intersectsNode(n)) continue;
+      if (n === range.startContainer && range.startOffset >= n.nodeValue.length) continue;
+      return n;
+    }
+    return null;
   }
-  function placeFmt() {
-    var r = selectionInEditing();
+  function styleAt(range) {
+    var t = firstTextIn(range);
+    var el = t ? t.parentElement : range.startContainer;
+    if (el && el.nodeType !== 1) el = el.parentElement;
+    return window.getComputedStyle(el || editing);
+  }
+  function hexOf(c) {
+    var m = /rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/.exec(c || '');
+    if (!m) return '';
+    return (
+      '#' +
+      [m[1], m[2], m[3]]
+        .map(function (n) {
+          return ('0' + (+n).toString(16)).slice(-2);
+        })
+        .join('')
+        .toUpperCase()
+    );
+  }
+  var fmtTimer = null;
+  function reportFormat() {
+    var r = editing ? selectionInEditing() : null;
+    if (r) savedRange = r.cloneRange();
     if (!r) {
-      fmt.style.display = 'none';
+      post({ type: 'text-format', open: false });
       return;
     }
-    savedRange = r.cloneRange();
     var b = r.getBoundingClientRect();
-    fmt.style.display = 'flex';
-    var w = fmt.offsetWidth || 360;
-    var left = Math.max(6, Math.min(window.innerWidth - w - 6, b.left + b.width / 2 - w / 2));
-    var top = b.top - 44 < 6 ? b.bottom + 8 : b.top - 44;
-    fmt.style.left = left + 'px';
-    fmt.style.top = top + 'px';
-    if (document.activeElement !== sizeBox) sizeBox.value = String(fontSizeAt(r));
-  }
-  /* Envolve o trecho num <span> com o tamanho dado (px). */
-  function setSize(px) {
-    if (!restoreRange() || !editing) return;
-    px = Math.max(6, Math.min(400, Math.round(px)));
-    document.execCommand('styleWithCSS', false, false);
-    document.execCommand('fontSize', false, '7');
-    var marks = Array.prototype.slice.call(editing.querySelectorAll('font[size="7"]'));
-    var first = null;
-    var last = null;
-    marks.forEach(function (f) {
-      var span = document.createElement('span');
-      span.style.fontSize = px + 'px';
-      while (f.firstChild) span.appendChild(f.firstChild);
-      f.replaceWith(span);
-      if (!first) first = span;
-      last = span;
+    var cs = styleAt(r);
+    var q = function (c) {
+      try {
+        return document.queryCommandState(c);
+      } catch (e) {
+        return false;
+      }
+    };
+    post({
+      type: 'text-format',
+      open: true,
+      rect: { left: b.left, top: b.top, width: b.width, height: b.height },
+      state: {
+        size: Math.round(parseFloat(cs.fontSize) || 24),
+        font: cs.fontFamily || '',
+        color: hexOf(cs.color),
+        bold: q('bold'),
+        italic: q('italic'),
+        underline: q('underline'),
+        strike: q('strikeThrough'),
+        sup: q('superscript'),
+        sub: q('subscript'),
+        gradient:
+          /gradient/.test(cs.backgroundImage) &&
+          !/mm-shine/.test(String(styleOwner(r) && styleOwner(r).className)),
+        shine: !!(styleOwner(r) && styleOwner(r).closest('.mm-shine')),
+        reflect: !!editing.style.getPropertyValue('-webkit-box-reflect'),
+      },
     });
-    if (first && last) {
-      var r = document.createRange();
-      r.setStartBefore(first);
-      r.setEndAfter(last);
-      var s = window.getSelection();
-      s.removeAllRanges();
-      s.addRange(r);
-      savedRange = r.cloneRange();
-    }
-    sizeBox.value = String(px);
-    drawSelection(editing);
   }
-  function applyFmt(cmd) {
+  function styleOwner(range) {
+    var t = firstTextIn(range);
+    return t ? t.parentElement : null;
+  }
+  function scheduleFormat() {
+    clearTimeout(fmtTimer);
+    fmtTimer = setTimeout(reportFormat, 16);
+  }
+
+  /* Aplica estilos (e classes) só ao trecho: cada pedaço de texto ganha (ou reaproveita)
+     um <span>. Previsível em qualquer navegador, ao contrário do execCommand("fontSize"). */
+  function styleRange(styles, addClass, removeClass) {
     if (!restoreRange()) return;
-    if (cmd === 'smaller' || cmd === 'bigger') {
-      var cur = fontSizeAt(savedRange);
-      var step = Math.max(2, Math.round(cur * 0.12));
-      setSize(cur + (cmd === 'bigger' ? step : -step));
+    var r = savedRange;
+    if (r.collapsed) return;
+    var sc = r.startContainer;
+    var so = r.startOffset;
+    var ec = r.endContainer;
+    var eo = r.endOffset;
+    if (ec.nodeType === 3 && eo < ec.nodeValue.length && eo > 0) ec.splitText(eo);
+    if (sc.nodeType === 3 && so > 0 && so < sc.nodeValue.length) {
+      var rest = sc.splitText(so);
+      if (ec === sc) {
+        ec = rest;
+        eo = eo - so;
+      }
+      sc = rest;
+      so = 0;
+    }
+    var range = document.createRange();
+    range.setStart(sc, so);
+    if (ec.nodeType === 3) range.setEnd(ec, Math.min(eo, ec.nodeValue.length));
+    else range.setEnd(ec, eo);
+    var walker = document.createTreeWalker(editing, NodeFilter.SHOW_TEXT, null);
+    var texts = [];
+    var n;
+    while ((n = walker.nextNode())) {
+      if (!n.nodeValue || !range.intersectsNode(n)) continue;
+      if (n === range.startContainer && range.startOffset >= n.nodeValue.length) continue;
+      if (n === range.endContainer && range.endOffset === 0) continue;
+      texts.push(n);
+    }
+    var targets = [];
+    texts.forEach(function (t) {
+      var parent = t.parentElement;
+      var target;
+      if (
+        parent &&
+        parent !== editing &&
+        parent.tagName === 'SPAN' &&
+        parent.childNodes.length === 1
+      ) {
+        target = parent;
+      } else {
+        target = document.createElement('span');
+        t.parentNode.insertBefore(target, t);
+        target.appendChild(t);
+      }
+      Object.keys(styles || {}).forEach(function (k) {
+        var v = styles[k];
+        if (v === null || v === '') target.style.removeProperty(k);
+        else target.style.setProperty(k, v);
+      });
+      (removeClass || []).forEach(function (c) {
+        target.classList.remove(c);
+      });
+      (addClass || []).forEach(function (c) {
+        target.classList.add(c);
+      });
+      if (!target.getAttribute('style')) target.removeAttribute('style');
+      if (!target.getAttribute('class')) target.removeAttribute('class');
+      targets.push(target);
+    });
+    if (!targets.length) return;
+    /* junta vizinhos idênticos e desfaz <span> vazios de estilo */
+    var first = targets[0];
+    var last = targets[targets.length - 1];
+    targets.forEach(function (t) {
+      var next = t.nextSibling;
+      if (
+        next &&
+        next.nodeType === 1 &&
+        next.tagName === 'SPAN' &&
+        targets.indexOf(next) >= 0 &&
+        next.getAttribute('style') === t.getAttribute('style') &&
+        next.getAttribute('class') === t.getAttribute('class')
+      ) {
+        while (t.firstChild) next.insertBefore(t.firstChild, next.firstChild);
+        if (first === t) first = next;
+        t.remove();
+      }
+    });
+    var sel = document.createRange();
+    sel.setStartBefore(first.isConnected ? first : last);
+    sel.setEndAfter(last);
+    var ws = window.getSelection();
+    ws.removeAllRanges();
+    ws.addRange(sel);
+    savedRange = sel.cloneRange();
+    drawSelection(editing);
+    resetScroll();
+    reportFormat();
+  }
+
+  var GRADIENT_OFF = {
+    'background-image': null,
+    '-webkit-background-clip': null,
+    'background-clip': null,
+    '-webkit-text-fill-color': null,
+    'background-size': null,
+  };
+  function merge(a, b) {
+    var o = {};
+    Object.keys(a).forEach(function (k) {
+      o[k] = a[k];
+    });
+    Object.keys(b || {}).forEach(function (k) {
+      o[k] = b[k];
+    });
+    return o;
+  }
+
+  function runFormat(arg) {
+    if (!editing || !arg) return;
+    var cmd = arg.cmd || arg.command || (arg.color ? 'color' : '');
+    var v = arg.cmd ? arg.value : arg.color;
+    if (cmd === 'reflect') {
+      if (v) editing.style.setProperty('-webkit-box-reflect', String(v));
+      else editing.style.removeProperty('-webkit-box-reflect');
+      drawSelection(editing);
+      restoreRange();
+      reportFormat();
       return;
     }
-    document.execCommand('styleWithCSS', false, false);
-    document.execCommand(cmd);
-    placeFmt();
-    drawSelection(editing);
-  }
-  function applyColor(c) {
     if (!restoreRange()) return;
-    document.execCommand('styleWithCSS', false, true);
-    document.execCommand('foreColor', false, c);
-    document.execCommand('styleWithCSS', false, false);
-    placeFmt();
-  }
-  fmt.addEventListener('mousedown', function (e) {
-    var t = e.target;
-    if (t === sizeBox || t === colorBox) return;
-    e.preventDefault();
-    var btn = t.closest ? t.closest('button') : null;
-    if (!btn) return;
-    if (btn.hasAttribute('data-color')) applyColor(btn.getAttribute('data-color'));
-    else if (btn.hasAttribute('data-fmt')) applyFmt(btn.getAttribute('data-fmt'));
-  });
-  sizeBox.addEventListener('keydown', function (e) {
-    e.stopPropagation();
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      setSize(parseFloat(sizeBox.value) || 24);
-      if (editing) editing.focus();
-      restoreRange();
+    if (cmd === 'size' || cmd === 'size-step') {
+      var cur = Math.round(parseFloat(styleAt(savedRange).fontSize) || 24);
+      var px = cmd === 'size' ? Number(v) : cur + Number(v);
+      if (!isFinite(px)) return;
+      styleRange({ 'font-size': Math.max(4, Math.min(600, Math.round(px))) + 'px' });
+    } else if (cmd === 'font') {
+      styleRange({ 'font-family': v || null });
+    } else if (cmd === 'color') {
+      styleRange(merge(GRADIENT_OFF, { color: v || null }), null, ['mm-shine']);
+    } else if (cmd === 'gradient') {
+      styleRange(
+        v
+          ? {
+              'background-image': v,
+              '-webkit-background-clip': 'text',
+              'background-clip': 'text',
+              '-webkit-text-fill-color': 'transparent',
+              'background-size': null,
+            }
+          : GRADIENT_OFF,
+        null,
+        ['mm-shine']
+      );
+    } else if (cmd === 'shine') {
+      styleRange(GRADIENT_OFF, v ? ['mm-shine'] : null, v ? null : ['mm-shine']);
+    } else if (cmd === 'style') {
+      styleRange(v || {});
+    } else {
+      restoreRange(true);
+      document.execCommand('styleWithCSS', false, false);
+      if (cmd === 'removeFormat') {
+        document.execCommand('removeFormat');
+        styleRange(
+          merge(GRADIENT_OFF, {
+            'font-size': null,
+            'font-family': null,
+            color: null,
+            'text-shadow': null,
+            '-webkit-text-stroke': null,
+            'letter-spacing': null,
+          }),
+          null,
+          ['mm-shine']
+        );
+        return;
+      }
+      document.execCommand(cmd);
+      var s2 = window.getSelection();
+      if (s2 && s2.rangeCount) savedRange = s2.getRangeAt(0).cloneRange();
+      drawSelection(editing);
+      resetScroll();
+      reportFormat();
     }
-  });
-  sizeBox.addEventListener('change', function () {
-    setSize(parseFloat(sizeBox.value) || 24);
-  });
-  colorBox.addEventListener('input', function () {
-    applyColor(colorBox.value);
-  });
-  document.addEventListener('selectionchange', function () {
-    if (document.activeElement === sizeBox || document.activeElement === colorBox) return;
-    placeFmt();
-  });
+  }
+
+  document.addEventListener('selectionchange', scheduleFormat);
 
   /* ======================================================================
      Vídeos: no editor ficam parados (só tocam na pré-visualização/apresentação).
@@ -2259,6 +2392,7 @@
     else if (name === 'set-parent') startPickParent();
     else if (name === 'unparent') unparent();
     else if (name === 'cancel-pick') stopPickParent();
+    else if (name === 'format') runFormat(arg);
     else if (name === 'reset') resetPos();
     else if (name === 'copy') {
       if (selected) copyEl();
@@ -2269,12 +2403,6 @@
     else if (name === 'edit') {
       if (selected) beginEdit(selected, false);
     } else if (name === 'nudge' && arg) nudge(Number(arg.dx) || 0, Number(arg.dy) || 0);
-    else if (name === 'format') {
-      if (!editing) return;
-      document.execCommand('styleWithCSS', false, true);
-      if (arg && arg.color) document.execCommand('foreColor', false, arg.color);
-      else if (arg && arg.command) document.execCommand(arg.command);
-    }
   }
 
   /* estado inicial: sem animações ao editar */

@@ -115,6 +115,7 @@ export function Stage() {
         useUIStore.getState().showToast(`Camada ${index} de ${total}`, 'info'),
       onPicking: (on) => useUIStore.getState().setPickingParent(on),
       onNotice: (text) => useUIStore.getState().showToast(text, 'error'),
+      onTextFormat: (format) => useUIStore.getState().setTextFormat(format),
       onPan: (dx, dy) => getStageViewHandlers()?.pan(dx, dy),
     });
     bridgeRef.current = bridge;

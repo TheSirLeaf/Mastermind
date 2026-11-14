@@ -229,17 +229,106 @@ test('Dois cliques seleciona a palavra e o trecho pode ser formatado', async ({ 
   );
 
   // barra de formatação: negrito no trecho; clicar fora confirma a edição
-  const bold = await box(page, '#mm-fmt [data-fmt=bold]');
-  await page.mouse.click(bold.cx, bold.cy);
+  const bar = page.getByTestId('text-format-bar');
+  await expect(bar).toBeVisible();
+  await bar.getByRole('button', { name: /Negrito/ }).click();
   await page.waitForTimeout(200);
-  const empty = await box(page, '.slide.active');
-  await page.mouse.click(empty.x + 1500 * empty.s, empty.y + 900 * empty.s);
+  await expect(bar.getByRole('button', { name: /Negrito/ })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  // tamanho de 1 em 1 (antes, passos pequenos não mudavam nada)
+  const sizeBox = bar.getByLabel('Tamanho do trecho em px');
+  await expect(sizeBox).toHaveValue('60');
+  await bar.getByRole('button', { name: 'Aumentar o tamanho' }).click();
+  await expect(sizeBox).toHaveValue('61');
+  await bar.getByRole('button', { name: 'Aumentar o tamanho' }).click();
+  await bar.getByRole('button', { name: 'Diminuir o tamanho' }).click();
+  await expect(sizeBox).toHaveValue('61');
+  // outra fonte só no trecho
+  await bar.getByRole('button', { name: 'Fonte do trecho' }).click();
+  await page.getByRole('menuitem', { name: 'Georgia' }).click();
+  await page.waitForTimeout(200);
+  // cor pelo seletor do app
+  await bar.getByRole('button', { name: 'Cor do trecho' }).click();
+  await page
+    .getByRole('dialog', { name: 'Seletor de cor' })
+    .getByLabel('Cor #F7D98B')
+    .last()
+    .click();
+  await page.waitForTimeout(200);
+  // efeito avançado: gradiente
+  await bar.getByRole('button', { name: 'Efeitos avançados' }).click();
+  await page.getByTestId('text-advanced').getByRole('button', { name: 'Gradiente' }).click();
+  await page.waitForTimeout(200);
+  // Esc sai da edição guardando tudo (antes, descartava)
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+  if (await bar.count()) await page.keyboard.press('Escape');
   await page.waitForTimeout(600);
   const html = await savedHtml(page);
-  expect(html).toMatch(
-    /<(b|strong)[^>]*>bonito<\/(b|strong)>|font-weight:\s*(bold|700)[^>]*>bonito/
-  );
+  expect(html).toMatch(/<(b|strong)[^>]*>(<span[^>]*>)?bonito/);
   expect(html).toContain('Olá mundo');
+  const span = await page.evaluate((h) => {
+    const doc = new DOMParser().parseFromString(h, 'text/html');
+    const el = [...doc.querySelectorAll('#t span')].find((x) => x.textContent === 'bonito');
+    return el ? (el as HTMLElement).getAttribute('style') : null;
+  }, html);
+  expect(span).toContain('font-size: 61px');
+  expect(span).toContain('Georgia');
+  expect(span).toContain('linear-gradient');
+  // o resto do texto não mudou
+  expect(html).toMatch(/Olá mundo <span|Olá mundo <(b|strong)/);
+});
+
+test('Dois cliques num elemento que vaza não arrasta o slide', async ({ page }) => {
+  await boot(page, [
+    '<section class="slide dark" data-notes=""><p class="ed-obj ed-text" id="t" style="position:absolute;left:1500px;top:700px;width:900px;font-size:60px">Texto que vaza do slide</p></section>',
+  ]);
+  const t = await box(page, '#t');
+  const visibleX = t.x + 40;
+  await page.mouse.click(visibleX, t.cy);
+  await page.waitForTimeout(200);
+  await page.mouse.dblclick(visibleX, t.cy);
+  await page.waitForTimeout(400);
+  await page.keyboard.press('End');
+  await page.keyboard.type(' mais');
+  await page.waitForTimeout(300);
+  const scroll = await stageEval<number>(
+    page,
+    "var s=document.querySelector('.slide.active');return s.scrollLeft+s.scrollTop+document.getElementById('deck').scrollLeft"
+  );
+  expect(scroll).toBe(0);
+  const after = await box(page, '#t');
+  expect(Math.round(after.sx)).toBe(1500);
+});
+
+test('A barra de formatação acompanha o texto ao dar zoom', async ({ page }) => {
+  await boot(page, [
+    '<section class="slide dark" data-notes=""><p class="ed-obj ed-text" id="t" style="position:absolute;left:300px;top:400px;width:1200px;font-size:60px">Olá mundo bonito</p></section>',
+  ]);
+  const t = await box(page, '#t');
+  await page.mouse.dblclick(t.x + 30, t.cy);
+  await page.waitForTimeout(400);
+  const bar = page.getByTestId('text-format-bar');
+  await expect(bar).toBeVisible();
+  const word = async () => {
+    const b = await box(page, '#t');
+    return b;
+  };
+  const before = (await bar.boundingBox())!;
+  const w0 = await word();
+  expect(Math.abs(before.y + before.height - w0.y)).toBeLessThan(40);
+  // zoom com Ctrl + roda sobre o palco
+  await page.mouse.move(w0.x + 30, w0.cy);
+  await page.keyboard.down('Control');
+  await page.mouse.wheel(0, -400);
+  await page.keyboard.up('Control');
+  await page.waitForTimeout(900);
+  const w1 = await word();
+  const after = (await bar.boundingBox())!;
+  expect(Math.abs(w1.w - w0.w)).toBeGreaterThan(5);
+  expect(Math.abs(after.y + after.height - w1.y)).toBeLessThan(40);
 });
 
 test('Menu de contexto do elemento traz as ações principais', async ({ page }) => {

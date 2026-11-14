@@ -1,4 +1,5 @@
 // stores/uiStore.ts
+import type { TextFormatInfo } from '@packages/core/iframeBridge';
 import type { LucideIcon } from 'lucide-react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
@@ -43,6 +44,9 @@ interface UIState {
   closeContextMenu: () => void;
   /** O palco espera o clique que escolhe o pai do elemento selecionado. */
   pickingParent: boolean;
+  /** Trecho selecionado no texto em edição (barra de formatação). */
+  textFormat: TextFormatInfo | null;
+  setTextFormat: (format: TextFormatInfo | null) => void;
   setPickingParent: (on: boolean) => void;
   /** Altura da lista de slides base na barra da esquerda (px). */
   basesPanelHeight: number;
@@ -160,6 +164,8 @@ export const useUIStore = create<UIState>()(
     openContextMenu: (x, y, items) => set({ contextMenu: { x, y, items } }),
     closeContextMenu: () => set({ contextMenu: null }),
     pickingParent: false,
+    textFormat: null,
+    setTextFormat: (format) => set({ textFormat: format }),
     setPickingParent: (on) => set({ pickingParent: on }),
     basesPanelHeight: readBasesHeight(),
     setBasesPanelHeight: (px) => {

@@ -31,7 +31,28 @@ export interface BridgeEvents {
   onLayer?: (index: number, total: number) => void;
   onPicking?: (on: boolean) => void;
   onNotice?: (text: string) => void;
+  /** Trecho selecionado no texto em edição (ou `null` quando não há): onde está e como está. */
+  onTextFormat?: (format: TextFormatInfo | null) => void;
   onElementMoved?: (index: number, path: number[]) => void;
+}
+
+/** Trecho do texto em edição: retângulo (px dentro do iframe) e formatação atual. */
+export interface TextFormatInfo {
+  rect: { left: number; top: number; width: number; height: number };
+  state: {
+    size: number;
+    font: string;
+    color: string;
+    bold: boolean;
+    italic: boolean;
+    underline: boolean;
+    strike: boolean;
+    sup: boolean;
+    sub: boolean;
+    gradient: boolean;
+    shine: boolean;
+    reflect: boolean;
+  };
 }
 
 /** `edit`: edita os elementos do slide atual. `arrange`: move/redimensiona os slides. */
@@ -106,7 +127,11 @@ type DeckMessage =
   | ({ __mm: 'deck'; type: 'context' } & StageContext)
   | { __mm: 'deck'; type: 'layer'; index: number; total: number }
   | { __mm: 'deck'; type: 'picking'; on: boolean }
-  | { __mm: 'deck'; type: 'notice'; text: string };
+  | { __mm: 'deck'; type: 'notice'; text: string }
+  | (
+      | { __mm: 'deck'; type: 'text-format'; open: false }
+      | ({ __mm: 'deck'; type: 'text-format'; open: true } & TextFormatInfo)
+    );
 
 /**
  * Ponte com o iframe do palco.
@@ -200,6 +225,9 @@ export class IframeBridge {
         break;
       case 'notice':
         this.events.onNotice?.(data.text);
+        break;
+      case 'text-format':
+        this.events.onTextFormat?.(data.open ? { rect: data.rect, state: data.state } : null);
         break;
       case 'pose-edit':
         this.events.onPoseEdit?.(data.pose);
