@@ -14,13 +14,54 @@ export interface SimButton {
 export interface SimRow {
   cells: string[] | string;
   tone?: 'ok' | 'warn' | 'danger';
+  /** Linha que só aparece com o roteiro (`row: show`); fora da animação fica visível. */
   isNew?: boolean;
+  /** Linha que sai durante o roteiro: visível no começo da animação e escondida no fim. */
+  leaves?: boolean;
   highlight?: boolean;
 }
 
 export interface SimChip {
   table: string;
   detail: string;
+  /** Texto da seta que liga ao item anterior (padrão `→`). */
+  arrow?: string;
+}
+
+/** Item da lista de tarefas (testes, passos de um pipeline, etapas de instalação…). */
+export interface SimItem {
+  label: string;
+}
+
+export type SimItemStatus = 'idle' | 'run' | 'ok' | 'fail' | 'mark';
+
+export type SimDialogKind = 'info' | 'error' | 'question' | 'file';
+
+/** Caixa de diálogo própria, mostrada pelo roteiro com `dialog: "id"`. */
+export interface SimDialog {
+  id: string;
+  title?: string;
+  kind?: SimDialogKind;
+  text?: string;
+  /** Botões separados por `;` (padrão `OK`). */
+  buttons?: string;
+  /** Só no tipo `file`: linhas `Rótulo: valor` separadas por `;`. */
+  rows?: string;
+}
+
+/** Linha da tabela do painel inferior. `start` são as células no começo da animação. */
+export interface SimDbRow {
+  cells: string[] | string;
+  start?: string[] | string;
+  highlight?: boolean;
+}
+
+/** Janela de código extra (a principal usa os campos `code*`). */
+export interface SimCodeWindow {
+  file: string;
+  tag?: string;
+  lang?: string;
+  code: string;
 }
 
 export type SimStepAction = 'ok' | 'fail' | 'undo' | 'pending';
@@ -56,40 +97,88 @@ export interface SimCursorStep {
 }
 
 export interface SimStep {
-  /** Linha de código (0-based) que dispara o passo. Sem `at` = após digitar. */
+  /** Linha de código (0-based, contando todas as janelas) que dispara o passo. Sem `at` = após digitar. */
   at?: number;
   /** Espera antes de aplicar o passo, em ms. */
   wait?: number;
   valid?: boolean;
   state?: string;
-  stateTone?: 'begin' | 'ok' | 'rollback';
+  stateTone?: 'begin' | 'ok' | 'rollback' | 'idle';
+  /** Rótulo de um botão (da tela, de um diálogo, da lista) ou de um item do menu lateral. */
   press?: string;
   message?: 'success' | 'error' | 'confirm';
   hideMessage?: boolean;
   chips?: SimStepAction[];
   chipDetails?: string[];
-  note?: boolean;
+  /** `true` mostra todas as notas; um número mostra só a nota daquela posição. */
+  note?: boolean | number;
   rollback?: boolean;
-  row?: { index: number; action: 'show' | 'hide' | 'highlight' | 'clear' };
+  /** Linha de código (0-based) marcada como erro; no rollback o padrão é a penúltima. */
+  errLine?: number;
+  row?: { index: number; action: 'show' | 'hide' | 'highlight' | 'select' | 'clear' };
   cursor?: SimCursorStep;
   toast?: { id: string; action: 'show' | 'hide' | 'click' };
+  /** Mostra um diálogo próprio pelo id (fica aberto até `hideMessage`). */
+  dialog?: string;
+  /** Muda o estado de um item da lista de tarefas. */
+  item?: { index: number; status: SimItemStatus };
+  /** Muda o estado de todos os itens da lista. */
+  items?: SimItemStatus;
+  /** Roda os itens em sequência (ms por item): cada um gira e fica concluído. */
+  runItems?: number;
+  /** Conta o número do resumo de 0 até o valor, em ms. */
+  count?: number;
+  /** Troca o texto de uma célula da tabela do painel inferior. */
+  cell?: { row: number; col: number; text: string; tone?: 'ok' | 'warn' | 'danger' };
 }
 
 export interface SimSpec extends PackageSpec {
   width: number;
   appName: string;
+  /** Etiqueta ao lado do nome da janela (vazio esconde). */
+  tagText?: string;
+  /** Mostra a barra lateral (logo, subtítulo e menu). */
+  sideShow?: boolean;
+  /** Letras do logo (padrão: a inicial do aplicativo). */
+  logoText?: string;
+  /** Imagem do logo (endereço, data URI ou `var(--nome)` do tema); substitui as letras. */
+  logoImage?: string;
   subtitle: string;
   /** Itens do menu separados por `;`. */
   menu: string;
   activeMenu: string;
   heading: string;
   date: string;
-  /** Colunas da tabela separadas por `;`. */
+
+  /** Título do grupo da tabela. */
+  tableTitle?: string;
+  /** Colunas da tabela separadas por `;` (vazio esconde a tabela). */
   columns: string;
   statusColumn: number;
   rows: SimRow[];
+
+  /** Título do grupo do formulário. */
+  formTitle?: string;
+  /** Selo de validação do formulário (vazio esconde). */
+  validText?: string;
   fields: SimField[];
   buttons: SimButton[];
+  /** Onde ficam os botões: junto do formulário ou da tabela. */
+  buttonsAt?: 'form' | 'table';
+
+  /** Lista de tarefas: testes, passos de pipeline, etapas… */
+  listTitle?: string;
+  listSub?: string;
+  /** Botão no cabeçalho da lista (vazio esconde). */
+  listAction?: string;
+  items?: SimItem[];
+
+  /** Resumo com número grande e barra (vazio esconde). */
+  sumValue?: string;
+  sumLabel?: string;
+  sumSub?: string;
+
+  dialogs?: SimDialog[];
 
   /** Avisos flutuantes no estilo Windows 11. */
   toasts: SimToast[];
@@ -105,7 +194,16 @@ export interface SimSpec extends PackageSpec {
   msgConfirm: string;
 
   txTitle: string;
+  /** Estado mostrado no fim (e fora da animação). */
+  txState?: string;
+  txStateTone?: 'begin' | 'ok' | 'rollback' | 'idle';
+  /** Estado no começo da animação. */
+  txStateStart?: string;
   txChips: SimChip[];
+  /** Tabela do painel inferior: colunas separadas por `;`. */
+  dbColumns?: string;
+  dbRows?: SimDbRow[];
+  /** Notas do painel inferior, separadas por `;`. */
   txNote: string;
 
   codeEnabled: boolean;
@@ -118,6 +216,10 @@ export interface SimSpec extends PackageSpec {
   codeDelay: number;
   codeFontSize: number;
   codeLineHeight: number;
+  /** Rodapé da janela de código (vazio esconde). */
+  codeNote?: string;
+  /** Janelas de código extras, digitadas depois da principal. */
+  codes?: SimCodeWindow[];
 
   /** Lista de passos ou JSON (campo `textarea` do formulário). */
   steps: SimStep[] | string;
@@ -149,6 +251,65 @@ export function listOf(value: string | undefined): string[] {
 export function cellsOf(row: SimRow): string[] {
   if (Array.isArray(row.cells)) return row.cells;
   return listOf(String(row.cells ?? ''));
+}
+
+/** Textos usados quando o spec é antigo e ainda não tem o campo (mantém decks já salvos iguais). */
+export const LEGACY = {
+  tagText: 'SIMULAÇÃO',
+  tableTitle: 'Atendimentos do dia',
+  formTitle: 'Atendimento',
+  validText: '✓ formulário válido',
+  txState: 'COMMIT ✓',
+  codeNote: 'falhou em qualquer linha da transação? nada é gravado',
+} as const;
+
+/** Valor do spec, ou o texto antigo quando o campo ainda não existe. */
+export function textOf(spec: SimSpec, key: keyof typeof LEGACY): string {
+  const value = spec[key];
+  return typeof value === 'string' ? value : LEGACY[key];
+}
+
+/** Janelas de código na ordem em que são digitadas. */
+export function codeWindowsOf(spec: SimSpec): SimCodeWindow[] {
+  const out: SimCodeWindow[] = [];
+  if (spec.codeEnabled) {
+    out.push({ file: spec.codeFile, tag: spec.codeTag, lang: spec.codeLang, code: spec.codeCode });
+  }
+  for (const win of Array.isArray(spec.codes) ? spec.codes : []) {
+    if (win && typeof win.code === 'string' && win.code.trim()) out.push(win);
+  }
+  return out;
+}
+
+/** Diálogos da tela: as três mensagens fixas mais os diálogos próprios. */
+export function dialogsOf(spec: SimSpec): Required<SimDialog>[] {
+  const out: Required<SimDialog>[] = [];
+  const fixed: Array<[string, string, SimDialogKind, string]> = [
+    ['success', spec.msgSuccess, 'info', 'OK'],
+    ['error', spec.msgError, 'error', 'OK'],
+    ['confirm', spec.msgConfirm, 'question', 'Sim'],
+  ];
+  for (const [id, text, kind, buttons] of fixed) {
+    if (text) out.push({ id, title: spec.heading || spec.appName, kind, text, buttons, rows: '' });
+  }
+  for (const dialog of Array.isArray(spec.dialogs) ? spec.dialogs : []) {
+    if (!dialog?.id) continue;
+    out.push({
+      id: dialog.id,
+      title: dialog.title || spec.heading || spec.appName,
+      kind: dialog.kind ?? 'info',
+      text: dialog.text ?? '',
+      buttons: dialog.buttons || 'OK',
+      rows: dialog.rows ?? '',
+    });
+  }
+  return out;
+}
+
+/** Células de uma linha do painel inferior (aceita texto separado por `;`). */
+export function dbCellsOf(cells: SimDbRow['cells'] | undefined): string[] {
+  if (Array.isArray(cells)) return cells;
+  return listOf(String(cells ?? ''));
 }
 
 /** Aceita specs antigos sem `toasts`. */
@@ -217,14 +378,51 @@ export const windowsToastSteps: SimStep[] = [
   { wait: 1000, toast: { id: 'backup', action: 'hide' } },
 ];
 
+/** Roteiro de uma lista de tarefas: aperta o botão, roda os itens e conta o resumo. */
+export const taskListSteps: SimStep[] = [
+  { wait: 700, press: 'Executar' },
+  { wait: 450, runItems: 320 },
+  { wait: 100, count: 1400 },
+];
+
+/** Campos das partes novas, vazios: base para presets e para o exemplo padrão. */
+export const simBlank = {
+  tagText: 'SIMULAÇÃO',
+  sideShow: true,
+  logoText: '',
+  logoImage: '',
+  tableTitle: '',
+  formTitle: '',
+  validText: '',
+  buttonsAt: 'form' as const,
+  listTitle: '',
+  listSub: '',
+  listAction: '',
+  items: [] as SimItem[],
+  sumValue: '',
+  sumLabel: '',
+  sumSub: '',
+  dialogs: [] as SimDialog[],
+  txState: '',
+  txStateTone: 'ok' as const,
+  txStateStart: '—',
+  dbColumns: '',
+  dbRows: [] as SimDbRow[],
+  codeNote: '',
+  codes: [] as SimCodeWindow[],
+};
+
 export const simDefaults: SimSpec = {
+  ...simBlank,
   width: 1680,
   appName: 'Dialcron',
+  logoText: 'D',
   subtitle: 'Sistema de agendamentos',
   menu: 'Agenda; Cadastros; Backup',
   activeMenu: 'Agenda',
   heading: 'Agenda',
   date: '09/11/2026 ▾',
+  tableTitle: 'Atendimentos do dia',
   columns: 'Data e horário; Cliente; Profissional; Situação; Valor',
   statusColumn: 3,
   rows: [
@@ -242,6 +440,8 @@ export const simDefaults: SimSpec = {
       isNew: true,
     },
   ],
+  formTitle: 'Atendimento',
+  validText: '✓ formulário válido',
   fields: [
     { label: 'Unidade', value: 'Dialcron Centro' },
     { label: 'Cliente', value: 'Marina Souza' },
@@ -265,9 +465,10 @@ export const simDefaults: SimSpec = {
   msgError: 'Não foi possível salvar o atendimento: falha simulada.',
   msgConfirm: 'Confirmar a exclusão do atendimento?',
   txTitle: 'BANCO · TRANSAÇÃO SQLITE',
+  txState: 'COMMIT ✓',
   txChips: [
     { table: 'cad_atendimento', detail: 'Id gerado' },
-    { table: 'bel_atendimento', detail: 'atendimento = Id' },
+    { table: 'bel_atendimento', detail: 'atendimento = Id', arrow: 'FK →' },
     { table: 'bel_atendimento_servico', detail: '2 serviços' },
   ],
   txNote: '↻ e se a última etapa falhar?',
@@ -292,5 +493,6 @@ export const simDefaults: SimSpec = {
   codeDelay: 700,
   codeFontSize: 17,
   codeLineHeight: 1.62,
+  codeNote: 'falhou em qualquer linha da transação? nada é gravado',
   steps: JSON.stringify(agendaSteps, null, 2),
 };

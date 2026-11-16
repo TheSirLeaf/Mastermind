@@ -12,6 +12,7 @@ export const simCss = `
 .pk-sim-file{font:500 13px ui-monospace,Consolas,monospace;color:rgba(255,248,245,.55)}
 .pk-sim-tag{margin-left:auto;font:700 11px 'DM Sans',system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#F7D98B}
 .pk-sim-code{margin:0;padding:20px 24px;color:#FFF8F5;font:400 17px/1.6 ui-monospace,'Cascadia Mono',Consolas,monospace;white-space:pre;tab-size:2;overflow:visible}
+.pk-sim-code code{display:block;background:none;border:0;border-radius:0;padding:0;margin:0;font:inherit;color:inherit}
 .pk-sim-ln{display:block;position:relative;padding-left:38px;min-height:1.6em}
 .pk-sim-ln::before{content:attr(data-n);position:absolute;left:0;width:22px;text-align:right;color:rgba(255,248,245,.22);font-size:.8em}
 .pk-sim-ln.is-cur{background:rgba(247,217,139,.09);box-shadow:inset 2px 0 0 #F7D98B}
@@ -93,6 +94,60 @@ export const simCss = `
 .pk-sim-note{margin-top:10px;font-size:11px;color:#F7D98B;opacity:0;transition:opacity .4s}
 .pk-sim-note.is-on{opacity:1}
 .pk-sim.is-rollback .pk-sim-code-win{border-color:rgba(201,92,98,.45)}
+
+/* janela sem lateral, logo por imagem, linha selecionada */
+.pk-sim-body.is-side-off{grid-template-columns:minmax(0,1fr)}
+.pk-sim-main{position:relative}
+.pk-sim-main.is-flush{padding:0;gap:0}
+.pk-sim-logo.is-image{background:center/contain no-repeat;border-radius:0}
+.pk-sim-table tr.is-sel td{background:#F3D6D5}
+.pk-sim-tx-state.is-idle{color:rgba(255,248,245,.5)}
+.slide.light .pk-sim-tx-state.is-idle{color:rgba(59,48,50,.5)}
+
+/* lista de tarefas e resumo */
+.pk-sim-list{padding:6px 0}
+.pk-sim-main:not(.is-flush) .pk-sim-list{border:1px solid #E6CFCF;border-radius:9px;background:#fff}
+.pk-sim-list-h{display:flex;align-items:center;gap:12px;padding:12px 20px 8px}
+.pk-sim-list-h b{font-size:15px}
+.pk-sim-list-h>span:not(.pk-sim-btn){font-size:13px;color:#75696B}
+.pk-sim-list-h .pk-sim-btn{margin-left:auto}
+.pk-sim-item{display:flex;align-items:center;gap:12px;padding:7px 20px;font:400 14px ui-monospace,Consolas,monospace;color:#3B3032;border-left:3px solid transparent;transition:background .25s,border-color .25s}
+.pk-sim-item-ic{flex:none;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:#72A68A;color:#fff;box-sizing:border-box}
+.pk-sim-item.is-idle .pk-sim-item-ic{background:#D9C9C6;color:transparent}
+.pk-sim-item.is-fail .pk-sim-item-ic{background:#C95C62}
+.pk-sim-item.is-run .pk-sim-item-ic{background:transparent;border:2px solid #D6A84F;border-top-color:transparent;color:transparent;animation:pkSimSpin .7s linear infinite}
+.pk-sim-item.is-mark{background:rgba(247,217,139,.25);border-left-color:#D6A84F}
+@keyframes pkSimSpin{to{transform:rotate(360deg)}}
+.pk-sim-sum{display:flex;align-items:center;gap:18px;padding:12px 20px 16px;border-top:1px solid #EBD6D4;background:#FBF1EE}
+.pk-sim-main:not(.is-flush) .pk-sim-sum{border:1px solid #EBD6D4;border-radius:9px}
+.pk-sim-sum-n{font:600 54px/1 'Cormorant Garamond',Georgia,serif;color:#3C7A5A;font-variant-numeric:lining-nums;min-width:96px}
+.pk-sim-sum-t{font-size:15px;line-height:1.35;color:#5C4B4E}
+.pk-sim-sum-t b,.pk-sim-sum-t span{display:block}
+.pk-sim-sum-bar{flex:1;height:10px;border-radius:999px;background:#E6D4D1;overflow:hidden}
+.pk-sim-sum-bar i{display:block;height:100%;background:linear-gradient(90deg,#72A68A,#9CC9B4);transform-origin:left}
+
+/* diálogos próprios */
+.pk-sim-msg-foot{display:flex;justify-content:flex-end;gap:8px}
+.pk-sim-msg-foot u{transition:transform .2s,box-shadow .2s}
+.pk-sim-msg-foot u.is-press{transform:scale(.95);box-shadow:0 0 0 3px rgba(247,217,139,.6)}
+.pk-sim-msg.is-question .pk-sim-msg-ic{background:rgba(214,168,79,.2);color:#9A6B12}
+.pk-sim-msg.is-file{width:460px}
+.pk-sim-file-body{display:grid;gap:8px;padding:14px}
+.pk-sim-file-row{display:grid;grid-template-columns:80px minmax(0,1fr);align-items:center;gap:8px}
+.pk-sim-file-row span{text-align:right;font-size:11.5px;color:#75696B}
+.pk-sim-file-row div{border:1px solid #D9BFC0;border-radius:4px;background:#fff;padding:4px 8px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk-sim-file-body p{margin:0;font-size:11.5px;color:#75696B}
+
+/* painel inferior: tabela e notas */
+.pk-sim-db{width:100%;border-collapse:collapse;font:400 12.5px ui-monospace,Consolas,monospace;margin-top:10px}
+.pk-sim-db th{text-align:left;font-size:10.5px;letter-spacing:.1em;color:rgba(255,248,245,.45);padding:3px 10px;font-weight:700}
+.pk-sim-db td{padding:6px 10px;border-top:1px solid rgba(255,248,245,.08);color:rgba(255,248,245,.8);transition:color .3s}
+.pk-sim-db tr.is-hl td{background:rgba(247,217,139,.1)}
+.pk-sim-db td.is-danger{color:#F0A0A5;font-weight:700}.pk-sim-db td.is-warn{color:#F7D98B;font-weight:700}.pk-sim-db td.is-ok{color:#9CC9B4;font-weight:700}
+.slide.light .pk-sim-db th{color:rgba(59,48,50,.5)}
+.slide.light .pk-sim-db td{color:#3B3032;border-top-color:rgba(59,48,50,.1)}
+.pk-sim-notes{display:flex;flex-wrap:wrap;gap:4px 14px}
+.slide.light .pk-sim-note{color:#8E3B52}
 
 /* Windows 11 notifications */
 .pk-sim-toasts{position:absolute;top:14px;right:14px;width:320px;display:flex;flex-direction:column;gap:8px;z-index:8;pointer-events:none}

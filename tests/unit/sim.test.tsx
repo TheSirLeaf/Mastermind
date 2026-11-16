@@ -9,7 +9,7 @@ import type { RuntimeAPI } from '../../src/packages/core/types';
 import { SimPackage } from '../../src/packages/sim/SimPackage';
 import { SimRenderer } from '../../src/packages/sim/SimRenderer';
 import { simRuntime } from '../../src/packages/sim/simRuntime';
-import { normalizeSteps, simDefaults } from '../../src/packages/sim/SimSpec';
+import { normalizeSteps, simBlank, simDefaults } from '../../src/packages/sim/SimSpec';
 
 function mount(spec = simDefaults): HTMLElement {
   document.body.innerHTML = renderToStaticMarkup(<SimRenderer spec={spec} h={H} />);
@@ -143,6 +143,139 @@ describe('pacote sim', () => {
     await new Promise((resolve) => window.setTimeout(resolve, 5));
     expect(root.querySelector('.pk-sim-click')).not.toBeNull();
 
+    controller?.final();
+  });
+
+  it('monta a tela só com as partes preenchidas (qualquer aplicativo)', () => {
+    const root = mount({
+      ...simDefaults,
+      ...simBlank,
+      appName: 'Pipeline',
+      tagText: '',
+      sideShow: false,
+      heading: '',
+      date: '',
+      columns: '',
+      rows: [],
+      fields: [],
+      buttons: [],
+      msgSuccess: '',
+      msgError: '',
+      msgConfirm: '',
+      txChips: [],
+      txNote: '',
+      codeEnabled: false,
+      listTitle: 'build',
+      listAction: 'push',
+      items: [{ label: 'Restore' }, { label: 'Test' }],
+      sumValue: '2',
+      sumLabel: 'passos',
+      steps: '[]',
+    });
+    expect(root.textContent).toContain('Pipeline');
+    expect(root.querySelector('.pk-sim-side')).toBeNull();
+    expect(root.querySelector('.pk-sim-simtag')).toBeNull();
+    expect(root.querySelector('.pk-sim-table')).toBeNull();
+    expect(root.querySelector('.pk-sim-fields')).toBeNull();
+    expect(root.querySelector('.pk-sim-tx')).toBeNull();
+    expect(root.querySelector('.pk-sim-code-win')).toBeNull();
+    expect(root.querySelectorAll('[data-sim-msg]')).toHaveLength(0);
+    expect(root.querySelectorAll('[data-sim-item]')).toHaveLength(2);
+    expect(root.querySelector('[data-sim-btn="push"]')).not.toBeNull();
+    // nada do exemplo antigo vaza para uma tela nova
+    expect(root.textContent).not.toMatch(/Atendimento|formulário válido|COMMIT/);
+  });
+
+  it('mantém os textos antigos em specs salvos antes dos campos novos', () => {
+    const old = { ...simDefaults } as Record<string, unknown>;
+    for (const key of ['tagText', 'tableTitle', 'formTitle', 'validText', 'txState', 'codeNote']) {
+      delete old[key];
+    }
+    const root = mount(old as typeof simDefaults);
+    expect(root.textContent).toContain('Atendimentos do dia');
+    expect(root.textContent).toContain('✓ formulário válido');
+    expect(root.querySelector('[data-sim-state]')?.textContent).toBe('COMMIT ✓');
+  });
+
+  it('roda lista de tarefas, contagem, diálogo próprio e célula do painel', async () => {
+    const spec = {
+      ...simDefaults,
+      codeEnabled: false,
+      listTitle: 'Testes',
+      listAction: 'Executar',
+      items: [{ label: 'a' }, { label: 'b' }, { label: 'c' }],
+      sumValue: '137',
+      dialogs: [
+        { id: 'salvar', kind: 'file' as const, rows: 'Nome: x.db', buttons: 'Salvar; Cancelar' },
+      ],
+      dbColumns: 'id; situacao',
+      dbRows: [{ cells: '3; E', start: '3; a', highlight: true }],
+      txStateStart: 'aguardando',
+      steps: [
+        { state: 'rodando', stateTone: 'begin' as const },
+        { item: { index: 1, status: 'mark' as const } },
+        { dialog: 'salvar' },
+        { press: 'Salvar' },
+        { cell: { row: 0, col: 1, text: 'E', tone: 'danger' as const } },
+        { runItems: 10 },
+        { count: 32 },
+      ],
+    };
+    const root = mount(spec);
+    const original = root.innerHTML;
+    let seenStart = '';
+    let seenCell = '';
+    let seenSum = '';
+    let seenIdle = 0;
+    const api = instantApi();
+    let first = true;
+    api.wait = () => {
+      if (first) {
+        first = false;
+        seenStart = root.querySelector('[data-sim-state]')?.textContent ?? '';
+        seenCell = root.querySelector('[data-sim-dbrow="0"]')?.children[1]?.textContent ?? '';
+        seenSum = root.querySelector('[data-sim-sum]')?.textContent ?? '';
+        seenIdle = root.querySelectorAll('[data-sim-item].is-idle').length;
+      }
+      return Promise.resolve();
+    };
+    const controller = simRuntime(root, { ...spec, steps: [{ wait: 1 }, ...spec.steps] }, api);
+    await controller?.play();
+
+    // começo da animação: tudo o que o roteiro mexe volta ao estado inicial
+    expect(seenStart).toBe('aguardando');
+    expect(seenCell).toBe('a');
+    expect(seenSum).toBe('0');
+    expect(seenIdle).toBe(3);
+    // fim
+    expect(root.querySelector('[data-sim-state]')?.textContent).toBe('rodando');
+    expect(root.querySelectorAll('[data-sim-item].is-ok')).toHaveLength(3);
+    expect(root.querySelector('[data-sim-item="1"]')?.classList.contains('is-mark')).toBe(true);
+    expect(root.querySelector('[data-sim-sum]')?.textContent).toBe('137');
+    expect(root.querySelector('[data-sim-msg="salvar"]')?.classList.contains('is-show')).toBe(true);
+    const cell = root.querySelector('[data-sim-dbrow="0"]')?.children[1];
+    expect(cell?.textContent).toBe('E');
+    expect(cell?.className).toBe('is-danger');
+
+    controller?.final();
+    expect(root.innerHTML).toBe(original);
+  });
+
+  it('digita várias janelas de código com a contagem de linhas contínua', async () => {
+    const spec = {
+      ...simDefaults,
+      codeCode: 'a();\nb();',
+      codes: [{ file: 'dois.cs', tag: 'C#', lang: 'csharp', code: 'c();' }],
+      steps: [{ at: 2, state: 'terceira', stateTone: 'ok' as const }],
+    };
+    const root = mount(spec);
+    expect(root.querySelectorAll('.pk-sim-code-win')).toHaveLength(2);
+    expect(
+      Array.from(root.querySelectorAll('.pk-sim-ln')).map((l) => l.getAttribute('data-line'))
+    ).toEqual(['0', '1', '2']);
+    const controller = simRuntime(root, spec, instantApi());
+    await controller?.play();
+    expect(root.querySelector('[data-sim-state]')?.textContent).toBe('terceira');
     controller?.final();
   });
 

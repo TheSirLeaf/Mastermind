@@ -3,6 +3,7 @@ import { CodePackage } from './code';
 import type { PackageRegistry } from './core/PackageRegistry';
 import { QrPackage } from './qr';
 import { SimPackage } from './sim/SimPackage';
+import { SlingshotPackage } from './slingshot/SlingshotPackage';
 
 /**
  * Registra os pacotes embutidos.
@@ -15,6 +16,7 @@ export function registerBuiltins(reg: PackageRegistry): void {
   if (!reg.has(ChartPackage.id)) reg.register(ChartPackage);
   if (!reg.has(SimPackage.id)) reg.register(SimPackage);
   if (!reg.has(QrPackage.id)) reg.register(QrPackage);
+  if (!reg.has(SlingshotPackage.id)) reg.register(SlingshotPackage);
 }
 
-export { CodePackage, ChartPackage, SimPackage, QrPackage };
+export { CodePackage, ChartPackage, SimPackage, QrPackage, SlingshotPackage };

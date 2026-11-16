@@ -57,7 +57,13 @@ export function simRuntime(
   };
 
   const press = (label: string): void => {
-    const button = $$('[data-sim-btn]').find((el) => el.getAttribute('data-sim-btn') === label);
+    // Botão da tela, de um diálogo aberto ou da lista; senão, item do menu lateral.
+    const buttons = $$('[data-sim-btn]').filter((el) => el.getAttribute('data-sim-btn') === label);
+    const button =
+      buttons.find((el) => el.closest('[data-sim-msg].is-show')) ??
+      buttons.find((el) => !el.closest('[data-sim-msg]')) ??
+      buttons[0] ??
+      $$('[data-sim-menu]').find((el) => el.getAttribute('data-sim-menu') === label);
     if (!button) return;
     button.classList.add('is-press');
     schedule(() => button.classList.remove('is-press'), 480);
@@ -72,6 +78,72 @@ export function simRuntime(
     if (kind === 'confirm') return;
     schedule(hideMessages, kind === 'success' ? 2300 : 3400);
   };
+
+  const showDialog = (id: string): void => {
+    hideMessages();
+    const box = $$('[data-sim-msg]').find((el) => el.getAttribute('data-sim-msg') === id);
+    if (!box) return;
+    box.classList.add('is-show');
+    $('[data-sim-dim]')?.classList.add('is-show');
+  };
+
+  const ITEM_STATES = ['is-idle', 'is-run', 'is-ok', 'is-fail'];
+  const setItem = (el: Element | undefined, status: string): void => {
+    if (!el) return;
+    if (status === 'mark') {
+      el.classList.add('is-mark');
+      return;
+    }
+    el.classList.remove(...ITEM_STATES);
+    el.classList.add(`is-${status}`);
+  };
+
+  /** Número do resumo: valor final, casas decimais e o que vem depois dele (ex.: `%`). */
+  const sumTarget = ((): { value: number; decimals: number; suffix: string } | null => {
+    const match = /^\s*([\d.]*\d)(?:,(\d+))?(.*)$/.exec(String(spec.sumValue ?? ''));
+    if (!match) return null;
+    const value = parseFloat(`${(match[1] ?? '').replace(/\./g, '')}.${match[2] ?? '0'}`);
+    if (!isFinite(value)) return null;
+    return { value, decimals: (match[2] ?? '').length, suffix: match[3] ?? '' };
+  })();
+  const setSum = (progress: number): void => {
+    const el = $('[data-sim-sum]');
+    const bar = $('[data-sim-sumbar]');
+    if (bar) bar.style.transform = `scaleX(${progress})`;
+    if (!el || !sumTarget) return;
+    el.textContent =
+      (sumTarget.value * progress).toLocaleString('pt-BR', {
+        minimumFractionDigits: sumTarget.decimals,
+        maximumFractionDigits: sumTarget.decimals,
+      }) + sumTarget.suffix;
+  };
+  const countUp = async (ms: number): Promise<void> => {
+    const frames = Math.max(1, Math.round(ms / 16));
+    for (let frame = 1; frame <= frames; frame += 1) {
+      if (!alive()) return;
+      setSum(1 - Math.pow(1 - frame / frames, 3));
+      await api.wait(16);
+    }
+    if (alive()) setSum(1);
+  };
+
+  const runItems = async (ms: number): Promise<void> => {
+    for (const el of $$('[data-sim-item]')) {
+      if (!alive()) return;
+      setItem(el, 'run');
+      await api.wait(ms);
+      if (!alive()) return;
+      setItem(el, 'ok');
+    }
+  };
+
+  const cellsFrom = (value: unknown): string[] =>
+    Array.isArray(value)
+      ? value.map(String)
+      : String(value ?? '')
+          .split(';')
+          .map((cell) => cell.trim())
+          .filter(Boolean);
 
   const cursorEl = (): HTMLElement | null => $('[data-sim-cursor]');
   const appEl = (): HTMLElement | null => $('.pk-sim-app');
@@ -151,7 +223,7 @@ export function simRuntime(
     }
   };
 
-  const apply = (step: SimStep): void => {
+  const apply = async (step: SimStep): Promise<void> => {
     if (step.cursor) moveCursor(step.cursor);
     if (step.toast) patchToast(step.toast.id, step.toast.action);
     if (step.press) press(step.press);
@@ -189,21 +261,39 @@ export function simRuntime(
         if (step.row.action === 'show') row.classList.remove('is-hidden');
         if (step.row.action === 'hide') row.classList.add('is-hidden');
         if (step.row.action === 'highlight') row.classList.add('is-hl');
-        if (step.row.action === 'clear') row.classList.remove('is-hidden', 'is-hl');
+        if (step.row.action === 'select') row.classList.add('is-sel');
+        if (step.row.action === 'clear') row.classList.remove('is-hidden', 'is-hl', 'is-sel');
       }
     }
 
-    if (step.note) $('[data-sim-note]')?.classList.add('is-on');
+    if (step.note === true) $$('[data-sim-note]').forEach((el) => el.classList.add('is-on'));
+    else if (typeof step.note === 'number')
+      $$('[data-sim-note]')[step.note]?.classList.add('is-on');
 
-    if (step.rollback) {
-      root.classList.add('is-rollback');
+    if (step.rollback) root.classList.add('is-rollback');
+    if (step.rollback || typeof step.errLine === 'number') {
       const lines = $$('.pk-sim-ln');
-      const target = lines[lines.length - 2];
+      const target = lines[typeof step.errLine === 'number' ? step.errLine : lines.length - 2];
       target?.classList.add('is-err');
     }
 
+    if (step.cell) {
+      const td = $(`[data-sim-dbrow="${step.cell.row}"]`)?.children[step.cell.col];
+      if (td) {
+        td.textContent = step.cell.text;
+        td.className = step.cell.tone ? `is-${step.cell.tone}` : '';
+      }
+    }
+
+    if (step.items) $$('[data-sim-item]').forEach((el) => setItem(el, String(step.items)));
+    if (step.item) setItem($$('[data-sim-item]')[step.item.index], step.item.status);
+
     if (step.message) showMessage(step.message);
+    if (step.dialog) showDialog(step.dialog);
     if (step.hideMessage) hideMessages();
+
+    if (typeof step.runItems === 'number') await runItems(step.runItems);
+    if (typeof step.count === 'number') await countUp(step.count);
   };
 
   const runSteps = async (list: SimStep[]): Promise<void> => {
@@ -211,7 +301,7 @@ export function simRuntime(
       if (!alive()) return;
       if (step.wait) await api.wait(step.wait);
       if (!alive()) return;
-      apply(step);
+      await apply(step);
     }
   };
 
@@ -226,28 +316,46 @@ export function simRuntime(
       void cursor.offsetWidth;
       cursor.style.transition = '';
     }
-    $('[data-sim-valid]')?.classList.remove('is-on');
+    // Só volta ao começo o que o roteiro vai mexer; o resto fica como no estado final.
+    const uses = (test: (step: SimStep) => boolean): boolean => steps.some(test);
+    if (uses((s) => typeof s.valid === 'boolean')) $('[data-sim-valid]')?.classList.remove('is-on');
     $$('[data-sim-row]').forEach((row) => {
       if (row.classList.contains('is-new')) row.classList.add('is-hidden');
+      if (row.classList.contains('is-out')) row.classList.remove('is-hidden');
       row.classList.remove('is-hl');
     });
-    $$('[data-sim-chip]').forEach((chip) => {
-      chip.classList.remove('is-ok', 'is-fail', 'is-undo');
-      chip.classList.add('is-pending');
-    });
-    const state = $('[data-sim-state]');
-    if (state) {
-      state.textContent = '—';
-      state.className = 'pk-sim-tx-state';
+    if (uses((s) => Array.isArray(s.chips))) {
+      $$('[data-sim-chip]').forEach((chip) => {
+        chip.classList.remove('is-ok', 'is-fail', 'is-undo');
+        chip.classList.add('is-pending');
+      });
     }
-    $('[data-sim-note]')?.classList.remove('is-on');
+    const state = $('[data-sim-state]');
+    if (state && uses((s) => s.state !== undefined)) {
+      state.textContent = typeof spec.txStateStart === 'string' ? spec.txStateStart : '—';
+      state.className = 'pk-sim-tx-state is-idle';
+    }
+    if (uses((s) => s.note !== undefined && s.note !== false)) {
+      $$('[data-sim-note]').forEach((el) => el.classList.remove('is-on'));
+    }
+    if (uses((s) => !!s.item || !!s.items || typeof s.runItems === 'number')) {
+      $$('[data-sim-item]').forEach((el) => setItem(el, 'idle'));
+    }
+    if (uses((s) => typeof s.count === 'number')) setSum(0);
+    (Array.isArray(spec.dbRows) ? spec.dbRows : []).forEach((row, index) => {
+      const el = $(`[data-sim-dbrow="${index}"]`);
+      const start = cellsFrom(row?.start);
+      if (!el || !start.length) return;
+      Array.from(el.children).forEach((td, col) => {
+        if (typeof start[col] === 'string') td.textContent = start[col] ?? '';
+      });
+    });
     hideMessages();
   };
 
   const typeCode = async (): Promise<void> => {
-    if (!spec.codeEnabled || !spec.codeTyping) return;
     const lines = $$('.pk-sim-ln');
-    if (!lines.length) return;
+    if (!spec.codeTyping || !lines.length) return;
     const html = lines.map((line) => line.innerHTML);
     const text = lines.map((line) => line.textContent ?? '');
     const grouped = new Map<number, SimStep[]>();
