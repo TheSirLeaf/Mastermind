@@ -279,6 +279,27 @@ describe('pacote sim', () => {
     controller?.final();
   });
 
+  it('digita o código revelando caractere a caractere, com cursor e sem perder o realce', async () => {
+    const spec = {
+      ...simDefaults,
+      codeEnabled: true,
+      codeCode: 'var a = 1;\nb();',
+      codeTyping: true,
+      steps: [],
+    };
+    const root = mount(spec);
+    const original = root.innerHTML;
+    const controller = simRuntime(root, spec, instantApi());
+    await controller?.play();
+    // Tudo revelado (nenhum caractere ficou escondido) e o texto continua íntegro.
+    expect(root.querySelectorAll('.pk-sim-h')).toHaveLength(0);
+    expect(root.querySelector('.pk-sim-ln')?.textContent).toBe('var a = 1;');
+    expect(root.querySelectorAll('.pk-sim-caret')).toHaveLength(1);
+    expect(root.querySelector('.pk-sim-tk-kw')).not.toBeNull();
+    controller?.final();
+    expect(root.innerHTML).toBe(original);
+  });
+
   it('serializa o runtime autossuficiente para o HTML exportado', async () => {
     const serialized = serializePackage(SimPackage);
     expect(serialized.runtime).toEqual({ $fn: String(simRuntime) });

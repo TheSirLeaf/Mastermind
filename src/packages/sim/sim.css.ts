@@ -13,10 +13,17 @@ export const simCss = `
 .pk-sim-tag{margin-left:auto;font:700 11px 'DM Sans',system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#F7D98B}
 .pk-sim-code{margin:0;padding:20px 24px;color:#FFF8F5;font:400 17px/1.6 ui-monospace,'Cascadia Mono',Consolas,monospace;white-space:pre;tab-size:2;overflow:visible}
 .pk-sim-code code{display:block;background:none;border:0;border-radius:0;padding:0;margin:0;font:inherit;color:inherit}
-.pk-sim-ln{display:block;position:relative;padding-left:38px;min-height:1.6em}
-.pk-sim-ln::before{content:attr(data-n);position:absolute;left:0;width:22px;text-align:right;color:rgba(255,248,245,.22);font-size:.8em}
-.pk-sim-ln.is-cur{background:rgba(247,217,139,.09);box-shadow:inset 2px 0 0 #F7D98B}
-.pk-sim-ln.is-err{background:rgba(201,92,98,.18);box-shadow:inset 2px 0 0 #C95C62}
+.pk-sim-ln{display:block;position:relative;padding:0 24px;margin:0 -24px;min-height:1.6em;border-left:3px solid transparent;transition:background .3s,border-color .3s}
+.pk-sim-nums .pk-sim-ln{padding-left:62px}
+.pk-sim-ln::before{display:none;content:attr(data-n);position:absolute;left:22px;width:26px;text-align:right;color:rgba(255,248,245,.28);font-size:.8em}
+.pk-sim-nums .pk-sim-ln::before{display:block}
+.pk-sim-ln.is-cur{background:rgba(247,217,139,.09);border-left-color:#F7D98B}
+.pk-sim-ln.is-err{background:rgba(201,92,98,.18);border-left-color:#C95C62}
+.pk-sim-h{visibility:hidden}
+.pk-sim-caret{position:relative;display:inline-block;width:0;height:1em}
+.pk-sim-caret::after{content:"";position:absolute;left:1px;top:-.1em;width:2px;height:1.2em;background:#F7D98B;animation:pk-sim-blink 1s steps(1) infinite}
+@keyframes pk-sim-blink{50%{opacity:0}}
+@media print{.pk-sim-h{visibility:visible!important}.pk-sim-caret{display:none}}
 .pk-sim-tk-kw{color:#F7D98B}.pk-sim-tk-str{color:#C77C8A}.pk-sim-tk-num{color:#72A68A}
 .pk-sim-tk-cm{color:rgba(255,248,245,.35);font-style:italic}.pk-sim-tk-fn{color:#8FB8D8}
 .pk-sim-tk-ty{color:#E0B7C1}.pk-sim-tk-op{color:rgba(255,248,245,.55)}
@@ -177,4 +184,18 @@ export const simCss = `
   .pk-sim-click{animation:none!important}
   .pk-sim *{transition:none!important;animation:none!important}
 }
+/* Esquemas de cor do bloco de código (os mesmos do pacote de código) */
+.pk-sim-pal{background:var(--pk-bg)!important;border-color:color-mix(in srgb,var(--pk-fg) 16%,transparent)!important}
+.pk-sim-pal .pk-sim-code-top{background:color-mix(in srgb,var(--pk-fg) 6%,transparent)!important;border-bottom-color:color-mix(in srgb,var(--pk-fg) 12%,transparent)!important}
+.pk-sim-pal .pk-sim-code{color:var(--pk-fg)!important}
+.pk-sim-pal .pk-sim-file{color:color-mix(in srgb,var(--pk-fg) 60%,transparent)!important}
+.pk-sim-pal .pk-sim-tag{color:var(--pk-ac)!important}
+.pk-sim-pal .pk-sim-dots i:first-child{background:var(--pk-ac)}
+.pk-sim-pal .pk-sim-ln::before{color:color-mix(in srgb,var(--pk-fg) 35%,transparent)!important}
+.pk-sim-pal .pk-sim-ln.is-cur{background:color-mix(in srgb,var(--pk-ac) 14%,transparent)!important;border-left-color:var(--pk-ac)!important}
+.pk-sim-pal .pk-sim-caret::after{background:var(--pk-ac)}
+.pk-sim-pal .pk-sim-tk-kw{color:var(--pk-kw)!important}.pk-sim-pal .pk-sim-tk-str{color:var(--pk-str)!important}
+.pk-sim-pal .pk-sim-tk-num{color:var(--pk-num)!important}.pk-sim-pal .pk-sim-tk-fn,.pk-sim-pal .pk-sim-tk-ty{color:var(--pk-fn)!important}
+.pk-sim-pal .pk-sim-tk-op{color:color-mix(in srgb,var(--pk-fg) 65%,transparent)!important}
+.pk-sim-pal .pk-sim-tk-cm{color:var(--pk-cm)!important}
 `;

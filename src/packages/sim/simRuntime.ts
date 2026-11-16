@@ -356,8 +356,6 @@ export function simRuntime(
   const typeCode = async (): Promise<void> => {
     const lines = $$('.pk-sim-ln');
     if (!spec.codeTyping || !lines.length) return;
-    const html = lines.map((line) => line.innerHTML);
-    const text = lines.map((line) => line.textContent ?? '');
     const grouped = new Map<number, SimStep[]>();
     for (const step of steps) {
       if (typeof step.at !== 'number') continue;
@@ -366,24 +364,59 @@ export function simRuntime(
       grouped.set(step.at, list);
     }
 
-    lines.forEach((line) => {
-      line.textContent = '';
+    // Cada caractere vira um <span> escondido: o painel já ocupa o tamanho final,
+    // o realce de sintaxe continua intacto e nada é reescrito durante a digitação.
+    const chars: { el: HTMLElement; ch: string }[][] = lines.map((line) => {
+      const out: { el: HTMLElement; ch: string }[] = [];
+      const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+      const nodes: Text[] = [];
+      let node = walker.nextNode();
+      while (node) {
+        nodes.push(node as Text);
+        node = walker.nextNode();
+      }
+      nodes.forEach((textNode) => {
+        const fragment = document.createDocumentFragment();
+        Array.from(textNode.nodeValue ?? '').forEach((ch) => {
+          const span = document.createElement('span');
+          span.className = 'pk-sim-h';
+          span.textContent = ch;
+          fragment.appendChild(span);
+          out.push({ el: span, ch });
+        });
+        textNode.parentNode?.replaceChild(fragment, textNode);
+      });
+      return out;
     });
-    await api.wait(spec.codeDelay);
-    const perChar = 1000 / Math.max(10, spec.codeCps);
 
+    const caret = spec.codeCaret === false ? null : document.createElement('span');
+    if (caret) caret.className = 'pk-sim-caret';
+    const base = 1000 / Math.max(10, spec.codeCps);
+    let seed = 11;
+
+    await api.wait(spec.codeDelay);
     for (let index = 0; index < lines.length; index += 1) {
       if (!alive()) return;
       const line = lines[index];
+      const items = chars[index] ?? [];
       if (!line) continue;
-      const source = text[index] ?? '';
       line.classList.add('is-cur');
-      for (const char of source) {
+      if (index > 0) await api.wait(base * 3.2);
+      let leading = true;
+      for (const item of items) {
         if (!alive()) return;
-        line.textContent += char;
-        await api.wait(perChar);
+        item.el.className = '';
+        if (caret) {
+          const next = item.el.nextSibling;
+          if (next) item.el.parentNode?.insertBefore(caret, next);
+          else item.el.parentNode?.appendChild(caret);
+        }
+        if (leading && /\s/.test(item.ch)) continue;
+        leading = false;
+        seed = (seed * 9301 + 49297) % 233280;
+        await api.wait(base * (0.55 + (0.9 * seed) / 233280));
       }
-      line.innerHTML = html[index] ?? '';
+      if (!items.length && caret) line.appendChild(caret);
       line.classList.remove('is-cur');
       const lineSteps = grouped.get(index);
       if (lineSteps) await runSteps(lineSteps);

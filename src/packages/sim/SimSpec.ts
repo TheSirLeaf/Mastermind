@@ -216,6 +216,12 @@ export interface SimSpec extends PackageSpec {
   codeDelay: number;
   codeFontSize: number;
   codeLineHeight: number;
+  /** Numeração das linhas (padrão ligada). */
+  codeNums?: boolean;
+  /** Cursor piscando no fim do que foi digitado (padrão ligado). */
+  codeCaret?: boolean;
+  /** Esquema de cores, o mesmo do bloco de código (`default` segue a apresentação). */
+  codePalette?: 'default' | 'slate' | 'midnight' | 'paper';
   /** Rodapé da janela de código (vazio esconde). */
   codeNote?: string;
   /** Janelas de código extras, digitadas depois da principal. */

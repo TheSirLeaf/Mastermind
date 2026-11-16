@@ -458,6 +458,29 @@ export const simForm: FormSchema = [
       {
         type: 'row',
         fields: [
+          { k: 'codeNums', label: 'Numerar linhas', type: 'toggle' },
+          {
+            k: 'codeCaret',
+            label: 'Cursor',
+            type: 'toggle',
+            showIf: { k: 'codeTyping', eq: true },
+          },
+        ],
+      },
+      {
+        k: 'codePalette',
+        label: 'Cores',
+        type: 'select',
+        options: [
+          ['default', 'Da apresentação'],
+          ['slate', 'Slate'],
+          ['midnight', 'Midnight'],
+          ['paper', 'Paper (claro)'],
+        ],
+      },
+      {
+        type: 'row',
+        fields: [
           {
             k: 'codeCps',
             label: 'Velocidade',
@@ -575,6 +598,9 @@ const emptyScreen: SimSpec = {
   codeEnabled: false,
   codeFile: '',
   codeCode: '',
+  codeNums: true,
+  codeCaret: true,
+  codePalette: 'default',
   steps: '[]',
 };
 

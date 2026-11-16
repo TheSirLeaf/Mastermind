@@ -1,5 +1,6 @@
-import type { JSX } from 'react';
+import type { CSSProperties, JSX } from 'react';
 
+import { CODE_PALETTES } from '../code/CodeRenderer';
 import type { HelperAPI } from '../core/types';
 
 import {
@@ -52,6 +53,20 @@ export function SimRenderer({ spec, h }: { spec: SimSpec; h: HelperAPI }): JSX.E
   const formTitle = textOf(spec, 'formTitle');
   const validText = textOf(spec, 'validText');
   const codeNote = textOf(spec, 'codeNote');
+  const palette =
+    spec.codePalette && spec.codePalette !== 'default' ? CODE_PALETTES[spec.codePalette] : null;
+  const paletteVars = palette
+    ? ({
+        '--pk-bg': palette.bg,
+        '--pk-fg': palette.fg,
+        '--pk-ac': palette.ac,
+        '--pk-kw': palette.kw,
+        '--pk-str': palette.str,
+        '--pk-num': palette.num,
+        '--pk-fn': palette.fn,
+        '--pk-cm': palette.cm,
+      } as CSSProperties)
+    : undefined;
   const columns = listOf(spec.columns);
   const rows = Array.isArray(spec.rows) ? spec.rows : [];
   const fields = Array.isArray(spec.fields) ? spec.fields : [];
@@ -102,7 +117,11 @@ export function SimRenderer({ spec, h }: { spec: SimSpec; h: HelperAPI }): JSX.E
         {hasCode ? (
           <div className="pk-sim-col">
             {windows.map((win, winIndex) => (
-              <div className="pk-sim-code-win" key={`code-${winIndex}`}>
+              <div
+                className={`pk-sim-code-win${palette ? ' pk-sim-pal' : ''}${spec.codeNums === false ? '' : ' pk-sim-nums'}`}
+                key={`code-${winIndex}`}
+                style={paletteVars}
+              >
                 <div className="pk-sim-code-top">
                   <span className="pk-sim-dots">
                     <i key="dot-1" />
