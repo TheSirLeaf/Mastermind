@@ -21,6 +21,7 @@ import {
 const BOX_OWNED = new Set([
   'padding',
   'margin',
+  '--mm-padr',
   'box-shadow',
   'border-radius',
   '-webkit-box-decoration-break',
@@ -53,6 +54,28 @@ export function applyElementFx(selection: SelectionInfo, fx: TextFx): void {
       if (hasShine && SHINE_VARS.includes(prop)) continue;
       if (value === null) el.style.removeProperty(prop);
       else el.style.setProperty(prop, value);
+    }
+    // Texto recortado no gradiente/brilho: a caixa justa corta as hastes que descem (g, p, y…).
+    // Folga vertical na caixa, compensada pela margem negativa para o texto não sair do lugar.
+    const clipped = after['-webkit-background-clip'] === 'text';
+    const own = (p: string) => el.style.getPropertyValue(p);
+    const ours = el.getAttribute('data-clip-pad') === '1';
+    if (clipped || hasShine) {
+      const free = ['padding-top', 'padding-bottom', 'margin-top', 'margin-bottom'].every(
+        (p) => !own(p) || ours
+      );
+      if (free) {
+        el.style.setProperty('padding-top', '0.3em');
+        el.style.setProperty('padding-bottom', '0.3em');
+        el.style.setProperty('margin-top', '-0.3em');
+        el.style.setProperty('margin-bottom', '-0.3em');
+        el.setAttribute('data-clip-pad', '1');
+      }
+    } else if (ours) {
+      for (const p of ['padding-top', 'padding-bottom', 'margin-top', 'margin-bottom']) {
+        el.style.removeProperty(p);
+      }
+      el.removeAttribute('data-clip-pad');
     }
     el.classList.toggle('mm-shine', hasShine || fx.fill?.kind === 'shine');
     if (!el.classList.length) el.removeAttribute('class');

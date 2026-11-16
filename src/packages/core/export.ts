@@ -366,7 +366,8 @@ export const NAV_SCRIPT = `(function(){
     requestAnimationFrame(frame);
   }
 
-  /* Interpolar: elementos com o mesmo nome (data-name) nos dois slides viajam de um lugar ao outro. */
+  /* Interpolar: elementos com o mesmo nome (data-name) nos dois slides, ou iguais (ver autoList),
+     viajam de um lugar ao outro. */
   function named(root){
     var map = {};
     [].slice.call(root.querySelectorAll('[data-name],[data-morph]')).forEach(function(el){
@@ -387,20 +388,61 @@ export const NAV_SCRIPT = `(function(){
   function styleOf(el){
     var cs = window.getComputedStyle(el), o = {};
     TEXT_PROPS.forEach(function(p){ o[p] = cs[p]; });
+    o.clipped = cs.webkitBackgroundClip === 'text' || cs.backgroundClip === 'text';
     o.width = cs.width;
     o.display = cs.display;
     return o;
   }
+  /* Sem nome, os elementos se pareiam sozinhos quando são "o mesmo" nos dois slides: mesmo texto
+     (na mesma tag), mesma imagem/vídeo ou a mesma forma (mesmo estilo, fora posição e tamanho).
+     Repetidos se pareiam na ordem em que aparecem. O fundo do slide base e os pacotes ficam de fora. */
+  function autoList(root){
+    var list = [];
+    function ownText(el){
+      for(var n = el.firstChild; n; n = n.nextSibling){ if(n.nodeType === 3 && n.nodeValue.trim() !== '') return true; }
+      return false;
+    }
+    function walk(el){
+      [].slice.call(el.children).forEach(function(c){
+        var tag = c.tagName;
+        if(tag === 'SCRIPT' || tag === 'STYLE' || c.classList.contains('mm-bgl') || c.hasAttribute('data-pkg') ||
+           c.hasAttribute('data-name') || c.hasAttribute('data-morph')) return;
+        if(tag === 'IMG' || tag === 'VIDEO'){
+          var src = c.getAttribute('src');
+          if(src) list.push({k: tag + '|' + src, el: c});
+          return;
+        }
+        if(ownText(c) && textual(c)){
+          list.push({k: tag + '|' + c.textContent.replace(/\\s+/g, ' ').trim(), el: c});
+          return;
+        }
+        if(c.classList.contains('ed-obj') && !c.children.length){
+          var sig = (c.getAttribute('style') || '').replace(/(^|;)\\s*(left|top|right|bottom|width|height|translate|rotate|scale|transform|z-index|opacity)\\s*:[^;]*/g, '');
+          list.push({k: 'obj|' + tag + '|' + c.className + '|' + sig, el: c});
+          return;
+        }
+        walk(c);
+      });
+    }
+    walk(root);
+    return list;
+  }
   function morphPlan(prev, next){
     var a = named(prev), b = named(next), plan = [];
-    for(var k in a){
-      if(!b[k]) continue;
-      var tx = textual(a[k]) && textual(b[k]);
-      plan.push({from:a[k], to:b[k], r:a[k].getBoundingClientRect(), text: tx,
-        styles: tx ? treeOf(a[k]).map(styleOf) : null, shape: tx ? shapeOf(treeOf(a[k])) : ''});
+    function pair(from, to){
+      var tx = textual(from) && textual(to);
+      plan.push({from:from, to:to, r:from.getBoundingClientRect(), text: tx,
+        styles: tx ? treeOf(from).map(styleOf) : null, shape: tx ? shapeOf(treeOf(from)) : ''});
       /* quem chega por interpolação não tem animação de entrada (e isso vale antes do slide ficar ativo) */
-      b[k].classList.add('mm-noanim');
+      to.classList.add('mm-noanim');
     }
+    for(var k in a){ if(b[k]) pair(a[k], b[k]); }
+    var pool = {};
+    autoList(prev).forEach(function(it){ (pool[it.k] = pool[it.k] || []).push(it.el); });
+    autoList(next).forEach(function(it){
+      var q = pool[it.k];
+      if(q && q.length) pair(q.shift(), it.el);
+    });
     return plan;
   }
   function morphRun(prev, next, plan){
@@ -455,11 +497,15 @@ export const NAV_SCRIPT = `(function(){
     var pairs = shapeOf(targets) === p.shape ? targets : [p.to];
     pairs.forEach(function(el, i){
       var from = p.styles[i], to = styleOf(el), a = {}, z2 = {}, any = false;
+      /* texto com gradiente/brilho (letra transparente sobre fundo recortado): animar a cor de
+         preenchimento ou o filtro deixa o texto invisível no caminho; esses valores só trocam. */
+      var clipped = from.clipped || to.clipped;
       TEXT_PROPS.forEach(function(prop){
+        if(clipped && (prop === 'webkitTextFillColor' || prop === 'color' || prop === 'filter' || prop === 'backgroundColor' || prop === 'boxShadow' || prop === 'textShadow')) return;
         if(from[prop] !== to[prop]){ a[prop] = from[prop]; z2[prop] = to[prop]; any = true; }
       });
       /* a largura da caixa acompanha (o texto vai reorganizando as linhas no caminho) */
-      if(i === 0 && to.display !== 'inline' && from.width !== to.width &&
+      if(i === 0 && !clipped && to.display !== 'inline' && from.width !== to.width &&
          /px$/.test(from.width) && /px$/.test(to.width)){
         a.width = from.width; z2.width = to.width; any = true;
       }

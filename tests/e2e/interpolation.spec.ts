@@ -95,6 +95,58 @@ test('Interpolar: o elemento com o mesmo nome vai do lugar antigo ao novo (não 
   expect(end.w).toBeGreaterThan(380);
 });
 
+test('Interpolar sem nome: textos, imagens e formas iguais se pareiam sozinhos; diferentes não', async ({
+  page,
+}) => {
+  const img =
+    'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22/%3E';
+  await boot(page, [
+    `<section class="slide dark" data-notes=""><h1 id="a" style="position:absolute;left:100px;top:100px;margin:0;font-size:80px">Título <span>igual</span></h1><p style="position:absolute;left:100px;top:700px;margin:0">some</p><img src="${img}" style="position:absolute;left:100px;top:400px;width:100px;height:100px"><div class="ed-obj ed-shape" style="position:absolute;left:100px;top:900px;width:100px;height:60px;background:#c33"></div></section>`,
+    `<section class="slide dark" data-transition="morph" data-notes=""><h1 id="b" style="position:absolute;left:1200px;top:600px;margin:0;font-size:80px">Título <span>igual</span></h1><p id="novo" style="position:absolute;left:100px;top:700px;margin:0">aparece</p><img id="i" src="${img}" style="position:absolute;left:1500px;top:400px;width:100px;height:100px"><div id="f" class="ed-obj ed-shape" style="position:absolute;left:1500px;top:900px;width:100px;height:60px;background:#c33"></div></section>`,
+  ]);
+  const html = await page.evaluate(async () => {
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    const imp = (window as unknown as { __imp: (p: string) => Promise<any> }).__imp;
+    const exp = await imp('/src/packages/core/export.ts');
+    const reg = await imp('/src/packages/core/PackageRegistry.ts');
+    const deckStore = await imp('/src/store/deckStore.ts');
+    return exp.buildPresentationHTML({
+      template: await exp.loadTemplate(),
+      deck: deckStore.useDeckStore.getState().deck,
+      registry: reg.registry,
+    });
+  });
+  const pres = await page.context().newPage();
+  await pres.setViewportSize({ width: 1280, height: 720 });
+  await pres.setContent(html, { waitUntil: 'load' });
+  await pres.waitForTimeout(500);
+  await pres.keyboard.press('ArrowRight');
+  await pres.waitForTimeout(150);
+
+  const state = (selector: string) =>
+    pres.evaluate((sel) => {
+      const el = document.querySelector('.slide.active ' + sel) as HTMLElement;
+      return {
+        x: Math.round(el.getBoundingClientRect().left),
+        morph: el.getAnimations().some((a) => a.id === 'mm-morph'),
+      };
+    }, selector);
+
+  // no começo da transição, os iguais ainda estão perto do lugar antigo (à esquerda)
+  for (const sel of ['#b', '#i', '#f']) {
+    const early = await state(sel);
+    expect(early.morph, sel).toBe(true);
+    expect(early.x, sel).toBeLessThan(400);
+  }
+  // texto diferente não tem par: não viaja
+  expect((await state('#novo')).morph).toBe(false);
+
+  await pres.waitForTimeout(900);
+  expect((await state('#b')).x).toBeGreaterThan(700);
+  expect((await state('#i')).x).toBeGreaterThan(900);
+  expect((await state('#f')).x).toBeGreaterThan(900);
+});
+
 test('Interpolação no slide: percorre os keyframes e termina no estado final', async ({ page }) => {
   await boot(page, [
     `<section class="slide dark" data-notes=""><h2 class="title" data-kf='${KF}'>Titulo</h2></section>`,

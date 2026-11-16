@@ -41,7 +41,7 @@ const TRANSITIONS: Record<
   morph: {
     label: 'Interpolar',
     description:
-      'Elementos com o mesmo nome nos dois slides se transformam de um no outro (posição e tamanho). Dê o mesmo nome a eles com o lápis do inspetor.',
+      'Elementos iguais nos dois slides (mesmo texto, imagem ou forma) viajam de um lugar ao outro. Para ligar elementos diferentes, dê o mesmo nome a eles com o lápis do inspetor.',
   },
 };
 

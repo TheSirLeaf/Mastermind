@@ -135,6 +135,7 @@ export const FX_PROPS = [
   'border-radius',
   'padding',
   'margin',
+  '--mm-padr',
   '-webkit-box-decoration-break',
   'box-decoration-break',
   'letter-spacing',
@@ -208,6 +209,37 @@ export function shadowCss(shadows: TextShadow[]): string | null {
     }
   }
   return out.join(', ');
+}
+
+/**
+ * Sombras com "tamanho" para texto recortado (gradiente/brilho): um filtro SVG inline
+ * (data URI) engrossa a silhueta com feMorphology, desfoca, desloca, pinta e coloca atrás da letra.
+ */
+function sizedShadowFilter(list: TextShadow[]): string {
+  let prims = '';
+  const names: string[] = [];
+  list.forEach((s, i) => {
+    const size = round(Math.max(0, s.size || 0), 2);
+    const blur = round(Math.max(0, s.blur) / 2, 2);
+    const n = `s${i}`;
+    prims +=
+      `<feMorphology in='SourceAlpha' operator='dilate' radius='${size}' result='${n}m'/>` +
+      // feMorphology engrossa com um quadrado: desfoca um pouco e recorta de novo no meio do
+      // degradê para os cantos ficarem redondos (o tamanho continua o mesmo).
+      `<feGaussianBlur in='${n}m' stdDeviation='${round(size * 0.3, 2)}'/>` +
+      `<feComponentTransfer result='${n}d'><feFuncA type='linear' slope='12' intercept='-5.5'/></feComponentTransfer>` +
+      `<feGaussianBlur in='${n}d' stdDeviation='${blur}' result='${n}b'/>` +
+      `<feOffset in='${n}b' dx='${round(s.x)}' dy='${round(s.y)}' result='${n}o'/>` +
+      `<feFlood flood-color='${s.color}' flood-opacity='${round(Math.min(1, Math.max(0, s.opacity)))}'/>` +
+      `<feComposite in2='${n}o' operator='in' result='${n}'/>`;
+    names.push(n);
+  });
+  const merge = names.map((n) => `<feMergeNode in='${n}'/>`).join('') + `<feMergeNode in='SourceGraphic'/>`;
+  const svg =
+    `<svg xmlns='http://www.w3.org/2000/svg'><filter id='f' x='-50%' y='-100%' width='200%' height='300%' color-interpolation-filters='sRGB'>` +
+    `${prims}<feMerge>${merge}</feMerge></filter></svg>`;
+  const enc = encodeURIComponent(svg).replace(/\(/g, '%28').replace(/\)/g, '%29').replace(/'/g, '%27');
+  return `url(data:image/svg+xml,${enc}#f)`;
 }
 
 /**
@@ -303,12 +335,16 @@ export function textFxToCss(fx: TextFx): Record<string, string | null> {
     // Com o preenchimento recortado (letra transparente), o text-shadow apareceria através da
     // letra e desbotaria o gradiente; drop-shadow fica por trás do que foi pintado. Ele não tem
     // "tamanho", então o tamanho entra como desfoque extra.
+    // "Tamanho" engrossa a forma da sombra (não desfoca): precisa de um filtro SVG com
+    // feMorphology; sombras sem tamanho continuam como drop-shadow simples.
+    const sized = fx.shadows.filter((s) => (s.size || 0) >= 0.01);
     for (const s of fx.shadows) {
-      const blur = s.blur / 2 + Math.max(0, s.size || 0) * 0.6;
+      if ((s.size || 0) >= 0.01) continue;
       filters.push(
-        `drop-shadow(${round(s.x)}px ${round(s.y)}px ${round(blur)}px ${withAlpha(s.color, s.opacity)})`
+        `drop-shadow(${round(s.x)}px ${round(s.y)}px ${round(s.blur / 2)}px ${withAlpha(s.color, s.opacity)})`
       );
     }
+    if (sized.length) filters.push(sizedShadowFilter(sized));
   } else {
     css['text-shadow'] = shadowCss(fx.shadows);
   }
@@ -323,9 +359,12 @@ export function textFxToCss(fx: TextFx): Record<string, string | null> {
     pad = Math.max(pad, h.pad);
   }
   if (pad > 0) {
-    const v = round(pad / 2, 3);
+    // Com o recorte no texto, a folga vertical precisa cobrir as hastes que descem (g, p, y…).
+    const v = round(clipPad > 0 ? Math.max(pad / 2, 0.3) : pad / 2, 3);
     css.padding = `${v}em ${round(pad, 3)}em`;
-    css.margin = `0 ${round(-pad, 3)}em`;
+    css.margin = `${clipPad > 0 ? round(-v, 3) : 0}em ${round(-pad, 3)}em`;
+    // Folga lateral, para a regra do modelo que evita quebra de linha indevida no Firefox.
+    css['--mm-padr'] = `${round(pad, 3)}em`;
   }
   if (Math.abs(fx.spacing) > 0.001) css['letter-spacing'] = `${round(fx.spacing)}em`;
   if (fx.transform !== 'none') css['text-transform'] = fx.transform;

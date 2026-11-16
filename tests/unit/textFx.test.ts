@@ -60,8 +60,8 @@ describe('efeitos de texto', () => {
     expect(css['-webkit-background-clip']).toBe('text');
     expect(css['-webkit-text-fill-color']).toBe('transparent');
     // folga compensada: a caixa cresce, o texto não sai do lugar
-    expect(css.padding).toBe('0.1em 0.2em');
-    expect(css.margin).toBe('0 -0.2em');
+    expect(css.padding).toBe('0.3em 0.2em');
+    expect(css.margin).toBe('-0.3em -0.2em');
     expect(css['box-decoration-break']).toBe('clone');
   });
 
@@ -181,8 +181,8 @@ describe('efeitos de texto', () => {
       })
     );
     expect(css['-webkit-text-stroke']).toBeNull();
-    expect(css.filter).toBe(
-      'drop-shadow(4px 0 0 #FF0000) drop-shadow(-4px 0 0 #FF0000) drop-shadow(0 4px 0 #FF0000) drop-shadow(0 -4px 0 #FF0000) drop-shadow(0px 2px 8px #000000)'
+    expect(css.filter).toMatch(
+      /^drop-shadow\(4px 0 0 #FF0000\) drop-shadow\(-4px 0 0 #FF0000\) drop-shadow\(0 4px 0 #FF0000\) drop-shadow\(0 -4px 0 #FF0000\) url\(data:image\/svg\+xml,.*feMorphology.*#f\)$/
     );
     // no meio, mesmo com gradiente, é o traço normal
     const mid = textFxToCss(
