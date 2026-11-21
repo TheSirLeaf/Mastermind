@@ -1,0 +1,15 @@
+# Fim de linha LF em todo o repositório (o Prettier exige "endOfLine": "lf").
+# Sem isto, o Git no Windows troca para CRLF ao fazer checkout e o format:check acusa os arquivos.
+* text=auto eol=lf
+
+# Binários
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.mp4 binary
+*.webm binary

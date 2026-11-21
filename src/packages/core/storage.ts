@@ -5,6 +5,52 @@ const DB_VERSION = 1;
 const STORE = 'kv';
 const DECK_KEY = 'deck';
 const PACKAGES_KEY = 'packages';
+const RECENT_KEY = 'recent';
+
+/** Quantas apresentações substituídas ficam guardadas em Recentes. */
+export const MAX_RECENT_DECKS = 8;
+
+/** Apresentação guardada em Recentes (ao abrir ou criar outra, a atual vai para cá). */
+export interface RecentDeck {
+  id: string;
+  title: string;
+  slides: number;
+  /** Quando foi guardada (ms). */
+  at: number;
+  deck: Deck;
+}
+
+/** Conteúdo que define "a mesma apresentação" (ids dos slides mudam a cada abertura). */
+function deckContent(deck: Deck): string {
+  return JSON.stringify([
+    deck.title,
+    deck.slides.map((s) => s.html),
+    (deck.bases ?? []).map((b) => b.html),
+    deck.settings ?? null,
+  ]);
+}
+
+/**
+ * Lista de Recentes com `deck` no topo. Uma cópia igual que já esteja na lista sai de onde
+ * estava (não duplica) e a lista fica com no máximo `max` itens.
+ */
+export function withRecent(
+  list: RecentDeck[],
+  deck: Deck,
+  at: number = Date.now(),
+  max: number = MAX_RECENT_DECKS
+): RecentDeck[] {
+  const content = deckContent(deck);
+  const rest = list.filter((item) => deckContent(item.deck) !== content);
+  const entry: RecentDeck = {
+    id: `r-${at.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    title: deck.title || 'Apresentação sem título',
+    slides: deck.slides.length,
+    at,
+    deck,
+  };
+  return [entry, ...rest].slice(0, Math.max(0, max));
+}
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -52,6 +98,15 @@ export function loadSavedDeck(): Promise<Deck | undefined> {
 
 export function saveDeck(deck: Deck): Promise<void> {
   return write(DECK_KEY, deck);
+}
+
+export async function loadRecentDecks(): Promise<RecentDeck[]> {
+  const list = await read<RecentDeck[]>(RECENT_KEY);
+  return Array.isArray(list) ? list.filter((item) => item?.deck?.slides?.length) : [];
+}
+
+export function saveRecentDecks(list: RecentDeck[]): Promise<void> {
+  return write(RECENT_KEY, list);
 }
 
 export function loadSavedPackages(): Promise<SerializedPackage[] | undefined> {

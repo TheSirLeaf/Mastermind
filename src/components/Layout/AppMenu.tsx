@@ -83,6 +83,7 @@ export function AppMenu() {
           },
         },
         { label: 'Abrir…', onSelect: () => deckInputRef.current?.click() },
+        { label: 'Recentes…', onSelect: () => ui.openWelcome() },
         { label: 'Salvar (HTML)', shortcut: 'Ctrl+S', onSelect: () => void saveHTML() },
         'separator',
         { label: 'Exportar para PDF', onSelect: () => void openPDF() },

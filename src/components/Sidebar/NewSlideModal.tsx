@@ -29,7 +29,7 @@ export function NewSlideModal() {
   const mode = useUIStore((state) => state.newSlideMode);
   const isDeck = mode === 'deck';
   const pick = (id: string, index: number | null) => {
-    if (isDeck) newDeckFromModel(id, index);
+    if (isDeck) void newDeckFromModel(id, index);
     else if (index !== null) addSlideFromModel(id, index);
     close();
   };

@@ -1,5 +1,5 @@
 import '../editor/clipboard';
-import { produce } from 'immer';
+import { freeze, produce } from 'immer';
 import { create } from 'zustand';
 
 import { applyElementPatch, type ElementPatch } from '../packages/core/animation';
@@ -109,23 +109,29 @@ export function itemAt(deck: Deck, index: number): Slide | undefined {
 
 export const deckItems = (deck: Deck): Slide[] => [...deck.slides, ...(deck.bases ?? [])];
 
-const cloneDeck = (deck: Deck): Deck => JSON.parse(JSON.stringify(deck)) as Deck;
-
-const history = new HistoryManager<Snapshot>((snapshot) => ({
-  deck: cloneDeck(snapshot.deck),
-  currentIndex: snapshot.currentIndex,
-}));
+/**
+ * O deck nunca é alterado no lugar: toda mudança passa pelo `produce` do immer, que cria objetos
+ * novos só para o que mudou e congela o resultado. Por isso o histórico guarda o próprio objeto,
+ * sem copiar: os passos dividem os slides que não mudaram. (Copiar o deck inteiro a cada passo
+ * custava memória proporcional ao tamanho dele vezes 80; com um vídeo embutido, gigabytes.)
+ */
+const history = new HistoryManager<Snapshot>((snapshot) => ({ ...snapshot }));
 
 export const getSlideTitle = (slide: Slide): string => slideTitle(slide.html);
 
 export const getSlideNotes = (slide: Slide): string => slideNotes(slide.html);
 
 function normalizeDeck(deck: Deck): Deck {
-  return {
-    ...deck,
-    slides: renumberFooters(deck.slides),
-    ...(deck.bases ? { bases: deck.bases.map(upgradeBase) } : {}),
-  };
+  // Congelado como os decks que saem do `produce`: o histórico guarda referências, então um
+  // deck que chega de fora (arquivo, rascunho) também não pode ser alterado no lugar.
+  return freeze(
+    {
+      ...deck,
+      slides: renumberFooters(deck.slides),
+      ...(deck.bases ? { bases: deck.bases.map(upgradeBase) } : {}),
+    },
+    true
+  );
 }
 
 export const useDeckStore = create<DeckState>()((set, get) => {

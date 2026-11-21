@@ -234,11 +234,15 @@ function sizedShadowFilter(list: TextShadow[]): string {
       `<feComposite in2='${n}o' operator='in' result='${n}'/>`;
     names.push(n);
   });
-  const merge = names.map((n) => `<feMergeNode in='${n}'/>`).join('') + `<feMergeNode in='SourceGraphic'/>`;
+  const merge =
+    names.map((n) => `<feMergeNode in='${n}'/>`).join('') + `<feMergeNode in='SourceGraphic'/>`;
   const svg =
     `<svg xmlns='http://www.w3.org/2000/svg'><filter id='f' x='-50%' y='-100%' width='200%' height='300%' color-interpolation-filters='sRGB'>` +
     `${prims}<feMerge>${merge}</feMerge></filter></svg>`;
-  const enc = encodeURIComponent(svg).replace(/\(/g, '%28').replace(/\)/g, '%29').replace(/'/g, '%27');
+  const enc = encodeURIComponent(svg)
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/'/g, '%27');
   return `url(data:image/svg+xml,${enc}#f)`;
 }
 

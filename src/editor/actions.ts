@@ -1,8 +1,10 @@
-import { createDefaultDeck, makeSlide } from '@packages/core/deck';
+import { createDefaultDeck, makeSlide, renumberFooters } from '@packages/core/deck';
 import { buildPresentationHTML, exportPresentationFile, loadTemplate } from '@packages/core/export';
 import { parseDeckHTML } from '@packages/core/importDeck';
 import { getModel } from '@packages/core/models';
 import { registry } from '@packages/core/PackageRegistry';
+import { loadRecentDecks, saveRecentDecks, withRecent } from '@packages/core/storage';
+import type { Deck } from '@packages/core/types';
 import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 
@@ -206,13 +208,61 @@ export function insertVideoUrl(url: string): boolean {
   return result !== null;
 }
 
+/** Deck recém-criado e não mexido: não vale guardar em Recentes. */
+export function isPristineDeck(deck: Deck): boolean {
+  const content = (d: Deck) =>
+    JSON.stringify([
+      d.title,
+      renumberFooters(d.slides).map((s) => s.html),
+      (d.bases ?? []).map((b) => b.html),
+      d.settings ?? null,
+    ]);
+  return content(deck) === content(createDefaultDeck());
+}
+
+/** Guarda a apresentação atual em Recentes (sem travar quem chama; falha só avisa). */
+async function archiveCurrent(exceptId?: string): Promise<void> {
+  const current = useDeckStore.getState().deck;
+  try {
+    const list = (await loadRecentDecks()).filter((item) => item.id !== exceptId);
+    await saveRecentDecks(isPristineDeck(current) ? list : withRecent(list, current));
+  } catch {
+    useUIStore
+      .getState()
+      .showToast('Não foi possível guardar a apresentação anterior em Recentes.', 'error');
+  }
+}
+
+/**
+ * Troca a apresentação aberta. A atual vai antes para Recentes: o rascunho automático tem uma
+ * vaga só e seria sobrescrito pela nova logo em seguida.
+ */
+export async function replaceDeck(next: Deck): Promise<void> {
+  await archiveCurrent();
+  useDeckStore.getState().setDeck(next);
+}
+
+/** Reabre uma apresentação de Recentes (a atual toma o lugar dela na lista). */
+export async function restoreRecentDeck(id: string): Promise<boolean> {
+  const { showToast } = useUIStore.getState();
+  const entry = (await loadRecentDecks().catch(() => [])).find((item) => item.id === id);
+  if (!entry) {
+    showToast('Essa apresentação não está mais em Recentes.', 'error');
+    return false;
+  }
+  await archiveCurrent(id);
+  useDeckStore.getState().setDeck(entry.deck);
+  showToast(`“${entry.title}” reaberta`, 'success');
+  return true;
+}
+
 /** Abre um `.html` de apresentação (editor original, exportado ou deste editor). */
 export async function openDeckFile(file: File): Promise<boolean> {
   const { showToast } = useUIStore.getState();
   try {
     const html = await file.text();
     const imported = parseDeckHTML(html, { title: file.name.replace(/\.html?$/i, '') });
-    useDeckStore.getState().setDeck(imported);
+    await replaceDeck(imported);
     showToast(`“${imported.title}” aberta (${imported.slides.length} slides)`, 'success');
     return true;
   } catch {
@@ -246,16 +296,16 @@ export async function importPackageFile(file: File): Promise<boolean> {
 }
 
 /** Substitui o deck atual por uma apresentação nova. */
-export function newDeck(): void {
-  useDeckStore.getState().setDeck(createDefaultDeck());
+export async function newDeck(): Promise<void> {
+  await replaceDeck(createDefaultDeck());
   useUIStore.getState().showToast('Nova apresentação criada', 'success');
 }
 
 /** Apresentação nova a partir de um modelo (com um slide escolhido, ou os dois primeiros). */
-export function newDeckFromModel(modelId: string, slideIndex: number | null): void {
+export async function newDeckFromModel(modelId: string, slideIndex: number | null): Promise<void> {
   const model = getModel(modelId);
   const picked = slideIndex === null ? model.slides.slice(0, 2) : [model.slides[slideIndex]];
-  useDeckStore.getState().setDeck({
+  await replaceDeck({
     title: 'Apresentação sem título',
     slides: picked.filter((s) => s !== undefined).map((s) => makeSlide(s.html, '')),
     bases: model.bases(),
@@ -264,11 +314,14 @@ export function newDeckFromModel(modelId: string, slideIndex: number | null): vo
   useUIStore.getState().showToast(`Nova apresentação (${model.name})`, 'success');
 }
 
-/** Pergunta antes de descartar alterações não salvas; `true` = pode seguir. */
+/** Pergunta antes de trocar a apresentação aberta; `true` = pode seguir. */
 export function confirmDiscard(): boolean {
-  const { canUndo } = useDeckStore.getState();
+  const { deck } = useDeckStore.getState();
   return (
-    !canUndo || window.confirm('Descartar as alterações atuais? O último rascunho fica guardado.')
+    isPristineDeck(deck) ||
+    window.confirm(
+      'Trocar a apresentação aberta? Ela fica guardada em Arquivo → Recentes e pode ser reaberta.'
+    )
   );
 }
 

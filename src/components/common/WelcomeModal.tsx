@@ -1,9 +1,13 @@
+import { loadRecentDecks, type RecentDeck } from '@packages/core/storage';
 import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 import { FileText, FolderOpen, History, X } from 'lucide-react';
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 
-import { openDeckFile } from '../../editor/actions';
+import { openDeckFile, restoreRecentDeck } from '../../editor/actions';
+
+const when = (at: number): string =>
+  new Date(at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 
 export function WelcomeModal() {
   const { isWelcomeOpen, closeWelcome, hasDraft } = useUIStore();
@@ -11,6 +15,21 @@ export function WelcomeModal() {
   const slideCount = useDeckStore((state) => state.deck.slides.length);
   const [remember, setRemember] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [recent, setRecent] = useState<RecentDeck[]>([]);
+
+  // Apresentações substituídas por outra (abrir/criar): podem ser reabertas daqui.
+  useEffect(() => {
+    if (!isWelcomeOpen) return;
+    let cancelled = false;
+    void loadRecentDecks()
+      .then((list) => {
+        if (!cancelled) setRecent(list);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [isWelcomeOpen]);
 
   if (!isWelcomeOpen) return null;
 
@@ -82,6 +101,34 @@ export function WelcomeModal() {
             <FolderOpen className="h-5 w-5" /> Abrir arquivo .html
           </button>
         </div>
+
+        {recent.length ? (
+          <div className="mb-6 text-left" data-testid="recent-decks">
+            <div className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-payday-textDim">
+              Recentes
+            </div>
+            <ul className="max-h-48 space-y-1 overflow-y-auto pr-1">
+              {recent.map((item) => (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm text-payday-text transition hover:bg-payday-panel"
+                    onClick={() =>
+                      void restoreRecentDeck(item.id).then((ok) => {
+                        if (ok) close();
+                      })
+                    }
+                  >
+                    <span className="min-w-0 truncate">{item.title}</span>
+                    <span className="shrink-0 text-xs text-payday-textMuted">
+                      {item.slides} slides · {when(item.at)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         <label className="mx-auto flex cursor-pointer items-center justify-center gap-3 text-sm text-payday-textMuted">
           <input

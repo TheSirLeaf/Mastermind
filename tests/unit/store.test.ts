@@ -30,6 +30,23 @@ describe('deckStore', () => {
     expect(state().currentIndex).toBe(1);
   });
 
+  it('o histórico divide os slides que não mudaram (não copia o deck inteiro)', () => {
+    const before = state().deck;
+    const html = before.slides[1]!.html.replace('Título do slide', 'Outro título');
+    state().updateSlideHTML(1, html);
+    const after = state().deck;
+
+    expect(after).not.toBe(before);
+    expect(after.slides[0]).toBe(before.slides[0]);
+    expect(after.slides[1]?.html).toBe(html);
+    expect(Object.isFrozen(after.slides[0])).toBe(true);
+
+    state().undo();
+    expect(state().deck).toBe(before);
+    state().redo();
+    expect(state().deck).toBe(after);
+  });
+
   it('não deixa excluir o último slide', () => {
     state().deleteSlide(0);
     state().deleteSlide(0);
