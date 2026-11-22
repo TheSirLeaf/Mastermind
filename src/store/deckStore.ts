@@ -33,6 +33,7 @@ import {
   type SlideTemplateKind,
 } from '../packages/core/deck';
 import { HistoryManager } from '../packages/core/history';
+import { SlideMediaCache } from '../packages/core/media';
 import { ensureBase, getModel, slideFromModel } from '../packages/core/models';
 import { migrateMovedPackages } from '../packages/core/movedPackages';
 import { registry } from '../packages/core/PackageRegistry';
@@ -50,6 +51,8 @@ export interface DeckState {
   revision: number;
   dirty: boolean;
   savedAt: number | null;
+  /** O último salvamento automático do rascunho falhou (ex.: sem espaço no navegador). */
+  saveError: boolean;
   canUndo: boolean;
   canRedo: boolean;
 
@@ -98,6 +101,7 @@ export interface DeckState {
   undo: () => void;
   redo: () => void;
   markSaved: (at?: number) => void;
+  markSaveFailed: () => void;
 }
 
 interface Snapshot {
@@ -120,7 +124,20 @@ export const deckItems = (deck: Deck): Slide[] => [...deck.slides, ...(deck.base
  * sem copiar: os passos dividem os slides que não mudaram. (Copiar o deck inteiro a cada passo
  * custava memória proporcional ao tamanho dele vezes 80; com um vídeo embutido, gigabytes.)
  */
-const history = new HistoryManager<Snapshot>((snapshot) => ({ ...snapshot }));
+const historyMedia = new SlideMediaCache();
+/**
+ * Mesmo dividindo os slides que não mudaram, cada edição num slide com um vídeo embutido gerava
+ * uma string nova com o vídeo inteiro. No histórico, as mídias ficam no `historyMedia` (uma cópia
+ * de cada) e os passos guardam só referências; desfazer/refazer devolve o HTML original.
+ */
+const history = new HistoryManager<Snapshot>((snapshot) => ({
+  ...snapshot,
+  deck: historyMedia.packDeck(snapshot.deck),
+}));
+const fromHistory = (snapshot: Snapshot): Snapshot => ({
+  ...snapshot,
+  deck: historyMedia.unpackDeck(snapshot.deck),
+});
 
 export const getSlideTitle = (slide: Slide): string => slideTitle(slide.html);
 
@@ -167,11 +184,13 @@ export const useDeckStore = create<DeckState>()((set, get) => {
     revision: 0,
     dirty: false,
     savedAt: null,
+    saveError: false,
     canUndo: false,
     canRedo: false,
 
     setDeck: (deck) => {
       history.reset();
+      historyMedia.clear();
       set({
         deck: normalizeDeck(deck),
         currentIndex: 0,
@@ -456,8 +475,9 @@ export const useDeckStore = create<DeckState>()((set, get) => {
     },
 
     undo: () => {
-      const previous = history.undo(snapshot());
-      if (!previous) return;
+      const packed = history.undo(snapshot());
+      if (!packed) return;
+      const previous = fromHistory(packed);
       set({
         deck: previous.deck,
         currentIndex: Math.min(
@@ -473,8 +493,9 @@ export const useDeckStore = create<DeckState>()((set, get) => {
     },
 
     redo: () => {
-      const next = history.redo(snapshot());
-      if (!next) return;
+      const packed = history.redo(snapshot());
+      if (!packed) return;
+      const next = fromHistory(packed);
       set({
         deck: next.deck,
         currentIndex: Math.min(
@@ -489,6 +510,7 @@ export const useDeckStore = create<DeckState>()((set, get) => {
       });
     },
 
-    markSaved: (at = Date.now()) => set({ dirty: false, savedAt: at }),
+    markSaved: (at = Date.now()) => set({ dirty: false, savedAt: at, saveError: false }),
+    markSaveFailed: () => set({ saveError: true }),
   };
 });

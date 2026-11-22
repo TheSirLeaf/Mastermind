@@ -9,10 +9,12 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 
 import {
   confirmDiscard,
+  DECK_FILE_ACCEPT,
   exportWord,
   importPackageFile,
   openDeckFile,
   openPDF,
+  saveDeckFile,
   saveHTML,
 } from '../../editor/actions';
 import { getActiveBridge } from '../../editor/bridgeRef';
@@ -84,8 +86,9 @@ export function AppMenu() {
         },
         { label: 'Abrir…', onSelect: () => deckInputRef.current?.click() },
         { label: 'Recentes…', onSelect: () => ui.openWelcome() },
-        { label: 'Salvar (HTML)', shortcut: 'Ctrl+S', onSelect: () => void saveHTML() },
+        { label: 'Salvar (.mmdeck)', shortcut: 'Ctrl+S', onSelect: () => saveDeckFile() },
         'separator',
+        { label: 'Exportar como HTML', onSelect: () => void saveHTML() },
         { label: 'Exportar para PDF', onSelect: () => void openPDF() },
         { label: 'Exportar para Word (.doc)', onSelect: () => exportWord() },
         'separator',
@@ -152,7 +155,7 @@ export function AppMenu() {
       <input
         ref={deckInputRef}
         type="file"
-        accept=".html,text/html"
+        accept={DECK_FILE_ACCEPT}
         className="hidden"
         onChange={handleDeckFile}
         aria-hidden="true"

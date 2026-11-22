@@ -188,7 +188,7 @@ export function slugifyTitle(title: string): string {
 /** Baixa um arquivo no navegador. */
 export function downloadFile(
   filename: string,
-  content: string,
+  content: BlobPart,
   mime = 'application/octet-stream'
 ): void {
   if (typeof document === 'undefined') return;

@@ -1,10 +1,25 @@
 import { createDefaultDeck, makeSlide, renumberFooters } from '@packages/core/deck';
-import { buildPresentationHTML, exportPresentationFile, loadTemplate } from '@packages/core/export';
+import {
+  buildPresentationHTML,
+  downloadFile,
+  exportPresentationFile,
+  loadTemplate,
+  slugifyTitle,
+} from '@packages/core/export';
 import { parseDeckHTML } from '@packages/core/importDeck';
+import {
+  buildDeckFile,
+  looksLikeDeckFile,
+  MMDECK_EXT,
+  MMDECK_MIME,
+  MmdeckError,
+  packagesToInstall,
+  readDeckFile,
+} from '@packages/core/mmdeck';
 import { getModel } from '@packages/core/models';
 import { registry } from '@packages/core/PackageRegistry';
 import { loadRecentDecks, saveRecentDecks, withRecent } from '@packages/core/storage';
-import type { Deck } from '@packages/core/types';
+import type { Deck, SerializedPackage } from '@packages/core/types';
 import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 
@@ -14,6 +29,21 @@ import { importPackagesText } from './packages';
 /** Script que abre o diálogo de impressão quando o HTML termina de carregar. */
 const AUTOPRINT =
   '<script>window.addEventListener("load",function(){setTimeout(function(){window.print()},1800)})</script>';
+
+/** Salva a apresentação no formato de trabalho `.mmdeck` (abre de volta no editor, com tudo). */
+export function saveDeckFile(): string | null {
+  const { deck } = useDeckStore.getState();
+  const { showToast } = useUIStore.getState();
+  try {
+    const filename = `${slugifyTitle(deck.title)}${MMDECK_EXT}`;
+    downloadFile(filename, buildDeckFile(deck, registry) as Uint8Array<ArrayBuffer>, MMDECK_MIME);
+    showToast(`Arquivo salvo: ${filename}`, 'success');
+    return filename;
+  } catch {
+    showToast('Não foi possível salvar a apresentação.', 'error');
+    return null;
+  }
+}
 
 /** Baixa o HTML autônomo da apresentação (equivale ao "Salvar HTML" do editor original). */
 export async function saveHTML(): Promise<string | null> {
@@ -256,11 +286,93 @@ export async function restoreRecentDeck(id: string): Promise<boolean> {
   return true;
 }
 
-/** Abre um `.html` de apresentação (editor original, exportado ou deste editor). */
-export async function openDeckFile(file: File): Promise<boolean> {
+/** Arquivos que o "Abrir…" aceita. */
+export const DECK_FILE_ACCEPT = `${MMDECK_EXT},.html,.htm,text/html`;
+
+export function isDeckFileName(name: string): boolean {
+  return /\.(mmdeck|html?)$/i.test(name);
+}
+
+/** Bytes do arquivo (via FileReader, que também existe em ambientes sem `Blob.arrayBuffer`). */
+function readFileBytes(file: Blob): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+    reader.onerror = () => reject(reader.error ?? new Error('Falha ao ler o arquivo.'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+/**
+ * Pacotes importados rodam código no editor, então instalar os que vêm dentro de um arquivo
+ * pede a confirmação de quem abriu (o arquivo pode ter vindo de qualquer pessoa).
+ */
+function confirmPackageInstall(packages: SerializedPackage[]): boolean {
+  const lines = packages.map((pkg) => {
+    const installed = registry.get(pkg.id);
+    const author = pkg.author ? ` — ${pkg.author}` : '';
+    const update = installed ? ` (atualiza a ${installed.version})` : '';
+    return `• ${pkg.name} ${pkg.version}${author}${update}`;
+  });
+  const count = packages.length === 1 ? 'um pacote' : `${packages.length} pacotes`;
+  return window.confirm(
+    [
+      `Esta apresentação traz ${count}:`,
+      '',
+      ...lines,
+      '',
+      'Pacotes executam código no editor e na apresentação. Instale só se confiar em quem enviou o arquivo.',
+      '',
+      'OK: instalar e abrir · Cancelar: abrir sem os pacotes',
+    ].join('\n')
+  );
+}
+
+/** Abre um `.mmdeck`, instalando os pacotes que vieram junto e faltam aqui. */
+async function openMmdeck(bytes: Uint8Array): Promise<boolean> {
   const { showToast } = useUIStore.getState();
   try {
-    const html = await file.text();
+    const { deck, packages } = readDeckFile(bytes);
+    const offered = packagesToInstall(packages, registry);
+    const install = offered.length && confirmPackageInstall(offered) ? offered : [];
+    if (offered.length && !install.length) {
+      showToast(
+        'Pacotes não instalados: os elementos deles aparecem como “Pacote ausente”.',
+        'info'
+      );
+    }
+    if (install.length) {
+      const result = await importPackagesText(
+        JSON.stringify({ format: 'dialcron-package', spec: 1, packages: install })
+      );
+      if (result.imported.length) {
+        showToast(
+          `Pacote(s) instalado(s) com a apresentação: ${result.imported.map((p) => p.name).join(', ')}`,
+          'info'
+        );
+      }
+    }
+    await replaceDeck(deck);
+    showToast(`“${deck.title}” aberta (${deck.slides.length} slides)`, 'success');
+    return true;
+  } catch (err) {
+    showToast(
+      err instanceof MmdeckError ? err.message : 'Não foi possível abrir essa apresentação.',
+      'error'
+    );
+    return false;
+  }
+}
+
+/** Abre uma apresentação: `.mmdeck` ou `.html` (editor original, exportado ou deste editor). */
+export async function openDeckFile(file: File): Promise<boolean> {
+  const { showToast } = useUIStore.getState();
+  const bytes = await readFileBytes(file);
+  if (looksLikeDeckFile(bytes) || file.name.toLowerCase().endsWith(MMDECK_EXT)) {
+    return openMmdeck(bytes);
+  }
+  try {
+    const html = new TextDecoder().decode(bytes);
     const imported = parseDeckHTML(html, { title: file.name.replace(/\.html?$/i, '') });
     await replaceDeck(imported);
     showToast(`“${imported.title}” aberta (${imported.slides.length} slides)`, 'success');
@@ -325,10 +437,10 @@ export function confirmDiscard(): boolean {
   );
 }
 
-/** Roteia um arquivo solto: imagem → insere; `.html` → abre; `.json` → pacote. */
+/** Roteia um arquivo solto: imagem → insere; `.mmdeck`/`.html` → abre; `.json` → pacote. */
 export function handleDroppedFile(file: File): void {
   if (file.type.startsWith('image/')) void insertImageFile(file);
-  else if (/\.html?$/i.test(file.name)) {
+  else if (isDeckFileName(file.name)) {
     if (confirmDiscard()) void openDeckFile(file);
   } else if (/\.json$/i.test(file.name)) void importPackageFile(file);
 }

@@ -4,6 +4,7 @@ import {
   loadSavedDeck,
   loadSavedPackages,
   setCachedTemplate,
+  collectUnusedMedia,
   saveDeck,
 } from '@packages/core';
 import { registry } from '@packages/core/PackageRegistry';
@@ -71,7 +72,10 @@ export default function App() {
         const template = await loadTemplate();
         if (cancelled) return;
         setCachedTemplate(template);
+        // Pede ao navegador para não apagar o rascunho quando faltar espaço no disco.
+        void navigator.storage?.persist?.().catch(() => false);
         const saved = await loadSavedDeck();
+        void collectUnusedMedia().catch(() => 0);
         if (!cancelled && saved?.slides.length) {
           store.getState().setDeck(saved);
           useUIStore.getState().setHasDraft(true);
@@ -93,7 +97,18 @@ export default function App() {
     const timer = window.setTimeout(() => {
       saveDeck(deck)
         .then(() => store.getState().markSaved())
-        .catch(() => undefined);
+        .catch(() => {
+          // Avisa uma vez por sequência de falhas (o indicador do topo continua vermelho).
+          if (!store.getState().saveError) {
+            useUIStore
+              .getState()
+              .showToast(
+                'O rascunho não pôde ser salvo no navegador (falta de espaço?). Salve um .mmdeck com Ctrl+S para não perder o trabalho.',
+                'error'
+              );
+          }
+          store.getState().markSaveFailed();
+        });
     }, 700);
     return () => window.clearTimeout(timer);
   }, [deck, booted, store]);

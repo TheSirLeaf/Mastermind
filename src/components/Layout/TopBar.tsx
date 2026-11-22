@@ -58,15 +58,17 @@ const WORKSPACES: WorkspaceDef[] = [
 ];
 
 export function TopBar() {
-  const { deck, dirty, savedAt } = useDeckStore();
+  const { deck, dirty, savedAt, saveError } = useDeckStore();
   const workspace = useUIStore((state) => state.workspace);
   const setWorkspace = useUIStore((state) => state.setWorkspace);
 
-  const status = dirty
-    ? 'Alterações pendentes…'
-    : savedAt
-      ? `Rascunho salvo ${new Date(savedAt).toLocaleTimeString('pt-BR')}`
-      : `${deck.slides.length} slide${deck.slides.length !== 1 ? 's' : ''}`;
+  const status = saveError
+    ? 'Rascunho não salvo — use Ctrl+S'
+    : dirty
+      ? 'Alterações pendentes…'
+      : savedAt
+        ? `Rascunho salvo ${new Date(savedAt).toLocaleTimeString('pt-BR')}`
+        : `${deck.slides.length} slide${deck.slides.length !== 1 ? 's' : ''}`;
 
   return (
     <header
@@ -133,7 +135,10 @@ export function TopBar() {
       <div className="flex-1" />
       <span
         id="saveState"
-        className="min-w-0 truncate text-[11px] text-payday-textDim"
+        className={clsx(
+          'min-w-0 truncate text-[11px]',
+          saveError ? 'font-medium text-red-400' : 'text-payday-textDim'
+        )}
         title={`${deck.title} • ${deck.slides.length} slide${deck.slides.length !== 1 ? 's' : ''}`}
       >
         {status}

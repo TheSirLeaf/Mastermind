@@ -1,3 +1,4 @@
+import { mediaRefs, SlideMediaCache, type PooledMedia } from './media';
 import type { Deck, SerializedPackage } from './types';
 
 const DB_NAME = 'mastermind-editor';
@@ -92,21 +93,122 @@ function write(key: string, value: unknown): Promise<void> {
   );
 }
 
-export function loadSavedDeck(): Promise<Deck | undefined> {
-  return read<Deck>(DECK_KEY);
+/* -------------------------------------------------------------------------- */
+/* Mídias separadas                                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Rascunho e Recentes guardam as mídias embutidas uma vez só, em chaves `media:<nome>`; o HTML
+ * guardado leva só a referência. Antes, cada apresentação em Recentes repetia os mesmos vídeos
+ * e imagens em base64, e o espaço do navegador acabava rápido.
+ */
+const MEDIA_KEY = 'media:';
+const storageMedia = new SlideMediaCache();
+/** Mídias que já estão no IndexedDB (evita regravar a cada salvamento). */
+const storedMedia = new Set<string>();
+
+/** Grava o valor e, na mesma transação, as mídias que ele referencia e ainda não estão lá. */
+function writeWithMedia(key: string, value: unknown, refs: Set<string>): Promise<void> {
+  return openDb().then(
+    (db) =>
+      new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readwrite');
+        const store = tx.objectStore(STORE);
+        const added: string[] = [];
+        for (const name of refs) {
+          if (storedMedia.has(name)) continue;
+          const media = storageMedia.pool.get(name);
+          if (!media) continue;
+          store.put(media, MEDIA_KEY + name);
+          added.push(name);
+        }
+        store.put(value, key);
+        tx.oncomplete = () => {
+          added.forEach((name) => storedMedia.add(name));
+          resolve();
+        };
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error ?? new Error('Gravação cancelada (falta de espaço?).'));
+      })
+  );
+}
+
+const deckRefs = (deck: Deck): Set<string> =>
+  mediaRefs([...deck.slides, ...(deck.bases ?? [])].map((slide) => slide.html).join('\n'));
+
+/** Lê do IndexedDB as mídias que faltam no pool. */
+async function loadMedia(refs: Set<string>): Promise<void> {
+  const missing = [...refs].filter((name) => !storageMedia.pool.get(name));
+  const found = await Promise.all(
+    missing.map((name) => read<PooledMedia>(MEDIA_KEY + name).catch(() => undefined))
+  );
+  missing.forEach((name, i) => {
+    const media = found[i];
+    if (media && typeof media.base64 === 'string' && typeof media.mime === 'string') {
+      storageMedia.pool.set(name, media);
+      storedMedia.add(name);
+    }
+  });
+}
+
+/** Apaga as mídias que nem o rascunho nem as Recentes usam mais (uma transação só). */
+export function collectUnusedMedia(): Promise<number> {
+  return openDb().then(
+    (db) =>
+      new Promise<number>((resolve, reject) => {
+        const tx = db.transaction(STORE, 'readwrite');
+        const store = tx.objectStore(STORE);
+        const deckReq = store.get(DECK_KEY);
+        const recentReq = store.get(RECENT_KEY);
+        const keysReq = store.getAllKeys();
+        let removed = 0;
+        keysReq.onsuccess = () => {
+          const used = mediaRefs(
+            JSON.stringify([deckReq.result ?? null, recentReq.result ?? null])
+          );
+          for (const key of keysReq.result) {
+            if (typeof key !== 'string' || !key.startsWith(MEDIA_KEY)) continue;
+            const name = key.slice(MEDIA_KEY.length);
+            if (used.has(name)) continue;
+            store.delete(key);
+            storedMedia.delete(name);
+            removed += 1;
+          }
+        };
+        tx.oncomplete = () => resolve(removed);
+        tx.onerror = () => reject(tx.error);
+      })
+  );
+}
+
+export async function loadSavedDeck(): Promise<Deck | undefined> {
+  const deck = await read<Deck>(DECK_KEY);
+  if (!deck?.slides) return deck;
+  await loadMedia(deckRefs(deck));
+  return storageMedia.unpackDeck(deck);
 }
 
 export function saveDeck(deck: Deck): Promise<void> {
-  return write(DECK_KEY, deck);
+  const packed = storageMedia.packDeck(deck);
+  return writeWithMedia(DECK_KEY, packed, deckRefs(packed));
 }
 
 export async function loadRecentDecks(): Promise<RecentDeck[]> {
   const list = await read<RecentDeck[]>(RECENT_KEY);
-  return Array.isArray(list) ? list.filter((item) => item?.deck?.slides?.length) : [];
+  if (!Array.isArray(list)) return [];
+  const valid = list.filter((item) => item?.deck?.slides?.length);
+  const refs = new Set<string>();
+  valid.forEach((item) => deckRefs(item.deck).forEach((name) => refs.add(name)));
+  await loadMedia(refs);
+  return valid.map((item) => ({ ...item, deck: storageMedia.unpackDeck(item.deck) }));
 }
 
-export function saveRecentDecks(list: RecentDeck[]): Promise<void> {
-  return write(RECENT_KEY, list);
+export async function saveRecentDecks(list: RecentDeck[]): Promise<void> {
+  const packed = list.map((item) => ({ ...item, deck: storageMedia.packDeck(item.deck) }));
+  const refs = new Set<string>();
+  packed.forEach((item) => deckRefs(item.deck).forEach((name) => refs.add(name)));
+  await writeWithMedia(RECENT_KEY, packed, refs);
+  await collectUnusedMedia().catch(() => 0);
 }
 
 export function loadSavedPackages(): Promise<SerializedPackage[] | undefined> {

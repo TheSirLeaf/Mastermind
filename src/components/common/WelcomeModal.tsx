@@ -4,7 +4,7 @@ import { useUIStore } from '@stores/uiStore';
 import { FileText, FolderOpen, History, X } from 'lucide-react';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 
-import { openDeckFile, restoreRecentDeck } from '../../editor/actions';
+import { DECK_FILE_ACCEPT, openDeckFile, restoreRecentDeck } from '../../editor/actions';
 
 const when = (at: number): string =>
   new Date(at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -53,7 +53,7 @@ export function WelcomeModal() {
       <input
         ref={fileRef}
         type="file"
-        accept=".html,.htm,text/html"
+        accept={DECK_FILE_ACCEPT}
         className="hidden"
         aria-hidden="true"
         tabIndex={-1}
@@ -98,7 +98,7 @@ export function WelcomeModal() {
             className="flex w-full items-center justify-center gap-2 rounded-lg border border-payday-border bg-payday-surface px-4 py-2.5 text-sm text-payday-text transition hover:bg-payday-panel"
             onClick={() => fileRef.current?.click()}
           >
-            <FolderOpen className="h-5 w-5" /> Abrir arquivo .html
+            <FolderOpen className="h-5 w-5" /> Abrir apresentação (.mmdeck ou .html)
           </button>
         </div>
 

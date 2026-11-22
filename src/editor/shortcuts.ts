@@ -2,7 +2,7 @@ import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 
 import './clipboard';
-import { saveHTML } from './actions';
+import { saveDeckFile } from './actions';
 import { getActiveBridge } from './bridgeRef';
 
 /** Ações vindas de teclas dentro do iframe do palco. */
@@ -16,7 +16,7 @@ export function handleBridgeKey(key: string): void {
       deck.redo();
       break;
     case 'save':
-      void saveHTML();
+      saveDeckFile();
       break;
     case 'next':
       deck.selectSlide(deck.currentIndex + 1);
@@ -59,7 +59,7 @@ export function handleGlobalKey(event: KeyboardEvent): void {
 
   if (ctrl && key === 's') {
     event.preventDefault();
-    void saveHTML();
+    saveDeckFile();
     return;
   }
   if (key === 'F5') {
