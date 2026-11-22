@@ -88,9 +88,13 @@ export function PresenterView() {
         };
         const publicHtml = await buildFrameHTML(publicDeck, 0, { escapeExit: false });
         const ok = await useLiveStore.getState().publishDeck(publicHtml);
+        // A visão do slide liga mesmo se a conexão caiu durante a publicação (o efeito foi
+        // cancelado): o deck já está na sala e o `liveStore` repete o pedido ao reconectar.
+        // Antes, uma reconexão nesse meio-tempo deixava o celular sem o slide para sempre.
+        const wanted = presentationSettings(useDeckStore.getState().deck).spectatorView;
+        if (ok && wanted) useLiveStore.getState().setView(true);
         if (cancelled) return;
         setPublishError(!ok);
-        if (ok) useLiveStore.getState().setView(true);
       } catch {
         if (!cancelled) setPublishError(true);
       }

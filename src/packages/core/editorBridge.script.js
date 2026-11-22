@@ -2382,7 +2382,9 @@
         next.getAttribute('class') === t.getAttribute('class') &&
         next.getAttribute('data-fx') === t.getAttribute('data-fx')
       ) {
-        while (t.firstChild) next.insertBefore(t.firstChild, next.firstChild);
+        /* tudo antes do primeiro filho original (inserir sempre no começo invertia a ordem) */
+        var anchor = next.firstChild;
+        while (t.firstChild) next.insertBefore(t.firstChild, anchor);
         if (first === t) first = next;
         t.remove();
       }

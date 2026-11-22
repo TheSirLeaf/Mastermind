@@ -19,6 +19,12 @@ import { ColorField } from '../common/ColorField';
 
 import { Segmented, Slider } from './TextControls';
 
+/** `-webkit-box-reflect` só existe em Chromium/Safari; no Firefox o reflexo é descartado. */
+const REFLECT_UNSUPPORTED =
+  typeof CSS !== 'undefined' &&
+  typeof CSS.supports === 'function' &&
+  !CSS.supports('-webkit-box-reflect', 'below');
+
 const GRADIENT_PRESETS: string[][] = [
   ['#F7D98B', '#C77C8A'],
   ['#FFF8F5', '#D6A84F'],
@@ -478,6 +484,12 @@ export function TextEffectsPanel({
         onToggle={() => toggle('reflect')}
         testId="fx-reflect"
       >
+        {REFLECT_UNSUPPORTED ? (
+          <p className="mb-2 rounded-md border border-amber-400/30 bg-amber-400/10 px-2 py-1.5 text-[11px] leading-snug text-amber-200">
+            Este navegador não desenha reflexos (o Firefox não tem esse recurso do CSS). O reflexo
+            não é gravado aqui; aplique-o pelo Chrome ou Edge.
+          </p>
+        ) : null}
         <Segmented
           label="Lado do reflexo"
           value={reflect ? reflect.side : 'none'}

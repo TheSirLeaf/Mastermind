@@ -17,6 +17,10 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test --pass-with-no-tests",
+    "test:e2e:firefox": "playwright test --project=firefox",
+    "test:e2e:chromium": "playwright test --project=chromium",
+    "dev:open": "vite --open",
+    "shot:firefox": "node scripts/firefox-shot.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

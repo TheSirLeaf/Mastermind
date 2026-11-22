@@ -14,7 +14,12 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${PORT}`,
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // Firefox é o navegador principal de quem usa o editor: os testes rodam nos dois.
+  // Só um: `npm run test:e2e:firefox` (ou `-- --project=chromium`).
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+  ],
   webServer: [
     {
       command: `npm run dev -- --port ${PORT} --strictPort`,

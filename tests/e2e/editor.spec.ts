@@ -413,6 +413,7 @@ async function spanStyle(page: Page, text: string): Promise<string | null> {
 
 test('Efeitos avançados do trecho: gradiente em itálico sem cortar, contorno, sombras e reflexo', async ({
   page,
+  browserName,
 }) => {
   await boot(page, [
     '<section class="slide dark" data-notes=""><p class="ed-obj ed-text" id="t" style="position:absolute;left:200px;top:300px;width:1500px;font-size:90px;font-style:italic">Olá mundo final</p></section>',
@@ -466,7 +467,12 @@ test('Efeitos avançados do trecho: gradiente em itálico sem cortar, contorno, 
     page,
     "return document.getElementById('t').style.getPropertyValue('-webkit-box-reflect')"
   );
-  expect(reflect).toContain('below');
+  if (browserName === 'firefox') {
+    // o Firefox não tem -webkit-box-reflect: o painel avisa em vez de fingir que aplicou
+    await expect(page.getByText('Este navegador não desenha reflexos')).toBeVisible();
+  } else {
+    expect(reflect).toContain('below');
+  }
 
   // a configuração guardada volta ao reabrir o painel (outro trecho e de volta)
   // o painel continua aberto e acompanha o trecho selecionado
@@ -574,8 +580,13 @@ test('A barra desliza junto com o trecho em vez de pular', async ({ page }) => {
   // aproxima (sem animação) e depois volta ao slide com a câmera animada
   const w = await box(page, '#t');
   await page.mouse.move(w.cx, w.cy);
+  // bem perto, para a volta animada percorrer uma distância grande (com pouca distância a
+  // contagem de posições distintas dependia da velocidade da máquina)
   await page.keyboard.down('Control');
-  await page.mouse.wheel(0, -300);
+  for (let i = 0; i < 4; i += 1) {
+    await page.mouse.wheel(0, -300);
+    await page.waitForTimeout(80);
+  }
   await page.keyboard.up('Control');
   await page.waitForTimeout(500);
   // posições amostradas durante um zoom animado: muitas e próximas entre si (sem saltos)

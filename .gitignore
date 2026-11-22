@@ -38,3 +38,4 @@ Thumbs.db
 
 # Cloudflare (estado local do wrangler)
 .wrangler/
+firefox-shot.png
