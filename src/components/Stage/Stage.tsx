@@ -16,6 +16,7 @@ import { useRef, useEffect, useState } from 'react';
 import { handleDroppedFile } from '../../editor/actions';
 import { setActiveBridge } from '../../editor/bridgeRef';
 import { canvasMenu, elementMenu, slideMenu } from '../../editor/contextMenus';
+import { resizePackage } from '../../editor/resizePackage';
 import { handleBridgeKey } from '../../editor/shortcuts';
 import { getStageViewHandlers, markCanvasClick } from '../../editor/stageView';
 
@@ -81,6 +82,7 @@ export function Stage() {
         deckState.selectSlide(index);
         deckState.requestSelection(path);
       },
+      onPackageResize: (path, resize) => resizePackage(path, resize),
       onPoseEdit: (pose) => {
         const active = useUIStore.getState().activeKeyframe;
         if (!active) return;

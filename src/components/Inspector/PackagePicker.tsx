@@ -8,12 +8,12 @@ import { useMemo, useState } from 'react';
 import { insertPackage } from '../../editor/insertPackage';
 
 export function PackagePicker() {
-  const { listPackages } = usePackageRegistry();
+  const { listInsertable } = usePackageRegistry();
   const { openPackageManager, showToast } = useUIStore();
   const [query, setQuery] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const packages = listPackages();
+  const packages = listInsertable();
   const needle = query.trim().toLowerCase();
 
   const rows = useMemo(

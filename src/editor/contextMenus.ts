@@ -26,6 +26,7 @@ import {
   Link2,
   Maximize2,
   Settings2,
+  Shuffle,
 } from 'lucide-react';
 
 import { alignToSlide, moveLayer, pickParent, releaseFromParent, toggleLock } from './arrange';
@@ -176,11 +177,20 @@ export function slideMenu(index: number): Item[] {
       onSelect: () => deck.copySlide(index),
     },
     {
-      label: 'Transição, posição e fundo…',
+      label: 'Posição e fundo…',
       icon: Settings2,
       onSelect: () => {
         deck.selectSlide(index);
         ui.setWorkspace('slide');
+      },
+    },
+    {
+      label: 'Transição…',
+      icon: Shuffle,
+      onSelect: () => {
+        deck.selectSlide(index);
+        ui.setWorkspace('slide');
+        ui.setInspectorTab('transition');
       },
     },
     {

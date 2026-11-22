@@ -3,17 +3,16 @@ import type { RuntimeAPI, RuntimeController } from '../core/types';
 import type { SlingshotSpec } from './SlingshotPackage';
 
 /**
- * Runtime do pacote `slingshot`: uma cena de abertura que cobre o slide (um estilingue derruba
- * uma pilha de blocos) e depois revela o conteúdo.
+ * Cena da transição "Estilingue": cobre o slide que entra (um estilingue derruba uma pilha de
+ * blocos) e depois revela o conteúdo. Clique pula a cena.
  *
- * É serializado para o HTML exportado, então não pode referenciar nada fora do próprio corpo.
+ * É serializada para o HTML exportado, então não pode referenciar nada fora do próprio corpo.
  */
-export function slingshotRuntime(
-  root: HTMLElement,
+export function slingshotScene(
+  slide: HTMLElement,
   spec: SlingshotSpec,
   api: RuntimeAPI
 ): RuntimeController | null {
-  const slide = root.closest<HTMLElement>('.slide');
   if (!slide || api.reduced) return null;
 
   const NS = 'http://www.w3.org/2000/svg';

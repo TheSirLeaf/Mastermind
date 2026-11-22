@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 
-export type InspectorTab = 'style' | 'content' | 'package' | 'animation' | 'slide';
+export type InspectorTab = 'style' | 'content' | 'package' | 'animation' | 'slide' | 'transition';
 
 export interface ContextMenuItem {
   label: string;
@@ -135,6 +135,14 @@ function writeWelcomePref(show: boolean): void {
   }
 }
 
+/** Cada área de trabalho tem o seu inspetor: Estilo no Editor, Animação na Animação, Slides na aba Slides. */
+function tabForWorkspace(workspace: Workspace, tab: InspectorTab): InspectorTab {
+  if (workspace === 'slide') return tab === 'transition' ? tab : 'slide';
+  if (workspace === 'animation') return tab === 'package' ? tab : 'animation';
+  if (workspace === 'presentation' && tab === 'transition') return tab;
+  return tab === 'animation' || tab === 'slide' || tab === 'transition' ? 'style' : tab;
+}
+
 function readBasesHeight(): number {
   try {
     const n = Number(localStorage.getItem('mm-bases-height'));
@@ -207,13 +215,8 @@ export const useUIStore = create<UIState>()(
         state.workspace = workspace;
         state.isPreviewMode = false;
         state.isPresenting = workspace === 'presentation';
-        // Cada área de trabalho tem o seu inspetor: Estilo no Editor, Animação na Animação.
         const tab = state.inspectorActiveTab;
-        if (workspace === 'slide') state.inspectorActiveTab = 'slide';
-        else if (workspace === 'animation' && tab !== 'package')
-          state.inspectorActiveTab = 'animation';
-        else if (workspace !== 'animation' && (tab === 'animation' || tab === 'slide'))
-          state.inspectorActiveTab = 'style';
+        state.inspectorActiveTab = tabForWorkspace(workspace, tab);
       }),
     toggleLeftPanel: () =>
       set((state) => {
@@ -267,12 +270,7 @@ export const useUIStore = create<UIState>()(
         if (!enabled && state.workspace === 'presentation') {
           const back = state.workspaceBeforePresentation;
           state.workspace = back === 'presentation' ? 'editor' : back;
-          const tab = state.inspectorActiveTab;
-          if (state.workspace === 'slide') state.inspectorActiveTab = 'slide';
-          else if (state.workspace === 'animation' && tab !== 'package')
-            state.inspectorActiveTab = 'animation';
-          else if (state.workspace !== 'animation' && (tab === 'animation' || tab === 'slide'))
-            state.inspectorActiveTab = 'style';
+          state.inspectorActiveTab = tabForWorkspace(state.workspace, state.inspectorActiveTab);
         }
       }),
 

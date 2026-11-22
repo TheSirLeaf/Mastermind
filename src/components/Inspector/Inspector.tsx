@@ -40,6 +40,13 @@ const ICONS: Record<InspectorTab, ReactNode> = {
       <path d="M8 21h8M12 17v4" />
     </>
   ),
+  transition: (
+    <>
+      <rect x="2" y="6" width="9" height="12" rx="1.5" />
+      <path d="M15 6h5.5A1.5 1.5 0 0 1 22 7.5v9a1.5 1.5 0 0 1-1.5 1.5H15" strokeDasharray="2 2.2" />
+      <path d="m13 9 3 3-3 3" />
+    </>
+  ),
 };
 
 const LABELS: Record<InspectorTab, string> = {
@@ -48,15 +55,16 @@ const LABELS: Record<InspectorTab, string> = {
   package: 'Pacote',
   animation: 'Animação',
   slide: 'Slides',
+  transition: 'Transição',
 };
 
 /** Cada área de trabalho mostra só o seu inspetor. */
 const TABS_BY_WORKSPACE: Record<Workspace, InspectorTab[]> = {
   editor: ['style', 'content', 'package'],
   animation: ['animation', 'package'],
-  slide: ['slide'],
+  slide: ['slide', 'transition'],
   integration: [],
-  presentation: ['style', 'content', 'package', 'slide'],
+  presentation: ['style', 'content', 'package', 'slide', 'transition'],
 };
 
 export function Inspector() {
@@ -94,7 +102,8 @@ const TAB_HINTS: Record<string, string> = {
   Conteúdo: 'Texto ou imagem do elemento.',
   Pacote: 'Edita o pacote selecionado ou insere um novo.',
   Animação: 'Animação de entrada do elemento.',
-  Slide: 'Fundo e ajustes do slide atual.',
+  Slides: 'Fundo, posição e notas do slide atual.',
+  Transição: 'Como o slide entra na apresentação.',
 };
 
 function TabButton({

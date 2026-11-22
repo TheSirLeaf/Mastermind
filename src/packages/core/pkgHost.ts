@@ -178,6 +178,31 @@ export const PKG_HOST_SRC = `(function(){
     });
   }
 
+  /* Transição de pacote com cena (data-transition="pkg:<pacote>:<transição>"): a cena roda
+     quando o slide entra, com os campos do slide (data-transition-spec) sobre os padrões. */
+  function mountScene(slide, controllers, api) {
+    var m = /^pkg:([a-z0-9-]+):([a-z0-9-]+)$/i.exec(slide.getAttribute('data-transition') || '');
+    if (!m) return;
+    var entry = registry[m[1]];
+    var list = entry && entry.def && entry.def.transitions;
+    if (!list || !list.length) return;
+    var t = null;
+    for (var i = 0; i < list.length; i++) if (list[i] && list[i].id === m[2]) t = list[i];
+    if (!t || !t.scene) return;
+    if (typeof t.scene === 'string') t.scene = revive(t.scene);
+    else if (typeof t.scene === 'object' && typeof t.scene.$fn === 'string') t.scene = revive(t.scene.$fn);
+    if (typeof t.scene !== 'function') return;
+    var spec = {}, k;
+    var base = t.defaults || {};
+    for (k in base) spec[k] = base[k];
+    try {
+      var own = JSON.parse(slide.getAttribute('data-transition-spec') || '{}');
+      for (k in own) spec[k] = own[k];
+    } catch (e) {}
+    var ctrl = t.scene(slide, spec, api);
+    if (ctrl && typeof ctrl.play === 'function') controllers.push(ctrl);
+  }
+
   function mountSlide(slide) {
     var alive = true;
     var controllers = [];
@@ -202,6 +227,7 @@ export const PKG_HOST_SRC = `(function(){
       } catch (e) { /* pacote não deve quebrar a apresentação */ }
     });
 
+    try { mountScene(slide, controllers, api); } catch (e) { /* idem */ }
     try { mountKeyframes(slide, controllers); } catch (e) { /* não deve quebrar a apresentação */ }
     try { mountShine(slide, controllers); } catch (e) { /* idem */ }
 

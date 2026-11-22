@@ -15,6 +15,7 @@ import type {
   PackageDef,
   PackageFile,
   PackageSpec,
+  PackageTransition,
   SerializedPackage,
 } from './types';
 
@@ -23,9 +24,9 @@ const SAFE_ID = /^[a-z0-9-]+$/i;
 /** CSS das transições do pacote, com `.t-in`/`.t-out` trocados pelas classes únicas usadas na apresentação. */
 function transitionsCss(def: PackageDef): string {
   return (def.transitions ?? [])
-    .filter((t) => SAFE_ID.test(def.id) && SAFE_ID.test(t.id))
+    .filter((t) => SAFE_ID.test(def.id) && SAFE_ID.test(t.id) && t.css)
     .map((t) =>
-      t.css.replace(
+      (t.css ?? '').replace(
         /\.t-(in|out)(-r)?(?![\w-])/g,
         (_m, dir: string, rev: string | undefined) =>
           `.slide.t-${dir}-pk-${def.id}-${t.id}${rev ?? ''}`
@@ -122,6 +123,20 @@ export class PackageRegistry {
     // Pacotes do editor original (`.dialcron-pkg.json`) devolvem uma string HTML.
     if (typeof out === 'string') return out;
     return renderToStaticMarkup(out as ReactElement);
+  }
+
+  /** Pacotes que podem ser inseridos como elemento (os que viraram transição ficam de fora). */
+  listInsertable(): PackageDef[] {
+    return this.list().filter((def) => !def.movedToTransition);
+  }
+
+  /** Transição de pacote a partir do valor `pkg:<pacote>:<transição>`. */
+  getTransition(value: string): { def: PackageDef; transition: PackageTransition } | null {
+    const match = /^pkg:([a-z0-9-]+):([a-z0-9-]+)$/i.exec(value);
+    if (!match) return null;
+    const def = this.defs.get(match[1] ?? '');
+    const transition = def?.transitions?.find((t) => t.id === match[2]);
+    return def && transition ? { def, transition } : null;
   }
 
   /** Transições de slide oferecidas pelos pacotes instalados. */

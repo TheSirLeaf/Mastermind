@@ -27,12 +27,15 @@ import {
   withSlideChat,
   withSlideLayout,
   withSlideTransition,
+  withSlideTransitionSpec,
   type SlideLayout,
   type SlideTransition,
   type SlideTemplateKind,
 } from '../packages/core/deck';
 import { HistoryManager } from '../packages/core/history';
 import { ensureBase, getModel, slideFromModel } from '../packages/core/models';
+import { migrateMovedPackages } from '../packages/core/movedPackages';
+import { registry } from '../packages/core/PackageRegistry';
 import type { Deck, PresentationSettings, SelectionInfo, Slide } from '../packages/core/types';
 
 export interface DeckState {
@@ -73,6 +76,8 @@ export interface DeckState {
   setSlideLayout: (index: number, layout: Partial<SlideLayout> | null) => void;
   /** Como o slide entra na apresentação. */
   setSlideTransition: (index: number, transition: SlideTransition) => void;
+  /** Campos da transição de pacote do slide (`null` volta aos padrões). */
+  setSlideTransitionSpec: (index: number, spec: Record<string, unknown> | null) => void;
   /** Liga/desliga o chat ao vivo no slide. */
   setSlideChat: (index: number, on: boolean) => void;
   /** Altera as preferências da apresentação (barra de progresso, modo, ao vivo). */
@@ -127,7 +132,7 @@ function normalizeDeck(deck: Deck): Deck {
   return freeze(
     {
       ...deck,
-      slides: renumberFooters(deck.slides),
+      slides: renumberFooters(migrateMovedPackages(deck.slides, registry)),
       ...(deck.bases ? { bases: deck.bases.map(upgradeBase) } : {}),
     },
     true
@@ -349,6 +354,16 @@ export const useDeckStore = create<DeckState>()((set, get) => {
       const slide = get().deck.slides[index];
       if (!slide) return;
       get().updateSlideHTML(index, withSlideTransition(slide.html, transition), `trans:${index}`);
+    },
+
+    setSlideTransitionSpec: (index, spec) => {
+      const slide = get().deck.slides[index];
+      if (!slide) return;
+      get().updateSlideHTML(
+        index,
+        withSlideTransitionSpec(slide.html, spec),
+        `trans-spec:${index}`
+      );
     },
 
     addSlideFromModel: (modelId, slideIndex) => {

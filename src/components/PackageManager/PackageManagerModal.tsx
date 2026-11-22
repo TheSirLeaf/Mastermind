@@ -3,6 +3,7 @@
 import { usePackageRegistry } from '@hooks/usePackageRegistry';
 import { exportPackagesFile } from '@packages/core/export';
 import type { PackageDef } from '@packages/core/types';
+import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 import { clsx } from 'clsx';
 import {
@@ -146,6 +147,21 @@ export function PackageManagerModal() {
     }
     closePackageManager();
     showToast(`${result.label} inserido no slide`, 'success');
+  };
+
+  /** Pacote que é só transição: vira a entrada do slide atual (aba Transição). */
+  const handleUseTransition = (id: string, transitionId: string) => {
+    const deck = useDeckStore.getState();
+    if (deck.currentIndex >= deck.deck.slides.length) {
+      showToast('Escolha um slide (slides base não têm transição).', 'error');
+      return;
+    }
+    deck.setSlideTransition(deck.currentIndex, `pkg:${id}:${transitionId}`);
+    closePackageManager();
+    const ui = useUIStore.getState();
+    if (ui.workspace !== 'slide') ui.setWorkspace('slide');
+    ui.setInspectorTab('transition');
+    showToast('Transição aplicada ao slide', 'success');
   };
 
   const filterButton = (label: string, count: number, active: boolean, onClick: () => void) => (
@@ -391,13 +407,25 @@ export function PackageManagerModal() {
                   </div>
                 </dl>
 
-                <button
-                  type="button"
-                  onClick={() => handleInsert(selected.id)}
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded bg-accent px-3 py-2 text-xs font-semibold text-accent-fg transition hover:brightness-110"
-                >
-                  <Plus className="h-3.5 w-3.5" /> Inserir no slide
-                </button>
+                {selected.movedToTransition ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleUseTransition(selected.id, selected.movedToTransition ?? '')
+                    }
+                    className="inline-flex w-full items-center justify-center gap-1.5 rounded bg-accent px-3 py-2 text-xs font-semibold text-accent-fg transition hover:brightness-110"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Usar na entrada do slide
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleInsert(selected.id)}
+                    className="inline-flex w-full items-center justify-center gap-1.5 rounded bg-accent px-3 py-2 text-xs font-semibold text-accent-fg transition hover:brightness-110"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Inserir no slide
+                  </button>
+                )}
 
                 {selected.presets && selected.presets.length > 0 ? (
                   <div>

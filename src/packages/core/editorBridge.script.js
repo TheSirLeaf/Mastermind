@@ -1,7 +1,7 @@
 /* Motor de edição que roda DENTRO do iframe do palco.
  *
  * Protocolo (postMessage):
- *   iframe → editor : ready · select · slide · slide-html · key · edit
+ *   iframe → editor : ready · select · slide · slide-html · key · edit · package-resize
  *   editor → iframe : goto · select · set-slide · patch-element · preview-anim ·
  *                     stop-preview · fit · cmd
  *
@@ -286,6 +286,17 @@
       if (!node) return null;
     }
     return node;
+  }
+  /* Regras de redimensionar do pacote (lidas do registro embutido): `null` = sem regras. */
+  function pkgResize(id) {
+    try {
+      var node = document.getElementById('pkg-registry');
+      var reg = node ? JSON.parse(node.textContent || '{}') : {};
+      var def = reg[id] && reg[id].def;
+      return def && def.resize ? { aspect: !!def.resize.keepAspect } : null;
+    } catch (e) {
+      return null;
+    }
   }
   function registryName(id) {
     try {
@@ -940,6 +951,19 @@
           on: false,
           id: e.pointerId,
         };
+        /* pacote com regras: a caixa pede ao editor um spec novo (e aqui só mostra a prévia) */
+        var rules = selected.hasAttribute('data-pkg')
+          ? pkgResize(selected.getAttribute('data-pkg'))
+          : null;
+        var inner = selected.firstElementChild;
+        if (rules && inner) {
+          drag.pkg = {
+            aspect: rules.aspect,
+            inner: inner,
+            style: inner.getAttribute('style'),
+            wrap: selected.getAttribute('style'),
+          };
+        }
         capture(e);
         return;
       }
@@ -1043,6 +1067,8 @@
           ay = sn.ay;
         }
         setTrans(drag.el, drag.base.x + ax, drag.base.y + ay);
+      } else if (drag.pkg) {
+        resizePackagePreview(drag, drag.w0 + ax, drag.h0 + ay);
       } else {
         var el = drag.el;
         var w = drag.w0 + ax;
@@ -1067,6 +1093,61 @@
     },
     true
   );
+  /* Prévia de um pacote sendo redimensionado: pela lateral o conteúdo se reorganiza na largura
+     nova; pelo canto, por baixo ou num pacote de proporção fixa, ele cresce/encolhe inteiro. */
+  function resizeRatio(d, w, h) {
+    return Math.max(0.1, d.h === 's' ? h / d.h0 : w / d.w0);
+  }
+  function resizePackagePreview(d, w, h) {
+    var el = d.el;
+    var inner = d.pkg.inner;
+    if (d.h === 'e' && !d.pkg.aspect) {
+      el.style.width = Math.round(Math.max(40, w)) + 'px';
+      el.style.height = '';
+      inner.style.transform = '';
+      inner.style.width = '100%';
+      inner.style.maxWidth = '100%';
+      d.pkg.to = { w: Math.max(40, w), h: inner.getBoundingClientRect().height / scale / esOf(el) };
+      return;
+    }
+    var r = resizeRatio(d, w, h);
+    el.style.width = Math.round(d.w0 * r) + 'px';
+    el.style.height = Math.round(d.h0 * r) + 'px';
+    inner.style.width = d.w0 + 'px';
+    inner.style.maxWidth = 'none';
+    inner.style.transformOrigin = '0 0';
+    inner.style.transform = 'scale(' + r.toFixed(4) + ')';
+    d.pkg.to = { w: d.w0 * r, h: d.h0 * r };
+  }
+  /* Ao soltar: o editor recalcula o pacote no tamanho novo e devolve o slide redesenhado. */
+  function finishPackageResize(d) {
+    var to = d.pkg.to || { w: d.w0, h: d.h0 };
+    var s = slideOf(d.el);
+    post({
+      type: 'package-resize',
+      index: s ? slideList().indexOf(s) : -1,
+      path: pathOf(d.el),
+      edge: d.h,
+      from: { w: d.w0, h: d.h0 },
+      to: { w: to.w, h: to.h },
+    });
+    /* se o editor não devolver o slide (nada mudou), a prévia é desfeita */
+    var el = d.el;
+    var inner = d.pkg.inner;
+    var saved = [
+      [inner, d.pkg.style],
+      [el, d.pkg.wrap],
+    ];
+    setTimeout(function () {
+      if (!el.isConnected || !inner.isConnected) return;
+      saved.forEach(function (pair) {
+        if (pair[1] === null) pair[0].removeAttribute('style');
+        else pair[0].setAttribute('style', pair[1]);
+      });
+      drawSelection(selected);
+    }, 600);
+  }
+
   /* ---------- arranjo dos slides (aba Slide) ---------- */
   var arr = null;
   function setLayout(slide, l) {
@@ -1199,6 +1280,10 @@
     }
     if (d.on && poseState && d.el === poseState.el) {
       poseMoved();
+      return;
+    }
+    if (d.on && d.mode === 'rs' && d.pkg) {
+      finishPackageResize(d);
       return;
     }
     if (d.on) {
@@ -1440,7 +1525,12 @@
     } catch (err) {
       /* pacote com erro não derruba o editor */
     }
-    var long = s.querySelector('[data-sim]') ? 22000 : s.querySelector('[data-pkg]') ? 9000 : 5000;
+    var scene = (s.getAttribute('data-transition') || '').indexOf('pkg:') === 0;
+    var long = s.querySelector('[data-sim]')
+      ? 22000
+      : s.querySelector('[data-pkg]') || scene
+        ? 9000
+        : 5000;
     previewTimer = setTimeout(stopPreview, long);
   }
   function stopPreview() {

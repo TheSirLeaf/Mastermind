@@ -2,16 +2,12 @@ import { ColorField } from '@components/common/ColorField';
 import { slideBaseId } from '@packages/core/bases';
 import {
   defaultSlideLayout,
-  SLIDE_TRANSITIONS,
   slideBackground,
   slideHasChat,
   slideLayout,
   slideNotes,
   slideTheme,
-  slideTransition,
-  type SlideTransition,
 } from '@packages/core/deck';
-import { registry } from '@packages/core/PackageRegistry';
 import { itemAt, useDeckStore } from '@store/deckStore';
 import { Moon, Sun } from 'lucide-react';
 
@@ -26,29 +22,10 @@ const BACKGROUNDS: Array<[string, string]> = [
   ['Branco', '#FFFFFF'],
 ];
 
-const TRANSITIONS: Record<
-  (typeof SLIDE_TRANSITIONS)[number],
-  { label: string; description: string }
-> = {
-  default: { label: 'Padrão', description: 'Um slide some e o outro aparece, rápido.' },
-  instant: { label: 'Instantâneo', description: 'O slide some e o próximo aparece, sem animação.' },
-  move: {
-    label: 'Mover',
-    description: 'A câmera viaja até o slide, com zoom conforme a posição na aba Slide.',
-  },
-  slide: { label: 'Deslizar', description: 'O novo slide empurra o anterior para o lado.' },
-  zoom: { label: 'Zoom', description: 'O anterior se afasta e o novo se aproxima.' },
-  morph: {
-    label: 'Interpolar',
-    description:
-      'Elementos iguais nos dois slides (mesmo texto, imagem ou forma) viajam de um lugar ao outro. Para ligar elementos diferentes, dê o mesmo nome a eles com o lápis do inspetor.',
-  },
-};
-
 const inputClass =
   'w-full rounded border border-payday-border bg-payday-surface px-2 py-1.5 text-xs text-payday-text outline-none focus:border-accent/40';
 
-/** Tema, fundo e notas do apresentador do slide atual. */
+/** Base, posição, tema, fundo e notas do apresentador do slide atual (a transição tem aba própria). */
 export function SlideTab() {
   const index = useDeckStore((state) => state.currentIndex);
   const slide = useDeckStore((state) => itemAt(state.deck, state.currentIndex));
@@ -59,7 +36,6 @@ export function SlideTab() {
   const setSlideBackground = useDeckStore((state) => state.setSlideBackground);
   const updateSlideNotes = useDeckStore((state) => state.updateSlideNotes);
   const setSlideLayout = useDeckStore((state) => state.setSlideLayout);
-  const setSlideTransition = useDeckStore((state) => state.setSlideTransition);
   const setSlideChat = useDeckStore((state) => state.setSlideChat);
   const liveOn = useDeckStore((state) => state.deck.settings?.live === true);
 
@@ -67,17 +43,6 @@ export function SlideTab() {
   const theme = slideTheme(slide.html);
   const background = slideBackground(slide.html);
   const layout = slideLayout(slide.html, index);
-  const transition: SlideTransition = slideTransition(slide.html);
-  const pkgTransitions = registry.listTransitions();
-  const pkgCurrent = pkgTransitions.find((t) => t.value === transition);
-  const isPkg = transition.startsWith('pkg:');
-  const info = isPkg
-    ? {
-        label: pkgCurrent?.label ?? 'Pacote',
-        description:
-          pkgCurrent?.description ?? 'Transição de um pacote que não está instalado; usa a padrão.',
-      }
-    : TRANSITIONS[transition as (typeof SLIDE_TRANSITIONS)[number]];
   const home = defaultSlideLayout(index);
   const solid = /^#[0-9a-f]{6}$/i.test(background) ? background : '#2a0e1a';
 
@@ -86,68 +51,6 @@ export function SlideTab() {
       {isBase ? <BaseBlock index={index} /> : <SlideBaseBlock index={index} />}
       {!isBase ? (
         <>
-          <section>
-            <h3 className="mb-2 text-[10px] uppercase tracking-widest text-accent">Transição</h3>
-            <div className="grid grid-cols-2 gap-1.5">
-              {SLIDE_TRANSITIONS.map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={transition === value}
-                  onClick={() => setSlideTransition(index, value)}
-                  className={`rounded-md border px-2 py-1.5 text-left transition ${
-                    transition === value
-                      ? 'border-accent/60 bg-accent/15 text-accent'
-                      : 'border-payday-border text-payday-textMuted hover:bg-white/5'
-                  }`}
-                >
-                  <span className="block text-xs font-medium">{TRANSITIONS[value].label}</span>
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              aria-pressed={isPkg}
-              disabled={pkgTransitions.length === 0}
-              onClick={() => {
-                const first = pkgTransitions[0];
-                if (first && !isPkg) setSlideTransition(index, first.value);
-              }}
-              className={`mt-1.5 w-full rounded-md border px-2 py-1.5 text-left text-xs font-medium transition disabled:opacity-40 ${
-                isPkg
-                  ? 'border-accent/60 bg-accent/15 text-accent'
-                  : 'border-payday-border text-payday-textMuted hover:bg-white/5'
-              }`}
-            >
-              Pacote
-              {pkgTransitions.length === 0 ? (
-                <span className="ml-1 font-normal text-payday-textDim">
-                  (nenhum pacote com transições)
-                </span>
-              ) : null}
-            </button>
-            {isPkg ? (
-              <select
-                aria-label="Transição do pacote"
-                value={transition}
-                onChange={(event) =>
-                  setSlideTransition(index, event.target.value as SlideTransition)
-                }
-                className={`${inputClass} mt-1.5`}
-              >
-                {pkgCurrent ? null : <option value={transition}>{transition}</option>}
-                {pkgTransitions.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label} — {t.description.split(' — ')[0]}
-                  </option>
-                ))}
-              </select>
-            ) : null}
-            <p className="mt-1.5 text-[11px] leading-snug text-payday-textDim">
-              {info.description} Vale para a entrada deste slide.
-            </p>
-          </section>
-
           <section>
             <h3 className="mb-2 text-[10px] uppercase tracking-widest text-accent">
               Posição e tamanho

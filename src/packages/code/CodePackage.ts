@@ -71,7 +71,7 @@ export const codePresets: Preset<CodeSpec>[] = [
 export const CodePackage: PackageDef<CodeSpec> = {
   id: 'code',
   name: 'Caixa de código',
-  version: '1.1.0',
+  version: '1.2.0',
   icon: 'code',
   category: 'Código',
   author: 'Dialcron',
@@ -95,4 +95,15 @@ export const CodePackage: PackageDef<CodeSpec> = {
   // Referência direta (não wrapper): o runtime é serializado via String() no
   // export e precisa reviver autossuficiente no host do HTML standalone.
   runtime: codeRuntime,
+  // Pela lateral a janela muda de largura; pelo canto ou por baixo, a janela e a fonte crescem juntas.
+  resize: {
+    width: (spec) => Number(spec.w) || 900,
+    apply: (spec, r) => {
+      const w = Math.round(Math.min(3840, Math.max(160, r.to.w)));
+      if (r.edge === 'e') return { w };
+      const ratio = Math.max(0.1, r.edge === 's' ? r.to.h / r.from.h : r.to.w / r.from.w);
+      const font = Math.round((Number(spec.fontSize) || 24) * ratio);
+      return { w, fontSize: Math.min(120, Math.max(8, font)) };
+    },
+  },
 };

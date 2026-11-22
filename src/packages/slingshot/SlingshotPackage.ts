@@ -1,8 +1,8 @@
 import { createElement } from 'react';
 
-import type { FormSchema, PackageDef, PackageSpec } from '../core/types';
+import type { FormSchema, PackageDef, PackageSpec, PackageTransition } from '../core/types';
 
-import { slingshotRuntime } from './slingshotRuntime';
+import { slingshotScene } from './slingshotRuntime';
 
 export interface SlingshotSpec extends PackageSpec {
   /** Rótulo sob o estilingue. */
@@ -34,7 +34,7 @@ export const slingshotForm: FormSchema = [
     fields: [
       {
         type: 'info',
-        text: 'Abertura do slide: o estilingue derruba a pilha de blocos e só então o conteúdo aparece. No editor o pacote é só esta etiqueta; use Visualizar para ver a cena.',
+        text: 'O estilingue derruba a pilha de blocos e só então o conteúdo do slide aparece. Clique durante a cena para pular.',
       },
       { k: 'leftLabel', label: 'Rótulo do estilingue', type: 'text' },
       { k: 'rightLabel', label: 'Rótulo da pilha', type: 'text' },
@@ -57,8 +57,8 @@ export const slingshotForm: FormSchema = [
 ];
 
 export const slingshotCss = `
-.pk-shot{display:none;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;border:1px dashed rgba(142,59,82,.55);background:rgba(255,248,245,.9);color:#8E3B52;font:700 15px 'DM Sans',system-ui,sans-serif;white-space:nowrap}
-body.mm-canvas:not(.mm-preview) .pk-shot{display:inline-flex}
+/* etiqueta dos elementos da versão 1 (antes de virar transição; a apresentação aberta os converte) */
+.pk-shot{display:none}
 .pk-shot-scene{position:absolute;inset:0;z-index:6;cursor:pointer}
 .pk-shot-scene svg{position:absolute;left:0;top:0;width:1920px;height:1080px}
 .slide.pk-shot-out .pk-shot-scene{opacity:0;transition:opacity .45s ease;pointer-events:none}
@@ -78,21 +78,36 @@ body.mm-canvas:not(.mm-preview) .pk-shot{display:inline-flex}
 @media print{.pk-shot,.pk-shot-scene{display:none!important}}
 `;
 
+/** Entrada do slide durante a cena (o slide aparece logo; a cena fica por cima). */
+const shotTransitionCss =
+  '.t-in{animation:pkShotIn .35s ease both}.t-out{animation:pkShotOut .35s ease both}' +
+  '@keyframes pkShotIn{from{opacity:0}to{opacity:1}}@keyframes pkShotOut{from{opacity:1}to{opacity:0}}';
+
 export const SlingshotPackage: PackageDef<SlingshotSpec> = {
   id: 'slingshot',
   name: 'Abertura: estilingue',
-  version: '1.0.0',
+  version: '2.0.0',
   icon: 'play',
-  category: 'Simulação',
+  category: 'Transições',
   author: 'Dialcron',
   description:
-    'Cena de abertura do slide: um estilingue derruba uma pilha de blocos com as suas palavras e depois revela o conteúdo. Clique pula a cena.',
+    'Transição de slide: um estilingue derruba uma pilha de blocos com as suas palavras e depois revela o conteúdo. Clique pula a cena.',
   defaults: slingshotDefaults,
-  box: { w: 260 },
-  form: slingshotForm,
+  form: [],
   css: slingshotCss,
-  render: () => createElement('div', { className: 'pk-shot' }, '▶ Abertura: estilingue'),
-  duration: () => 4300,
-  // Referência direta: o runtime é serializado via String() e precisa ser autossuficiente.
-  runtime: slingshotRuntime,
+  // Elementos da versão 1 continuam reconhecidos (e são convertidos na transição ao abrir).
+  render: () => createElement('div', { className: 'pk-shot' }),
+  movedToTransition: 'estilingue',
+  transitions: [
+    {
+      id: 'estilingue',
+      name: 'Estilingue',
+      description: 'Cena de abertura: o estilingue derruba a pilha de blocos e revela o slide.',
+      css: shotTransitionCss,
+      defaults: slingshotDefaults,
+      form: slingshotForm,
+      // Referência direta: a cena é serializada via String() e precisa ser autossuficiente.
+      scene: slingshotScene as NonNullable<PackageTransition['scene']>,
+    },
+  ],
 };

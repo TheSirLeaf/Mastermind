@@ -15,6 +15,7 @@ import { PackageTab } from './PackageTab';
 import { ParentAndMedia } from './ParentAndMedia';
 import { SlideTab } from './SlideTab';
 import { StyleTab } from './StyleTab';
+import { TransitionTab } from './TransitionTab';
 
 interface InspectorContentProps {
   activeTab: InspectorTab;
@@ -36,6 +37,10 @@ export function InspectorContent({
 
   if (activeTab === 'slide') {
     return <SlideTab />;
+  }
+
+  if (activeTab === 'transition') {
+    return <TransitionTab />;
   }
 
   // O pacote cuida dos dois casos: editar o selecionado ou inserir um novo.

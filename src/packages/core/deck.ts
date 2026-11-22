@@ -293,7 +293,41 @@ export function withSlideTransition(html: string, transition: SlideTransition): 
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const section = doc.body.firstElementChild;
   if (!section) return html;
+  // os campos guardados pertencem à transição anterior
+  if (section.getAttribute('data-transition') !== transition) {
+    section.removeAttribute('data-transition-spec');
+  }
   if (transition === 'default') section.removeAttribute('data-transition');
   else section.setAttribute('data-transition', transition);
+  return section.outerHTML;
+}
+
+/** Campos editados da transição de pacote do slide (`data-transition-spec`). */
+export function slideTransitionSpec(html: string): Record<string, unknown> {
+  const section = new DOMParser().parseFromString(html, 'text/html').body.firstElementChild;
+  const raw = section?.getAttribute('data-transition-spec');
+  if (!raw) return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+export function withSlideTransitionSpec(
+  html: string,
+  spec: Record<string, unknown> | null
+): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const section = doc.body.firstElementChild;
+  if (!section) return html;
+  if (spec && Object.keys(spec).length) {
+    section.setAttribute('data-transition-spec', JSON.stringify(spec));
+  } else {
+    section.removeAttribute('data-transition-spec');
+  }
   return section.outerHTML;
 }

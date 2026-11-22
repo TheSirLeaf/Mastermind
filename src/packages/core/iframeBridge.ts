@@ -1,5 +1,5 @@
 import type { ElementPatch } from './animation';
-import type { SelectionInfo } from './types';
+import type { PackageResize, SelectionInfo } from './types';
 
 export interface BridgeEvents {
   onReady?: (slideCount: number) => void;
@@ -34,6 +34,8 @@ export interface BridgeEvents {
   /** Trecho selecionado no texto em edição (ou `null` quando não há): onde está e como está. */
   onTextFormat?: (format: TextFormatInfo | null) => void;
   onElementMoved?: (index: number, path: number[]) => void;
+  /** Alça de um pacote solta no palco: o editor recalcula o pacote no tamanho novo. */
+  onPackageResize?: (path: number[], resize: PackageResize) => void;
 }
 
 /** Trecho do texto em edição: retângulo (px dentro do iframe) e formatação atual. */
@@ -131,6 +133,7 @@ type DeckMessage =
   | { __mm: 'deck'; type: 'slide-click'; index: number }
   | { __mm: 'deck'; type: 'slide-open'; index: number }
   | { __mm: 'deck'; type: 'element-moved'; index: number; path: number[] }
+  | ({ __mm: 'deck'; type: 'package-resize'; index: number; path: number[] | null } & PackageResize)
   | { __mm: 'deck'; type: 'palette'; colors: string[] }
   | { __mm: 'deck'; type: 'pose-edit'; pose: KeyframePose }
   | ({ __mm: 'deck'; type: 'context' } & StageContext)
@@ -246,6 +249,15 @@ export class IframeBridge {
         break;
       case 'element-moved':
         this.events.onElementMoved?.(data.index, data.path);
+        break;
+      case 'package-resize':
+        if (data.path) {
+          this.events.onPackageResize?.(data.path, {
+            edge: data.edge,
+            from: data.from,
+            to: data.to,
+          });
+        }
         break;
       default:
         break;

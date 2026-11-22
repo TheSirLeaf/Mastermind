@@ -11,7 +11,7 @@ import { toolButtonClass } from './ToolButton';
 
 /** Menu "Pacotes ▾": insere um elemento (com modelos) ou abre o gerenciador. */
 export function PackagesMenu() {
-  const { listPackages } = usePackageRegistry();
+  const { listInsertable } = usePackageRegistry();
   const { openPackageManager, showToast } = useUIStore();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -55,7 +55,7 @@ export function PackagesMenu() {
     showToast(`${result.label} inserido no slide`, 'success');
   };
 
-  const packages = listPackages();
+  const packages = listInsertable();
 
   return (
     <div ref={rootRef} className="relative">

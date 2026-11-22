@@ -30,6 +30,14 @@ export function updatePackageSpec(
       element.innerHTML = registry.toHTML(id, newSpec);
     } catch {
       // Spec inválida no meio da edição: mantém o último desenho válido.
+      return;
+    }
+    // A caixa acompanha o tamanho do pacote (ex.: o lado do QR ou a largura do código).
+    const rules = registry.get(id)?.resize;
+    const width = rules ? rules.width(newSpec) : 0;
+    if (width > 0 && element instanceof HTMLElement) {
+      element.style.width = `${Math.round(width)}px`;
+      element.style.removeProperty('height');
     }
   });
 }

@@ -92,7 +92,7 @@ export const chartPresets: Preset<ChartSpec>[] = [
 export const ChartPackage: PackageDef<ChartSpec> = {
   id: 'chart',
   name: 'Gráfico',
-  version: '1.1.0',
+  version: '1.2.0',
   icon: 'chart',
   category: 'Dados',
   author: 'Dialcron',
@@ -114,4 +114,13 @@ export const ChartPackage: PackageDef<ChartSpec> = {
   // export e precisa reviver autossuficiente no host do HTML standalone.
   runtime: chartRuntime,
   timeline: chartTimeline,
+  // O desenho acompanha a largura (a altura vem da proporção do gráfico).
+  resize: {
+    width: (spec) => Number(spec.w) || 900,
+    apply: (_spec, r) => {
+      const ratio = Math.max(0.1, r.edge === 's' ? r.to.h / r.from.h : r.to.w / r.from.w);
+      const w = r.edge === 'e' ? r.to.w : r.from.w * ratio;
+      return { w: Math.round(Math.min(3840, Math.max(160, w))) };
+    },
+  },
 };

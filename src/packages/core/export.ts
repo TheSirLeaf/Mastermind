@@ -78,11 +78,13 @@ export const PRINT_CSS = `@media print {
 /** Ids de pacotes referenciados nos slides (`data-pkg`). */
 export function collectPackageIds(deck: Deck): string[] {
   const ids = new Set<string>();
-  const re = /data-pkg=["']([^"']+)["']/g;
+  // elementos de pacote e transições de pacote (`data-transition="pkg:<pacote>:…"`)
+  const re = /data-pkg=["']([^"']+)["']|data-transition=["']pkg:([a-z0-9-]+):/gi;
   for (const slide of deck.slides) {
     let match: RegExpExecArray | null;
     while ((match = re.exec(slide.html)) !== null) {
-      if (match[1]) ids.add(match[1]);
+      const id = match[1] ?? match[2];
+      if (id) ids.add(id);
     }
     re.lastIndex = 0;
   }

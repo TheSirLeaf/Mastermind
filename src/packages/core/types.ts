@@ -168,11 +168,41 @@ export type PackageRuntime<TSpec extends PackageSpec = PackageSpec> = (
  * Transição de slide oferecida por um pacote. O CSS usa as classes `.t-in` (slide que entra)
  * e `.t-out` (slide que sai), com variantes `.t-in-r`/`.t-out-r` para voltar; a duração é a da `animation`.
  */
-export interface PackageTransition {
+export interface PackageTransition<TSpec extends PackageSpec = PackageSpec> {
   id: string;
   name: string;
   description?: string;
-  css: string;
+  css?: string;
+  /**
+   * Cena em JS que roda quando o slide entra (ex.: uma abertura animada sobre o slide). Recebe o
+   * `<section>` do slide e o spec da transição (`defaults` + o que o usuário editou). É serializada
+   * para o HTML exportado, então precisa ser autossuficiente.
+   */
+  scene?(slide: HTMLElement, spec: TSpec, api: RuntimeAPI): RuntimeController | null;
+  /** Valores iniciais dos campos da transição. */
+  defaults?: TSpec;
+  /** Campos editáveis na aba Transição (guardados no slide, em `data-transition-spec`). */
+  form?: FormSchema;
+}
+
+/** Arrasto de uma alça do pacote no palco (medidas em px do slide). */
+export interface PackageResize {
+  /** `e`: lateral (largura) · `s`: embaixo (altura) · `se`: o canto. */
+  edge: 'e' | 's' | 'se';
+  /** Tamanho da caixa no começo do arrasto. */
+  from: { w: number; h: number };
+  /** Tamanho da caixa ao soltar. */
+  to: { w: number; h: number };
+}
+
+/** Redimensionar o pacote com o mouse. */
+export interface PackageResizeRules<TSpec extends PackageSpec = PackageSpec> {
+  /** Proporção fixa: qualquer alça aumenta/diminui o pacote inteiro (ex.: QR code). */
+  keepAspect?: boolean;
+  /** Largura da caixa (px do slide) que o spec ocupa. */
+  width(spec: TSpec): number;
+  /** Mudanças no spec quando a caixa é arrastada. */
+  apply(spec: TSpec, resize: PackageResize): Partial<TSpec>;
 }
 
 /** Evento de animação de um pacote, mostrado e editável na linha do tempo (tempos em segundos). */
@@ -217,10 +247,17 @@ export interface PackageDef<TSpec extends PackageSpec = PackageSpec> {
   runtime?(root: HTMLElement, spec: TSpec, api: RuntimeAPI): RuntimeController | null;
   duration?(spec: TSpec): number;
   adopt?: AdoptRules<TSpec>;
-  /** Transições de slide próprias do pacote (aparecem em Slide → Transição → Pacote). */
+  /** Transições de slide próprias do pacote (aparecem na aba Transição → Pacote). */
   transitions?: PackageTransition[];
   /** Eventos que aparecem na linha do tempo da aba Animação. */
   timeline?: PackageTimeline<TSpec>;
+  /** Como o pacote responde às alças do palco (sem isto, a caixa só muda de largura/altura). */
+  resize?: PackageResizeRules<TSpec>;
+  /**
+   * O pacote deixou de ser um elemento e virou esta transição (id dentro de `transitions`):
+   * não aparece mais para inserir, e elementos antigos dele viram a transição do slide.
+   */
+  movedToTransition?: string;
 }
 
 /** Pacote serializado: funções viram `{ $fn: "..." }`. */
@@ -237,7 +274,13 @@ export interface SerializedPackage {
   box?: BoxHint;
   form: FormSchema;
   css?: string;
-  transitions?: PackageTransition[];
+  transitions?: Array<Omit<PackageTransition, 'scene'> & { scene?: { $fn: string } | string }>;
+  movedToTransition?: string;
+  resize?: {
+    keepAspect?: boolean;
+    width: { $fn: string } | string;
+    apply: { $fn: string } | string;
+  };
   /** Formato legado usado pelo editor monolítico. */
   render?: { $fn: string } | string;
   runtime?: { $fn: string } | string;

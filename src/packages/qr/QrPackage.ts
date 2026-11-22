@@ -42,7 +42,7 @@ export const qrPresets: Preset<QrSpec>[] = [
 export const QrPackage: PackageDef<QrSpec> = {
   id: 'qr',
   name: 'QR code',
-  version: '1.0.0',
+  version: '1.1.0',
   icon: 'qr-code',
   category: 'Mídia',
   author: 'Dialcron',
@@ -56,4 +56,14 @@ export const QrPackage: PackageDef<QrSpec> = {
   render: (spec, h: HelperAPI) => createElement(QrRenderer, { spec, h }),
   // Referência direta: o runtime é serializado via String() e precisa ser autossuficiente.
   runtime: qrRuntime,
+  // Sempre quadrado: qualquer alça muda o lado do QR.
+  resize: {
+    keepAspect: true,
+    width: (spec) => Number(spec.size) || 360,
+    apply: (spec, r) => {
+      const ratio = Math.max(0.1, r.edge === 's' ? r.to.h / r.from.h : r.to.w / r.from.w);
+      const size = Math.round((Number(spec.size) || 360) * ratio);
+      return { size: Math.min(1600, Math.max(60, size)) };
+    },
+  },
 };

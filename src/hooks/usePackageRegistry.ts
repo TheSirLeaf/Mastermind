@@ -9,6 +9,8 @@ export function usePackageRegistry() {
   return {
     registry: registryInstance,
     listPackages: () => registryInstance.list(),
+    /** Pacotes que viram elemento no slide (os que são só transição ficam de fora). */
+    listInsertable: () => registryInstance.listInsertable(),
     getPackageDef: (id: string) => registryInstance.get(id),
     getComponent: (id: string) => registryInstance.getComponent(id),
     getFormSchema: (id: string) => registryInstance.get(id)?.form,
