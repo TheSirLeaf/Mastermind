@@ -1,4 +1,4 @@
-import editorBridgeSource from './editorBridge.script.js?raw';
+import editorBridgeSource from './editorBridge.script.ts?inline-script';
 
 /**
  * Runtime de pacotes executado DENTRO da apresentação exportada.
@@ -288,6 +288,6 @@ export const PKG_HOST_SRC = `(function(){
 /**
  * Script injetado no iframe do editor. Responsável por seleção, mover/redimensionar,
  * edição de texto, atalhos e escala do palco. Conversa com a aplicação via
- * postMessage (ver `editorBridge.script.js`).
+ * postMessage (ver `editorBridge.script.ts`).
  */
 export const EDITOR_BRIDGE_SRC: string = editorBridgeSource;

@@ -1,5 +1,6 @@
 // Miniatura de um slide: um iframe com a apresentação real de um único slide.
 import { buildPresentationHTML, loadTemplate } from '@packages/core/export';
+import { DECK_FRAME_SANDBOX } from '@packages/core/frameSandbox';
 import { registry } from '@packages/core/PackageRegistry';
 import type { Deck } from '@packages/core/types';
 import { useEffect, useState } from 'react';
@@ -36,6 +37,7 @@ export function SlidePreview({ deck, title, className }: SlidePreviewProps) {
       {html ? (
         <iframe
           title={title}
+          sandbox={DECK_FRAME_SANDBOX}
           srcDoc={html}
           tabIndex={-1}
           className="pointer-events-none absolute inset-0 h-full w-full border-0"

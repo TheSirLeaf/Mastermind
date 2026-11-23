@@ -1,4 +1,5 @@
 import { presentationSettings } from '@packages/core/deck';
+import { DECK_FRAME_SANDBOX } from '@packages/core/frameSandbox';
 import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 import { useEffect, useRef, useState } from 'react';
@@ -112,6 +113,8 @@ function PlainPresentation({ mode }: PresentationOverlayProps) {
           ref={frameRef}
           className="h-full w-full border-0 bg-black"
           title={mode === 'present' ? 'Apresentação' : 'Visualização'}
+          sandbox={DECK_FRAME_SANDBOX}
+          allowFullScreen
           srcDoc={html}
           onLoad={focusFrame}
         />

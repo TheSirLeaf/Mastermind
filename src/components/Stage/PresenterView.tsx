@@ -1,6 +1,7 @@
 // Visão do apresentador (interação ao vivo ligada): o slide atual, o próximo, as notas, o chat da
 // plateia e o código da sala. A tela exibida ao público fica em outra janela (`/screen/CODE`).
 import { presentationSettings, slideHasChat, slideNotes } from '@packages/core/deck';
+import { DECK_FRAME_SANDBOX } from '@packages/core/frameSandbox';
 import { useDeckStore } from '@store/deckStore';
 import { useUIStore } from '@stores/uiStore';
 import { MonitorUp, Trash2, Users, X } from 'lucide-react';
@@ -273,6 +274,8 @@ export function PresenterView() {
               <iframe
                 ref={mainRef}
                 title="Slide atual"
+                sandbox={DECK_FRAME_SANDBOX}
+                allowFullScreen
                 srcDoc={html}
                 className="absolute inset-0 h-full w-full border-0"
                 onLoad={() => {
@@ -315,6 +318,8 @@ export function PresenterView() {
                 <iframe
                   ref={nextRef}
                   title="Próximo slide"
+                  sandbox={DECK_FRAME_SANDBOX}
+                  allowFullScreen
                   srcDoc={previewHtml}
                   tabIndex={-1}
                   className="pointer-events-none absolute inset-0 h-full w-full border-0"

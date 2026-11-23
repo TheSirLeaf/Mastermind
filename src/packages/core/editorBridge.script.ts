@@ -8,46 +8,178 @@
  * Este arquivo é embutido como string (import ?raw); mantenha-o autônomo e sem
  * a sequência de fechamento de script.
  */
+/* ---------- tipos ---------- */
+/** Elementos do slide (HTML ou SVG: os dois têm `style`, `classList` e atributos). */
+type El = HTMLElement;
+interface Layout {
+  x: number;
+  y: number;
+  s: number;
+}
+interface Box {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+interface Pose extends Record<string, unknown> {
+  x: number;
+  y: number;
+  s: number;
+  r: number;
+  o: number;
+  gc?: string;
+}
+interface PoseBase {
+  keepTs: string;
+  keepFl: string;
+  text: Record<string, string>;
+  translate: string;
+  scale: string;
+  rotate: string;
+  opacity: string;
+  x: number;
+  y: number;
+  s: number;
+  r: number;
+  o: number;
+}
+interface Snap {
+  xs: number[];
+  ys: number[];
+}
+interface Drag {
+  mode: 'move' | 'rs';
+  el: El;
+  sx: number;
+  sy: number;
+  on: boolean;
+  id: number;
+  /** move: translate no começo · Alt: deixa uma cópia no lugar */
+  base: { x: number; y: number };
+  alt: boolean;
+  /** rs: alça (`se`, `e`, `s`) e tamanho no começo */
+  h: string;
+  w0: number;
+  h0: number;
+  lock?: 'x' | 'y';
+  pkg?: {
+    aspect: boolean;
+    inner: El;
+    style: string | null;
+    wrap: string | null;
+    to?: { w: number; h: number };
+  };
+  slide?: El;
+  ls?: number;
+  r0?: Box;
+  snap?: Snap;
+}
+interface Arrange {
+  mode: 'move' | 'scale';
+  el: El;
+  sx: number;
+  sy: number;
+  l: Layout;
+  on: boolean;
+  id: number;
+}
+interface Clip {
+  kind: string;
+  html: string;
+  slide: number;
+  left: number;
+  top: number;
+}
+interface PkgRegistryEntry {
+  def?: { name?: string; resize?: { keepAspect?: boolean } };
+}
+interface CommandArg {
+  h?: string;
+  v?: string;
+  dx?: number;
+  dy?: number;
+  cmd?: string;
+  command?: string;
+  value?: unknown;
+  color?: string;
+  props?: string[];
+}
+interface EditorMessage {
+  __mm?: string;
+  type?: string;
+  index?: number;
+  path?: number[] | null;
+  edit?: boolean;
+  html?: string;
+  attrs?: Record<string, string | null>;
+  classes?: { add?: string[]; remove?: string[] };
+  style?: Record<string, string | null>;
+  pose?: Pose | null;
+  mode?: string;
+  zoom?: number;
+  animate?: boolean;
+  x?: number;
+  y?: number;
+  indices?: number[];
+  name?: string;
+  arg?: CommandArg;
+}
+interface Cluster {
+  lab: number[];
+  w: number;
+  r: number;
+  g: number;
+  b: number;
+}
+type StyleMap = Record<string, string | null>;
+type BridgeWindow = Window & {
+  __MM_EDITOR__?: boolean;
+  __anim?: (slide: Element) => void;
+  __mmClip?: Clip | null;
+};
+
 (function () {
-  if (window.__MM_EDITOR__) return;
-  window.__MM_EDITOR__ = true;
+  const win = window as BridgeWindow;
+  if (win.__MM_EDITOR__) return;
+  win.__MM_EDITOR__ = true;
 
-  var deck = document.getElementById('deck');
-  var stage = document.getElementById('stage');
-  if (!deck || !stage) return;
+  const deckNode = document.getElementById('deck');
+  if (!deckNode || !document.getElementById('stage')) return;
+  const deck: HTMLElement = deckNode;
 
-  var GOLD = '#F7D98B';
-  var INK = '#2A0E1A';
+  const GOLD = '#F7D98B';
+  const INK = '#2A0E1A';
 
   /* ---------- overlay de seleção ---------- */
-  var sel = document.createElement('div');
+  const sel = document.createElement('div');
   sel.id = 'mm-sel';
   sel.style.cssText =
     'position:absolute;z-index:3000000;pointer-events:none;box-sizing:border-box;display:none;' +
     'border:2px solid ' +
     GOLD +
     ';box-shadow:0 0 0 1px rgba(16,6,11,.55),0 0 24px rgba(247,217,139,.3)';
-  var tag = document.createElement('div');
+  const tag = document.createElement('div');
   tag.id = 'mm-tag';
   sel.appendChild(tag);
-  var handles = {};
-  ['se', 'e', 's'].forEach(function (name) {
-    var h = document.createElement('div');
+  const handles = {} as Record<'se' | 'e' | 's', HTMLDivElement>;
+  (['se', 'e', 's'] as const).forEach(function (name) {
+    const h = document.createElement('div');
     h.className = 'mm-h';
     h.setAttribute('data-h', name);
     sel.appendChild(h);
     handles[name] = h;
   });
   deck.appendChild(sel);
-  var grid = document.createElement('div');
+  const grid = document.createElement('div');
   grid.id = 'mm-grid';
   deck.appendChild(grid);
   /* pontos do grid: espaçamento cresce ao afastar para manter a densidade na tela */
   function updateGrid() {
-    var step = 80;
+    let step = 80;
     while (step * scale < 28) step *= 2;
-    var r = Math.max(1.2, 1.7 / scale);
-    var off = 200000 % step;
+    const r = Math.max(1.2, 1.7 / scale);
+    const off = 200000 % step;
     grid.style.backgroundImage =
       'radial-gradient(circle, #34343d ' +
       r.toFixed(2) +
@@ -58,7 +190,7 @@
     grid.style.backgroundPosition = step / 2 - off + 'px ' + (step / 2 - off) + 'px';
   }
 
-  var style = document.createElement('style');
+  const style = document.createElement('style');
   style.textContent = [
     'html,body{overflow:hidden}',
     'html,body,#stage{background:#17171b!important}',
@@ -115,58 +247,58 @@
   ].join('\n');
   document.head.appendChild(style);
 
-  var scale = 1;
-  var viewTimer = null;
+  let scale = 1;
+  let viewTimer: ReturnType<typeof setTimeout> | undefined;
   deck.addEventListener('transitionend', function (e) {
     if (e.target === deck) drawSelection(selected);
   });
-  var selected = null;
-  var editing = null;
-  var editingOriginal = '';
-  var drag = null;
-  var previewing = false;
-  var previewTimer = null;
+  let selected: El | null = null;
+  let editing: El | null = null;
+  let editingOriginal = '';
+  let drag: Drag | null = null;
+  let previewing = false;
+  let previewTimer: ReturnType<typeof setTimeout> | undefined;
 
   /* Mundo: cada slide tem posição (data-x/data-y) e escala (data-s) no espaço; o editor
      controla a câmera (zoom/pan) e o modo ('edit' ou 'arrange' = mover/redimensionar slides). */
-  var mode = 'edit';
-  var SLIDE_W = 1920;
-  var SLIDE_H = 1080;
-  var GAP = 160;
+  let mode: 'edit' | 'arrange' = 'edit';
+  const SLIDE_W = 1920;
+  const SLIDE_H = 1080;
+  const GAP = 160;
   document.body.classList.add('mm-canvas');
-  var canvasStyle = document.createElement('style');
+  const canvasStyle = document.createElement('style');
   canvasStyle.id = 'mm-canvas-style';
   document.head.appendChild(canvasStyle);
 
-  function isBase(slide) {
+  function isBase(slide: Element | null): boolean {
     return !!slide && slide.hasAttribute && slide.hasAttribute('data-base-id');
   }
-  function layoutOf(slide, index) {
+  function layoutOf(slide: El, index: number): Layout {
     if (isBase(slide)) {
-      var k = slideList().filter(isBase).indexOf(slide);
+      const k = slideList().filter(isBase).indexOf(slide);
       return { x: k * (SLIDE_W + GAP), y: -(SLIDE_H + 380), s: 1 };
     }
-    var sc = parseFloat(slide.getAttribute('data-s'));
-    var x = parseFloat(slide.getAttribute('data-x'));
-    var y = parseFloat(slide.getAttribute('data-y'));
+    const sc = parseFloat(slide.getAttribute('data-s') ?? '');
+    const x = parseFloat(slide.getAttribute('data-x') ?? '');
+    const y = parseFloat(slide.getAttribute('data-y') ?? '');
     return {
       x: isNaN(x) ? index * (SLIDE_W + GAP) : x,
       y: isNaN(y) ? 0 : y,
       s: sc > 0 ? sc : 1,
     };
   }
-  function slideIndexOf(slide) {
+  function slideIndexOf(slide: Element): number {
     return Array.prototype.indexOf.call(slideList(), slide);
   }
   /* escala do slide que contém o elemento (a câmera já está em `scale`) */
-  function esOf(el) {
-    var sl = slideOf(el);
+  function esOf(el: El): number {
+    const sl = slideOf(el);
     return sl ? layoutOf(sl, slideIndexOf(sl)).s : 1;
   }
 
   function buildCanvasCss() {
-    var list = slideList();
-    var css = [
+    const list = slideList();
+    const css = [
       'body.mm-canvas .slide{inset:auto!important;opacity:1!important;visibility:visible!important;transition:none!important;pointer-events:auto!important;transform-origin:0 0!important}',
       'body.mm-canvas .slide:not(.active) *{pointer-events:none!important}',
       'body.mm-canvas .slide:not(.active){cursor:pointer}',
@@ -177,7 +309,7 @@
       '.mm-arr .mm-h[data-h=e],.mm-arr .mm-h[data-h=s]{display:none}',
     ];
     list.forEach(function (sl, i) {
-      var l = layoutOf(sl, i);
+      const l = layoutOf(sl, i);
       css.push(
         'body.mm-canvas #deck>.slide:nth-child(' +
           (i + 1) +
@@ -195,20 +327,20 @@
     canvasStyle.textContent = css.join('\n');
     drawLabels();
   }
-  var labels = document.createElement('div');
+  const labels = document.createElement('div');
   labels.id = 'mm-labels';
   deck.appendChild(labels);
   function drawLabels() {
     labels.innerHTML = '';
     slideList().forEach(function (sl, i) {
       if (!isBase(sl)) return;
-      var l = layoutOf(sl, i);
-      var t = document.createElement('div');
+      const l = layoutOf(sl, i);
+      const t = document.createElement('div');
       t.className = 'mm-base-tag';
       t.setAttribute('data-for', String(i));
       t.style.left = l.x + 'px';
       t.style.top = l.y + 'px';
-      var b = document.createElement('b');
+      const b = document.createElement('b');
       b.textContent = 'Slide Base';
       t.appendChild(b);
       t.appendChild(
@@ -220,7 +352,7 @@
   }
   function scaleLabels() {
     /* cresce ao afastar (para dar para ler), mas com limite e sem passar da largura do slide */
-    var k = Math.min(10, 1 / Math.max(scale, 0.01));
+    const k = Math.min(10, 1 / Math.max(scale, 0.01));
     Array.prototype.forEach.call(labels.children, function (t) {
       t.style.maxWidth = SLIDE_W / k + 'px';
       t.style.overflow = 'hidden';
@@ -239,83 +371,89 @@
     drawSelection(selected);
   });
 
-  function post(msg) {
+  function post(msg: Record<string, unknown>) {
     msg.__mm = 'deck';
     try {
       window.parent.postMessage(msg, '*');
-    } catch (e) {
+    } catch {
       /* sem pai */
     }
   }
 
   /* ---------- navegação no DOM ---------- */
-  function slideList() {
-    return Array.prototype.filter.call(deck.children, function (c) {
-      return c.classList && c.classList.contains('slide');
-    });
+  function slideList(): El[] {
+    return Array.prototype.filter.call(deck.children, function (c: Element) {
+      return c.classList.contains('slide');
+    }) as El[];
   }
-  function activeSlide() {
-    return deck.querySelector('.slide.active');
+  function activeSlide(): El | null {
+    return deck.querySelector<HTMLElement>('.slide.active');
   }
-  function slideOf(el) {
-    var n = el;
+  function slideOf(el: Node | null): El | null {
+    let n = el;
     while (n && n.parentNode !== deck) n = n.parentNode;
-    return n && n.classList && n.classList.contains('slide') ? n : null;
+    return n instanceof Element && n.classList.contains('slide') ? (n as El) : null;
   }
   /* filhos "reais": a camada de base (.mm-bgl) é só visual e não existe no HTML guardado */
-  function kidsOf(node) {
-    return Array.prototype.filter.call(node.children, function (c) {
-      return !(c.classList && c.classList.contains('mm-bgl'));
-    });
+  function kidsOf(node: Element): El[] {
+    return Array.prototype.filter.call(node.children, function (c: Element) {
+      return !c.classList.contains('mm-bgl');
+    }) as El[];
   }
-  function pathOf(el) {
-    var path = [];
-    var node = el;
-    while (node && node !== deck) {
-      if (!node.parentNode) return null;
-      path.unshift(kidsOf(node.parentNode).indexOf(node));
-      node = node.parentNode;
+  function pathOf(el: El): number[] | null {
+    const path = [];
+    let node: El = el;
+    while (node !== deck) {
+      const parent = node.parentElement;
+      if (!parent) return null;
+      path.unshift(kidsOf(parent).indexOf(node));
+      node = parent;
     }
-    return node === deck ? path : null;
+    return path;
   }
-  function elAt(path) {
+  function elAt(path: number[] | null | undefined): El | null {
     if (!path || !path.length) return null;
-    var node = deck;
-    for (var i = 0; i < path.length; i++) {
-      node = node && node.children ? (i === 0 ? node.children : kidsOf(node))[path[i]] : null;
+    let node: El | undefined = deck;
+    for (let i = 0; i < path.length; i++) {
+      const kids: ArrayLike<Element> = i === 0 ? node.children : kidsOf(node);
+      node = kids[path[i] ?? -1] as El | undefined;
       if (!node) return null;
     }
     return node;
   }
   /* Regras de redimensionar do pacote (lidas do registro embutido): `null` = sem regras. */
-  function pkgResize(id) {
+  function registryDef(id: string | null): PkgRegistryEntry['def'] {
+    const node = document.getElementById('pkg-registry');
+    const reg = (node ? JSON.parse(node.textContent || '{}') : {}) as Record<
+      string,
+      PkgRegistryEntry | undefined
+    >;
+    return id ? reg[id]?.def : undefined;
+  }
+  function pkgResize(id: string | null): { aspect: boolean } | null {
     try {
-      var node = document.getElementById('pkg-registry');
-      var reg = node ? JSON.parse(node.textContent || '{}') : {};
-      var def = reg[id] && reg[id].def;
+      const def = registryDef(id);
       return def && def.resize ? { aspect: !!def.resize.keepAspect } : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   }
-  function registryName(id) {
+  function registryName(id: string | null): string {
     try {
-      var node = document.getElementById('pkg-registry');
-      var reg = node ? JSON.parse(node.textContent || '{}') : {};
-      return reg[id] && reg[id].def && reg[id].def.name ? reg[id].def.name : 'Pacote';
-    } catch (e) {
+      return registryDef(id)?.name || 'Pacote';
+    } catch {
       return 'Pacote';
     }
   }
-  function labelOf(el) {
-    var custom = el.getAttribute && el.getAttribute('data-name');
+  function labelOf(el: El): string {
+    const custom = el.getAttribute && el.getAttribute('data-name');
     if (custom && custom.trim()) return custom.trim();
     if (el.hasAttribute && el.hasAttribute('data-pkg'))
       return registryName(el.getAttribute('data-pkg'));
     if (el.classList.contains('cover-glow')) return 'Efeito de luz';
     if (el.classList.contains('ed-shape')) return 'Forma';
     if (el.classList.contains('ed-text')) return 'Texto';
-    var names = {
+    const names: Record<string, string> = {
       h1: 'Título',
       h2: 'Título',
       h3: 'Subtítulo',
@@ -335,52 +473,54 @@
       th: 'Cabeçalho',
       section: 'Slide',
     };
-    var t = el.tagName.toLowerCase();
+    const t = el.tagName.toLowerCase();
     return names[t] || t;
   }
-  function isMedia(el) {
+  function isMedia(el: El): boolean {
     return /^(img|svg|video)$/i.test(el.tagName);
   }
-  function pkgRoot(el, slide) {
-    for (var a = el; a && a !== slide; a = a.parentElement) {
-      if (a.hasAttribute && a.hasAttribute('data-pkg')) return a;
+  function pkgRoot(el: El, slide: El): El {
+    for (let a: El | null = el; a && a !== slide; a = a.parentElement) {
+      if (a.hasAttribute('data-pkg')) return a;
     }
     return el;
   }
   /* Resolve o alvo do clique para o elemento "selecionável". */
-  function pick(t) {
+  function pick(t: Element | null): El | null {
     if (!t || t.nodeType !== 1) return null;
-    var s = activeSlide();
+    const s = activeSlide();
     if (!s || !s.contains(t) || t === s) return null;
-    var el = t;
-    var outer = el.closest('svg');
+    let el: Element | null = t;
+    let outer: Element | null = el.closest('svg');
     if (outer) {
-      while (outer.parentElement && outer.parentElement.closest('svg')) {
-        outer = outer.parentElement.closest('svg');
+      let up: Element | null = outer.parentElement?.closest('svg') ?? null;
+      while (up) {
+        outer = up;
+        up = up.parentElement?.closest('svg') ?? null;
       }
       el = outer;
     } else {
       while (el && el !== s) {
-        var d = window.getComputedStyle(el).display;
+        const d = window.getComputedStyle(el).display;
         if (d === 'inline' || d === 'contents') el = el.parentElement;
         else break;
       }
     }
     if (!el || el === s) return null;
     if (el.classList.contains('content')) return null;
-    return pkgRoot(el, s);
+    return pkgRoot(el as El, s);
   }
 
   /* ---------- serialização ---------- */
-  function serialize(slide) {
-    var c = slide.cloneNode(true);
+  function serialize(slide: El): string {
+    const c = slide.cloneNode(true) as El;
     /* o elemento em "pose" de keyframe volta aos estilos naturais no HTML guardado */
     if (poseState && poseState.el.isConnected && slide.contains(poseState.el)) {
-      var rel = [];
-      for (var pn = poseState.el; pn !== slide; pn = pn.parentNode) {
-        rel.unshift(kidsOf(pn.parentNode).indexOf(pn));
+      const rel: number[] = [];
+      for (let pn: El | null = poseState.el; pn && pn !== slide; pn = pn.parentElement) {
+        if (pn.parentElement) rel.unshift(kidsOf(pn.parentElement).indexOf(pn));
       }
-      var tgt = c;
+      let tgt: El | undefined = c;
       rel.forEach(function (i) {
         tgt = tgt && kidsOf(tgt)[i];
       });
@@ -402,19 +542,19 @@
     c.removeAttribute('data-mm-editing');
     return c.outerHTML;
   }
-  function commit(key, from) {
-    var s = slideOf(from || selected) || activeSlide();
+  function commit(key: string, from?: El | null) {
+    const s = slideOf(from || selected) || activeSlide();
     if (!s) return;
-    var idx = slideList().indexOf(s);
+    const idx = slideList().indexOf(s);
     if (idx < 0) return;
     post({ type: 'slide-html', index: idx, html: serialize(s), key: key || '' });
     scheduleGhosts();
   }
 
   /* ---------- seleção ---------- */
-  function rectOf(el) {
-    var dr = deck.getBoundingClientRect();
-    var r = el.getBoundingClientRect();
+  function rectOf(el: Element): Box {
+    const dr = deck.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
     return {
       left: (r.left - dr.left) / scale,
       top: (r.top - dr.top) / scale,
@@ -422,20 +562,20 @@
       height: r.height / scale,
     };
   }
-  function isLocked(el) {
+  function isLocked(el: El | null): boolean {
     return !!el && !!el.style && el.style.pointerEvents === 'none';
   }
-  function drawSelection(el) {
+  function drawSelection(el: El | null) {
     if (!el || !el.isConnected || previewing) {
       sel.style.display = 'none';
       return;
     }
     sel.classList.toggle('mm-locked-sel', isLocked(el));
-    var r = rectOf(el);
-    var px = function (n) {
+    const r = rectOf(el);
+    const px = function (n: number) {
       return Math.max(1, n / scale).toFixed(2) + 'px';
     };
-    var hs = 14 / scale;
+    const hs = 14 / scale;
     sel.style.display = 'block';
     sel.style.left = r.left + 'px';
     sel.style.top = r.top + 'px';
@@ -491,7 +631,7 @@
         Math.round(layoutOf(el, slideIndexOf(el)).s * 100) +
         '%';
     } else {
-      var esz = esOf(el);
+      const esz = esOf(el);
       tag.textContent =
         (isLocked(el) ? '🔒 ' : '') +
         labelOf(el) +
@@ -500,7 +640,7 @@
         '×' +
         Math.round(r.height / esz);
     }
-    var inside = r.top * scale < 34;
+    const inside = r.top * scale < 34;
     tag.style.fontSize = (12 / scale).toFixed(2) + 'px';
     tag.style.padding = px(3) + ' ' + px(8);
     tag.style.borderRadius = inside
@@ -510,7 +650,7 @@
     tag.style.top = inside ? 'auto' : '-' + (26 / scale).toFixed(2) + 'px';
     tag.style.bottom = inside ? '-' + (26 / scale).toFixed(2) + 'px' : 'auto';
   }
-  function select(el, silent) {
+  function select(el: El | null | undefined, silent?: boolean) {
     selected = el || null;
     drawSelection(selected);
     if (silent) return;
@@ -527,23 +667,23 @@
   }
 
   /* ---------- translate / dimensões ---------- */
-  function getTrans(el) {
-    var v = (el.style.translate || '').trim().split(/\s+/);
-    return { x: parseFloat(v[0]) || 0, y: parseFloat(v[1]) || 0 };
+  function getTrans(el: El): { x: number; y: number } {
+    const v = (el.style.translate || '').trim().split(/\s+/);
+    return { x: parseFloat(v[0] ?? '') || 0, y: parseFloat(v[1] ?? '') || 0 };
   }
-  function setTrans(el, x, y) {
+  function setTrans(el: El, x: number, y: number) {
     el.style.translate = x.toFixed(1) + 'px ' + y.toFixed(1) + 'px';
   }
 
   /* ---------- edição de texto ---------- */
-  function isTextElement(el) {
+  function isTextElement(el: El | null): boolean {
     if (!el || el === deck) return false;
-    var t = el.tagName.toLowerCase();
+    const t = el.tagName.toLowerCase();
     if (t === 'section' || t === 'img' || t === 'svg' || t === 'br') return false;
     if (el.hasAttribute('data-pkg') || el.closest('[data-pkg]')) return false;
     return true;
   }
-  function beginEdit(el, all) {
+  function beginEdit(el: El, all: boolean) {
     if (!isTextElement(el) || isLocked(el)) return;
     if (editing) endEdit(true);
     editing = el;
@@ -553,31 +693,31 @@
     el.setAttribute('spellcheck', 'false');
     el.focus({ preventScroll: true });
     resetScroll();
-    var range = document.createRange();
+    const range = document.createRange();
     range.selectNodeContents(el);
     if (!all) range.collapse(false);
-    var s = window.getSelection();
+    const s = window.getSelection();
     if (s) {
       s.removeAllRanges();
       s.addRange(range);
     }
     drawSelection(el);
   }
-  function syncCounter(el) {
-    var list = Array.prototype.slice.call(el.querySelectorAll('[data-count]'));
+  function syncCounter(el: El) {
+    const list = Array.prototype.slice.call(el.querySelectorAll('[data-count]'));
     if (el.hasAttribute('data-count')) list.unshift(el);
     list.forEach(function (c) {
-      var n = null;
-      for (var k = c.firstChild; k; k = k.nextSibling) {
+      let n = null;
+      for (let k = c.firstChild; k; k = k.nextSibling) {
         if (k.nodeType === 3 && k.nodeValue.trim() !== '') {
           n = k;
           break;
         }
       }
-      var raw = n ? n.nodeValue.replace(/\s/g, '') : '';
-      var v = null;
-      var d = 0;
-      var m;
+      const raw = n ? n.nodeValue.replace(/\s/g, '') : '';
+      let v = null;
+      let d = 0;
+      let m;
       if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(raw)) {
         m = raw.replace(/\./g, '').split(',');
         v = parseFloat(m[0] + (m[1] ? '.' + m[1] : ''));
@@ -601,9 +741,9 @@
       }
     });
   }
-  function endEdit(commitChanges) {
+  function endEdit(commitChanges: boolean) {
     if (!editing) return;
-    var el = editing;
+    const el = editing;
     editing = null;
     savedRange = null;
     reportFormat();
@@ -615,12 +755,12 @@
       drawSelection(selected);
       return;
     }
-    var changed = el.innerHTML !== editingOriginal;
+    const changed = el.innerHTML !== editingOriginal;
     if (changed) {
       syncCounter(el);
       if (el.classList.contains('ed-text') && !el.textContent.trim()) {
         if (selected === el) selected = null;
-        var s = slideOf(el);
+        const s = slideOf(el);
         el.remove();
         if (s)
           post({ type: 'slide-html', index: slideList().indexOf(s), html: serialize(s), key: '' });
@@ -633,31 +773,31 @@
   }
 
   /* ---------- ações sobre o elemento ---------- */
-  function isSlideChild(el) {
-    return el && el.parentElement && el.parentElement !== deck;
+  function isSlideChild(el: El | null): boolean {
+    return !!el && !!el.parentElement && el.parentElement !== deck;
   }
   function delEl() {
     if (!selected || !isSlideChild(selected)) return;
-    var el = selected;
-    var s = slideOf(el);
+    const el = selected;
+    const s = slideOf(el);
     select(null);
     el.remove();
     if (s) post({ type: 'slide-html', index: slideList().indexOf(s), html: serialize(s), key: '' });
   }
   function dupEl() {
     if (!selected || !isSlideChild(selected)) return;
-    var c = selected.cloneNode(true);
+    const c = selected.cloneNode(true) as El;
     c.removeAttribute('id');
-    Array.prototype.forEach.call(c.querySelectorAll('[id]'), function (x) {
+    c.querySelectorAll('[id]').forEach(function (x) {
       x.removeAttribute('id');
     });
-    var t = getTrans(selected);
+    const t = getTrans(selected);
     setTrans(c, t.x + 30, t.y + 30);
     selected.after(c);
     select(c);
     commit('');
   }
-  function ensurePos(el) {
+  function ensurePos(el: El) {
     if (window.getComputedStyle(el).position === 'static') el.style.position = 'relative';
   }
   function resetPos() {
@@ -670,17 +810,17 @@
   }
   function selectParent() {
     if (!selected) return;
-    var p = selected.parentElement;
+    const p = selected.parentElement;
     if (p && p !== deck && !p.classList.contains('slide')) select(p);
   }
   /* ---------- pose de keyframe: mostra (e deixa editar) o elemento num keyframe ---------- */
-  var poseState = null; /* { el, base, pose } */
-  function numOf(v) {
-    var n = parseFloat(v);
+  let poseState: { el: El; base: PoseBase; pose: Pose } | null = null;
+  function numOf(v: string | undefined): number {
+    const n = parseFloat(v ?? '');
     return isNaN(n) ? 0 : n;
   }
   /* formatação do texto que um keyframe pode mudar (estilo inline original guardado) */
-  var POSE_TEXT = [
+  const POSE_TEXT: [string, string][] = [
     ['c', 'color'],
     ['fs', 'font-size'],
     ['w', 'font-weight'],
@@ -688,13 +828,13 @@
     ['g', 'text-shadow'],
     ['bl', 'filter'],
   ];
-  function baseOf(el) {
-    var t = (el.style.translate || '').split(' ').filter(Boolean);
-    var text = {};
+  function baseOf(el: El): PoseBase {
+    const t = (el.style.translate || '').split(' ').filter(Boolean);
+    const text: Record<string, string> = {};
     POSE_TEXT.forEach(function (p) {
       text[p[1]] = el.style.getPropertyValue(p[1]);
     });
-    var ccs = window.getComputedStyle(el);
+    const ccs = window.getComputedStyle(el);
     return {
       keepTs: ccs.textShadow && ccs.textShadow !== 'none' ? ', ' + ccs.textShadow : '',
       keepFl: ccs.filter && ccs.filter !== 'none' ? ' ' + ccs.filter : '',
@@ -710,8 +850,8 @@
       o: el.style.opacity === '' ? 1 : numOf(el.style.opacity),
     };
   }
-  function restoreBase(el, b) {
-    ['translate', 'scale', 'rotate', 'opacity'].forEach(function (p) {
+  function restoreBase(el: El, b: PoseBase) {
+    (['translate', 'scale', 'rotate', 'opacity'] as const).forEach(function (p) {
       if (b[p]) el.style.setProperty(p, b[p]);
       else el.style.removeProperty(p);
     });
@@ -728,11 +868,11 @@
     sel.classList.remove('mm-pose');
     document.body.classList.remove('mm-posing');
   }
-  function setPose(path, pose) {
+  function setPose(path: number[] | null | undefined, pose: Pose | null | undefined) {
     if (poseState && !poseState.el.isConnected) poseState = null;
-    var target = pose && path ? elAt(path) : null;
+    const target = pose && path ? elAt(path) : null;
     if (poseState && poseState.el !== target) unpose();
-    if (!target) {
+    if (!target || !pose) {
       drawSelection(selected);
       return;
     }
@@ -742,36 +882,39 @@
       document.body.classList.add('mm-posing');
     }
     poseState.pose = pose;
-    var b = poseState.base;
-    target.style.translate = b.x + pose.x + 'px ' + (b.y + pose.y) + 'px';
-    target.style.scale = String(b.s * pose.s);
-    target.style.rotate = b.r + pose.r + 'deg';
-    target.style.opacity = String(b.o * pose.o);
+    const b: PoseBase = poseState.base;
+    const tgt: El = target;
+    const ps: Pose = pose;
+    tgt.style.translate = b.x + ps.x + 'px ' + (b.y + ps.y) + 'px';
+    tgt.style.scale = String(b.s * ps.s);
+    tgt.style.rotate = b.r + ps.r + 'deg';
+    tgt.style.opacity = String(b.o * ps.o);
     POSE_TEXT.forEach(function (p) {
-      var v = pose[p[0]];
-      var css = null;
+      const v = ps[p[0]] as string | number | null | undefined;
+      let css = null;
       if (v !== undefined && v !== null) {
         if (p[0] === 'fs') css = v + 'px';
         else if (p[0] === 'ls') css = v + 'em';
         else if (p[0] === 'w') css = String(v);
         else if (p[0] === 'g') {
-          var gc = pose.gc || '#F7D98B';
-          css = '0 0 ' + v * 0.35 + 'px ' + gc + ', 0 0 ' + v + 'px ' + gc + b.keepTs;
+          const gc = ps.gc || '#F7D98B';
+          css = '0 0 ' + Number(v) * 0.35 + 'px ' + gc + ', 0 0 ' + v + 'px ' + gc + b.keepTs;
         } else if (p[0] === 'bl') css = 'blur(' + v + 'px)' + b.keepFl;
         else css = String(v);
       }
       /* sem valor no keyframe: o natural (o inline original, se havia) */
       if (css === null) css = b.text[p[1]] || '';
-      if (css) target.style.setProperty(p[1], css);
-      else target.style.removeProperty(p[1]);
+      if (css) tgt.style.setProperty(p[1], css);
+      else tgt.style.removeProperty(p[1]);
     });
     if (selected === target) drawSelection(target);
   }
   /* depois de arrastar/empurrar o elemento posado: avisa o editor da nova posição do keyframe */
   function poseMoved() {
-    var t = getTrans(poseState.el);
-    var p = poseState.pose;
-    var np = {
+    if (!poseState) return;
+    const t = getTrans(poseState.el);
+    const p = poseState.pose;
+    const np: Pose = {
       x: Math.round(t.x - poseState.base.x),
       y: Math.round(t.y - poseState.base.y),
       s: p.s,
@@ -782,9 +925,9 @@
     post({ type: 'pose-edit', pose: np });
   }
 
-  function nudge(dx, dy) {
+  function nudge(dx: number, dy: number) {
     if (!selected || isLocked(selected) || mode === 'arrange') return;
-    var t = getTrans(selected);
+    const t = getTrans(selected);
     setTrans(selected, t.x + dx, t.y + dy);
     drawSelection(selected);
     if (poseState && selected === poseState.el) {
@@ -795,7 +938,7 @@
   }
 
   /* ---------- copiar / colar elemento ---------- */
-  var lastPt = null;
+  let lastPt: { x: number; y: number } | null = null;
   document.addEventListener(
     'pointermove',
     function (e) {
@@ -805,50 +948,50 @@
   );
   function getClip() {
     try {
-      return window.parent.__mmClip || null;
-    } catch (err) {
+      return (window.parent as BridgeWindow).__mmClip || null;
+    } catch {
       return null;
     }
   }
   function copyEl() {
-    var s = slideOf(selected);
-    if (!s) return;
-    var c = selected.cloneNode(true);
+    const s = slideOf(selected);
+    if (!s || !selected) return;
+    const c = selected.cloneNode(true) as El;
     c.removeAttribute('contenteditable');
     c.removeAttribute('data-mm-editing');
-    var sr = rectOf(s);
-    var r = rectOf(selected);
-    var ss = layoutOf(s, slideIndexOf(s)).s;
+    const sr = rectOf(s);
+    const r = rectOf(selected);
+    const ss = layoutOf(s, slideIndexOf(s)).s;
     try {
-      window.parent.__mmClip = {
+      (window.parent as BridgeWindow).__mmClip = {
         kind: 'element',
         html: c.outerHTML,
         slide: slideIndexOf(s),
         left: (r.left - sr.left) / ss,
         top: (r.top - sr.top) / ss,
       };
-    } catch (err) {
+    } catch {
       /* sem acesso ao pai */
     }
   }
   /* Mesmo slide: o item aparece sob o mouse. Outro slide: na posição exata de onde foi copiado. */
-  function pasteEl(clip) {
-    var s = activeSlide();
+  function pasteEl(clip: Clip) {
+    const s = activeSlide();
     if (!s) return;
     if (editing) endEdit(true);
-    var tpl = document.createElement('template');
+    const tpl = document.createElement('template');
     tpl.innerHTML = clip.html;
-    var el = tpl.content.firstElementChild;
+    const el = tpl.content.firstElementChild as El | null;
     if (!el) return;
     s.appendChild(el);
     setTrans(el, 0, 0);
-    var sr = rectOf(s);
-    var ss = layoutOf(s, slideIndexOf(s)).s;
-    var r0 = rectOf(el);
-    var wantLeft = clip.left;
-    var wantTop = clip.top;
+    const sr = rectOf(s);
+    const ss = layoutOf(s, slideIndexOf(s)).s;
+    const r0 = rectOf(el);
+    let wantLeft = clip.left;
+    let wantTop = clip.top;
     if (clip.slide === slideIndexOf(s) && lastPt) {
-      var dr = deck.getBoundingClientRect();
+      const dr = deck.getBoundingClientRect();
       wantLeft = ((lastPt.x - dr.left) / scale - sr.left) / ss - r0.width / ss / 2;
       wantTop = ((lastPt.y - dr.top) / scale - sr.top) / ss - r0.height / ss / 2;
     }
@@ -862,13 +1005,13 @@
     'mousedown',
     function (e) {
       /* impede seleção nativa e foco; o texto em edição mantém o comportamento normal */
-      if (editing && editing.contains(e.target)) return;
+      if (editing && editing.contains(e.target as Node)) return;
       e.preventDefault();
     },
     true
   );
   /* botão do meio: movimenta a visualização; scroll: zoom (o editor aplica) */
-  var panning = null;
+  let panning: { x: number; y: number; id: number } | null = null;
   document.addEventListener(
     'pointerdown',
     function (e) {
@@ -877,7 +1020,7 @@
       panning = { x: e.screenX, y: e.screenY, id: e.pointerId };
       try {
         document.documentElement.setPointerCapture(e.pointerId);
-      } catch (err) {
+      } catch {
         /* ignore */
       }
     },
@@ -898,7 +1041,7 @@
     if (!panning) return;
     try {
       document.documentElement.releasePointerCapture(panning.id);
-    } catch (err) {
+    } catch {
       /* ignore */
     }
     panning = null;
@@ -929,20 +1072,20 @@
         arrangeDown(e);
         return;
       }
-      var t = e.target;
+      const t = e.target;
       if (!(t instanceof Element)) return;
       if (editing && editing.contains(t)) return;
       try {
         window.focus();
-      } catch (err) {
+      } catch {
         /* ignore */
       }
-      var h = t.closest ? t.closest('.mm-h') : null;
+      const h = t.closest ? t.closest('.mm-h') : null;
       if (h && selected) {
-        var r = rectOf(selected);
-        drag = {
+        const r = rectOf(selected);
+        const rs: Drag = {
           mode: 'rs',
-          h: h.getAttribute('data-h'),
+          h: h.getAttribute('data-h') || 'se',
           el: selected,
           sx: e.clientX,
           sy: e.clientY,
@@ -950,14 +1093,17 @@
           h0: r.height / esOf(selected),
           on: false,
           id: e.pointerId,
+          base: { x: 0, y: 0 },
+          alt: false,
         };
+        drag = rs;
         /* pacote com regras: a caixa pede ao editor um spec novo (e aqui só mostra a prévia) */
-        var rules = selected.hasAttribute('data-pkg')
+        const rules = selected.hasAttribute('data-pkg')
           ? pkgResize(selected.getAttribute('data-pkg'))
           : null;
-        var inner = selected.firstElementChild;
+        const inner = selected.firstElementChild as El | null;
         if (rules && inner) {
-          drag.pkg = {
+          rs.pkg = {
             aspect: rules.aspect,
             inner: inner,
             style: inner.getAttribute('style'),
@@ -969,35 +1115,36 @@
       }
       if (pickingParent) {
         e.preventDefault();
-        var cand = deck.contains(t) ? pick(t) : null;
+        const cand = deck.contains(t) ? pick(t) : null;
         finishPickParent(cand);
         return;
       }
-      var gh = t.closest ? t.closest('.mm-ghost-off') : null;
-      if (gh && gh.__el) {
+      const gh = t.closest('.mm-ghost-off');
+      const ghostOf = gh ? ghostTarget.get(gh) : undefined;
+      if (ghostOf) {
         if (editing) endEdit(true);
-        select(gh.__el);
-        if (isLocked(gh.__el)) return;
-        startMove(gh.__el, e);
+        select(ghostOf);
+        if (isLocked(ghostOf)) return;
+        startMove(ghostOf, e);
         return;
       }
       if (!deck.contains(t)) return;
       if (editing) endEdit(true);
-      var clicked = slideOf(t);
+      const clicked = slideOf(t);
       if (clicked && clicked !== activeSlide()) {
         /* clicar noutro slide só o torna o atual (a câmera não se move) */
         select(null);
         post({ type: 'slide-click', index: slideIndexOf(clicked) });
         return;
       }
-      var el = pick(t);
+      const el = pick(t);
       select(el);
       if (!el || isLocked(el)) return;
       startMove(el, e);
     },
     true
   );
-  function startMove(el, e) {
+  function startMove(el: El, e: PointerEvent) {
     drag = {
       mode: 'move',
       el: el,
@@ -1007,22 +1154,25 @@
       on: false,
       id: e.pointerId,
       alt: e.altKey,
+      h: '',
+      w0: 0,
+      h0: 0,
     };
     capture(e);
   }
   /* dados para o alinhamento, calculados uma vez no começo do arrasto */
-  function prepareSnap(d) {
-    var s = slideOf(d.el);
+  function prepareSnap(d: Drag) {
+    const s = slideOf(d.el);
     if (!s) return;
     d.slide = s;
     d.ls = layoutOf(s, slideIndexOf(s)).s;
     d.r0 = localRect(d.el, s, d.ls);
     d.snap = snapTargets(d.el, s, d.ls);
   }
-  function capture(e) {
+  function capture(e: PointerEvent) {
     try {
       document.documentElement.setPointerCapture(e.pointerId);
-    } catch (err) {
+    } catch {
       /* ignore */
     }
   }
@@ -1030,8 +1180,8 @@
     'pointermove',
     function (e) {
       if (!drag) return;
-      var dx = e.clientX - drag.sx;
-      var dy = e.clientY - drag.sy;
+      const dx = e.clientX - drag.sx;
+      const dy = e.clientY - drag.sy;
       if (!drag.on) {
         if (Math.hypot(dx, dy) < 4) return;
         drag.on = true;
@@ -1041,16 +1191,16 @@
           document.body.classList.add('mm-lift');
           /* Alt + arrastar: deixa uma cópia no lugar e leva o original */
           if (drag.alt && isSlideChild(drag.el)) {
-            var copy = drag.el.cloneNode(true);
+            const copy = drag.el.cloneNode(true) as El;
             copy.removeAttribute('id');
             drag.el.before(copy);
           }
         }
         prepareSnap(drag);
       }
-      var es = scale * esOf(drag.el);
-      var ax = dx / es;
-      var ay = dy / es;
+      const es = scale * esOf(drag.el);
+      let ax = dx / es;
+      let ay = dy / es;
       if (drag.mode === 'move') {
         if (e.shiftKey) {
           if (Math.abs(ax) > Math.abs(ay)) {
@@ -1062,7 +1212,7 @@
           }
         }
         if (drag.r0) {
-          var sn = snapMove(drag, ax, ay, e);
+          const sn = snapMove(drag, ax, ay, e);
           ax = sn.ax;
           ay = sn.ay;
         }
@@ -1070,12 +1220,12 @@
       } else if (drag.pkg) {
         resizePackagePreview(drag, drag.w0 + ax, drag.h0 + ay);
       } else {
-        var el = drag.el;
-        var w = drag.w0 + ax;
-        var h = drag.h0 + ay;
-        var keep = isMedia(el) && !e.shiftKey && drag.h === 'se';
+        const el = drag.el;
+        let w = drag.w0 + ax;
+        let h = drag.h0 + ay;
+        const keep = isMedia(el) && !e.shiftKey && drag.h === 'se';
         if (drag.r0 && !keep) {
-          var sr2 = snapResize(drag, w, h, e);
+          const sr2 = snapResize(drag, w, h, e);
           w = sr2.w;
           h = sr2.h;
         }
@@ -1095,34 +1245,38 @@
   );
   /* Prévia de um pacote sendo redimensionado: pela lateral o conteúdo se reorganiza na largura
      nova; pelo canto, por baixo ou num pacote de proporção fixa, ele cresce/encolhe inteiro. */
-  function resizeRatio(d, w, h) {
+  function resizeRatio(d: Drag, w: number, h: number): number {
     return Math.max(0.1, d.h === 's' ? h / d.h0 : w / d.w0);
   }
-  function resizePackagePreview(d, w, h) {
-    var el = d.el;
-    var inner = d.pkg.inner;
-    if (d.h === 'e' && !d.pkg.aspect) {
+  function resizePackagePreview(d: Drag, w: number, h: number) {
+    const pkg = d.pkg;
+    if (!pkg) return;
+    const el = d.el;
+    const inner = pkg.inner;
+    if (d.h === 'e' && !pkg.aspect) {
       el.style.width = Math.round(Math.max(40, w)) + 'px';
       el.style.height = '';
       inner.style.transform = '';
       inner.style.width = '100%';
       inner.style.maxWidth = '100%';
-      d.pkg.to = { w: Math.max(40, w), h: inner.getBoundingClientRect().height / scale / esOf(el) };
+      pkg.to = { w: Math.max(40, w), h: inner.getBoundingClientRect().height / scale / esOf(el) };
       return;
     }
-    var r = resizeRatio(d, w, h);
+    const r = resizeRatio(d, w, h);
     el.style.width = Math.round(d.w0 * r) + 'px';
     el.style.height = Math.round(d.h0 * r) + 'px';
     inner.style.width = d.w0 + 'px';
     inner.style.maxWidth = 'none';
     inner.style.transformOrigin = '0 0';
     inner.style.transform = 'scale(' + r.toFixed(4) + ')';
-    d.pkg.to = { w: d.w0 * r, h: d.h0 * r };
+    pkg.to = { w: d.w0 * r, h: d.h0 * r };
   }
   /* Ao soltar: o editor recalcula o pacote no tamanho novo e devolve o slide redesenhado. */
-  function finishPackageResize(d) {
-    var to = d.pkg.to || { w: d.w0, h: d.h0 };
-    var s = slideOf(d.el);
+  function finishPackageResize(d: Drag) {
+    const pkg = d.pkg;
+    if (!pkg) return;
+    const to = pkg.to || { w: d.w0, h: d.h0 };
+    const s = slideOf(d.el);
     post({
       type: 'package-resize',
       index: s ? slideList().indexOf(s) : -1,
@@ -1132,35 +1286,35 @@
       to: { w: to.w, h: to.h },
     });
     /* se o editor não devolver o slide (nada mudou), a prévia é desfeita */
-    var el = d.el;
-    var inner = d.pkg.inner;
-    var saved = [
-      [inner, d.pkg.style],
-      [el, d.pkg.wrap],
+    const el = d.el;
+    const inner = pkg.inner;
+    const saved: [El, string | null][] = [
+      [inner, pkg.style],
+      [el, pkg.wrap],
     ];
     setTimeout(function () {
       if (!el.isConnected || !inner.isConnected) return;
-      saved.forEach(function (pair) {
-        if (pair[1] === null) pair[0].removeAttribute('style');
-        else pair[0].setAttribute('style', pair[1]);
+      saved.forEach(function ([node, style]) {
+        if (style === null) node.removeAttribute('style');
+        else node.setAttribute('style', style);
       });
       drawSelection(selected);
     }, 600);
   }
 
   /* ---------- arranjo dos slides (aba Slide) ---------- */
-  var arr = null;
-  function setLayout(slide, l) {
+  let arr: Arrange | null = null;
+  function setLayout(slide: El, l: Layout) {
     slide.setAttribute('data-x', String(Math.round(l.x)));
     slide.setAttribute('data-y', String(Math.round(l.y)));
     if (Math.abs(l.s - 1) < 0.0005) slide.removeAttribute('data-s');
     else slide.setAttribute('data-s', l.s.toFixed(3));
     buildCanvasCss();
   }
-  function arrangeDown(e) {
-    var t = e.target;
+  function arrangeDown(e: PointerEvent) {
+    const t = e.target;
     if (!(t instanceof Element)) return;
-    var handle = t.closest ? t.closest('.mm-h') : null;
+    const handle = t.closest ? t.closest('.mm-h') : null;
     if (handle && selected && handle.getAttribute('data-h') === 'se') {
       arr = {
         mode: 'scale',
@@ -1174,7 +1328,7 @@
       capture(e);
       return;
     }
-    var sl = slideOf(t);
+    const sl = slideOf(t);
     if (!sl) return;
     post({ type: 'slide-click', index: slideIndexOf(sl) });
     select(sl, true);
@@ -1190,15 +1344,15 @@
     };
     capture(e);
   }
-  function arrangeMove(e) {
+  function arrangeMove(e: PointerEvent) {
     if (!arr) return;
     if (!arr.on) {
       if (Math.hypot(e.clientX - arr.sx, e.clientY - arr.sy) < 4) return;
       arr.on = true;
       document.body.classList.add('mm-dragging');
     }
-    var dx = (e.clientX - arr.sx) / scale;
-    var dy = (e.clientY - arr.sy) / scale;
+    let dx = (e.clientX - arr.sx) / scale;
+    let dy = (e.clientY - arr.sy) / scale;
     if (arr.mode === 'move') {
       if (e.shiftKey) {
         if (Math.abs(dx) > Math.abs(dy)) dy = 0;
@@ -1206,19 +1360,19 @@
       }
       setLayout(arr.el, { x: arr.l.x + dx, y: arr.l.y + dy, s: arr.l.s });
     } else {
-      var ns = Math.max(0.05, Math.min(4, arr.l.s + Math.max(dx / SLIDE_W, dy / SLIDE_H)));
+      const ns = Math.max(0.05, Math.min(4, arr.l.s + Math.max(dx / SLIDE_W, dy / SLIDE_H)));
       setLayout(arr.el, { x: arr.l.x, y: arr.l.y, s: ns });
     }
     drawSelection(arr.el);
   }
   function arrangeEnd() {
     if (!arr) return false;
-    var a = arr;
+    const a = arr;
     arr = null;
     document.body.classList.remove('mm-dragging');
     try {
       document.documentElement.releasePointerCapture(a.id);
-    } catch (err) {
+    } catch {
       /* ignore */
     }
     if (a.on) commit('', a.el);
@@ -1227,14 +1381,14 @@
   document.addEventListener('pointermove', arrangeMove, true);
 
   /* Slide mais "por cima" sob o ponteiro (menor escala = mais por cima; empate: o último). */
-  function slideAtPoint(e) {
-    var dr = deck.getBoundingClientRect();
-    var px = (e.clientX - dr.left) / scale;
-    var py = (e.clientY - dr.top) / scale;
-    var best = null;
-    var bestScale = Infinity;
+  function slideAtPoint(e: PointerEvent): El | null {
+    const dr = deck.getBoundingClientRect();
+    const px = (e.clientX - dr.left) / scale;
+    const py = (e.clientY - dr.top) / scale;
+    let best = null;
+    let bestScale = Infinity;
     slideList().forEach(function (sl, i) {
-      var l = layoutOf(sl, i);
+      const l = layoutOf(sl, i);
       if (px < l.x || py < l.y || px > l.x + SLIDE_W * l.s || py > l.y + SLIDE_H * l.s) return;
       if (l.s <= bestScale) {
         best = sl;
@@ -1244,15 +1398,15 @@
     return best;
   }
   /* Soltar o elemento sobre outro slide passa o elemento para ele, na mesma posição visual. */
-  function dropIntoOtherSlide(el, e) {
-    var from = slideOf(el);
-    var target = slideAtPoint(e);
+  function dropIntoOtherSlide(el: El, e: PointerEvent): boolean {
+    const from = slideOf(el);
+    const target = slideAtPoint(e);
     if (!from || !target || target === from) return false;
-    var before = rectOf(el);
+    const before = rectOf(el);
     target.appendChild(el);
     setTrans(el, 0, 0);
-    var now = rectOf(el);
-    var ts = layoutOf(target, slideIndexOf(target)).s;
+    const now = rectOf(el);
+    const ts = layoutOf(target, slideIndexOf(target)).s;
     setTrans(el, (before.left - now.left) / ts, (before.top - now.top) / ts);
     el.style.zIndex = '';
     post({ type: 'slide-html', index: slideIndexOf(from), html: serialize(from), key: '' });
@@ -1261,15 +1415,15 @@
     return true;
   }
 
-  function endDrag(e) {
+  function endDrag(e?: PointerEvent) {
     if (arrangeEnd()) return;
     if (!drag) return;
-    var d = drag;
+    const d = drag;
     drag = null;
     document.body.classList.remove('mm-dragging');
     try {
       document.documentElement.releasePointerCapture(d.id);
-    } catch (err) {
+    } catch {
       /* ignore */
     }
     document.body.classList.remove('mm-lift');
@@ -1303,7 +1457,7 @@
   document.addEventListener(
     'click',
     function (e) {
-      if (editing && editing.contains(e.target)) return;
+      if (editing && editing.contains(e.target as Node)) return;
       e.preventDefault();
       e.stopPropagation();
     },
@@ -1315,11 +1469,11 @@
     function (e) {
       if (previewing) return;
       /* com pointer capture o alvo do evento é o <html>; resolve pelo ponto real */
-      var t = document.elementFromPoint(e.clientX, e.clientY) || e.target;
+      const t = document.elementFromPoint(e.clientX, e.clientY) || e.target;
       if (!t || !(t instanceof Element) || !deck.contains(t)) return;
       /* já editando: o duplo clique é do navegador (seleciona a palavra) */
       if (editing && editing.contains(t)) return;
-      var dslide = slideOf(t);
+      const dslide = slideOf(t);
       if (mode === 'arrange' || (dslide && dslide !== activeSlide())) {
         e.preventDefault();
         e.stopPropagation();
@@ -1328,7 +1482,7 @@
       }
       e.preventDefault();
       e.stopPropagation();
-      var el = pick(t);
+      const el = pick(t);
       if (!el) return;
       select(el);
       if (el.hasAttribute('data-pkg')) {
@@ -1337,8 +1491,8 @@
       }
       beginEdit(el, false);
       if (document.caretRangeFromPoint) {
-        var r = document.caretRangeFromPoint(e.clientX, e.clientY);
-        var s = window.getSelection();
+        const r = document.caretRangeFromPoint(e.clientX, e.clientY);
+        const s = window.getSelection();
         if (r && s && el.contains(r.startContainer)) {
           s.removeAllRanges();
           s.addRange(r);
@@ -1346,9 +1500,9 @@
           try {
             s.modify('move', 'backward', 'word');
             s.modify('extend', 'forward', 'word');
-            var picked = s.toString();
+            const picked = s.toString();
             if (/\s$/.test(picked)) s.modify('extend', 'backward', 'character');
-          } catch (err) {
+          } catch {
             /* navegador sem Selection.modify: fica só o cursor */
           }
         }
@@ -1362,7 +1516,7 @@
     function (e) {
       if (!editing) return;
       e.preventDefault();
-      var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+      const text = e.clipboardData ? e.clipboardData.getData('text/plain') : '';
       document.execCommand('insertText', false, text);
     },
     true
@@ -1380,7 +1534,7 @@
     'drop',
     function (e) {
       e.preventDefault();
-      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
       if (f) post({ type: 'drop', file: f });
     },
     true
@@ -1394,9 +1548,9 @@
   document.addEventListener(
     'keydown',
     function (e) {
-      var k = e.key;
-      var c = e.ctrlKey || e.metaKey;
-      var low = k.length === 1 ? k.toLowerCase() : k;
+      const k = e.key;
+      const c = e.ctrlKey || e.metaKey;
+      const low = k.length === 1 ? k.toLowerCase() : k;
       if (c && low === 's') {
         e.preventDefault();
         post({ type: 'key', key: 'save' });
@@ -1408,7 +1562,7 @@
           /* Esc sai da edição guardando o que foi feito (como no Figma); desfazer é Ctrl+Z */
           endEdit(true);
         } else if (k === 'Enter' && !e.shiftKey) {
-          var t = editing.tagName.toLowerCase();
+          const t = editing.tagName.toLowerCase();
           if (t !== 'p' && t !== 'li' && t !== 'div') {
             e.preventDefault();
             endEdit(true);
@@ -1438,7 +1592,7 @@
       }
       if (c && (e.code === 'BracketRight' || e.code === 'BracketLeft') && selected) {
         e.preventDefault();
-        var up = e.code === 'BracketRight';
+        const up = e.code === 'BracketRight';
         zOrder(e.shiftKey ? (up ? 'top' : 'bottom') : up ? 'forward' : 'backward');
         return;
       }
@@ -1450,7 +1604,7 @@
       }
       if (c && low === 'v') {
         e.preventDefault();
-        var clip = getClip();
+        const clip = getClip();
         if (clip && clip.kind === 'element') pasteEl(clip);
         else post({ type: 'key', key: 'paste-slide' });
         return;
@@ -1494,7 +1648,7 @@
       if (k.indexOf('Arrow') === 0) {
         e.preventDefault();
         if (selected && mode !== 'arrange') {
-          var st = e.shiftKey ? 10 : 1;
+          const st = e.shiftKey ? 10 : 1;
           if (k === 'ArrowLeft') nudge(-st, 0);
           if (k === 'ArrowRight') nudge(st, 0);
           if (k === 'ArrowUp') nudge(0, -st);
@@ -1509,7 +1663,7 @@
 
   /* ---------- pré-visualização de animações ---------- */
   function playPreview() {
-    var s = activeSlide();
+    const s = activeSlide();
     if (!s) return;
     if (editing) endEdit(true);
     clearTimeout(previewTimer);
@@ -1522,11 +1676,11 @@
     drawSelection(null);
     try {
       if (typeof window.__anim === 'function') window.__anim(s);
-    } catch (err) {
+    } catch {
       /* pacote com erro não derruba o editor */
     }
-    var scene = (s.getAttribute('data-transition') || '').indexOf('pkg:') === 0;
-    var long = s.querySelector('[data-sim]')
+    const scene = (s.getAttribute('data-transition') || '').indexOf('pkg:') === 0;
+    const long = s.querySelector('[data-sim]')
       ? 22000
       : s.querySelector('[data-pkg]') || scene
         ? 9000
@@ -1538,25 +1692,25 @@
     if (!previewing) return;
     try {
       window.dispatchEvent(new Event('beforeprint'));
-    } catch (err) {
+    } catch {
       /* ignore */
     }
     try {
       window.dispatchEvent(new Event('mm-kf-reset'));
-    } catch (err) {
+    } catch {
       /* ignore */
     }
     previewing = false;
     document.body.classList.remove('mm-preview');
-    var s = activeSlide();
+    const s = activeSlide();
     if (s) s.classList.add('mm-static');
     drawSelection(selected);
     post({ type: 'key', key: 'preview-ended' });
   }
 
   /* ---------- mensagens do editor ---------- */
-  function setActive(index) {
-    var list = slideList();
+  function setActive(index: number): El | undefined {
+    const list = slideList();
     list.forEach(function (s, i) {
       s.classList.toggle('active', i === index);
       s.classList.toggle('mm-static', i === index && !previewing);
@@ -1565,13 +1719,13 @@
   }
 
   window.addEventListener('message', function (e) {
-    var data = e.data;
+    const data = e.data as EditorMessage | null;
     if (!data || data.__mm !== 'editor') return;
-    var list;
+    let list: El[];
     if (data.type === 'goto') {
       if (editing) endEdit(true);
       if (previewing) stopPreview();
-      var active = setActive(data.index);
+      const active = setActive(data.index ?? 0);
       select(mode === 'arrange' ? active : null, true);
       if (active) {
         window.scrollTo(0, 0);
@@ -1585,15 +1739,15 @@
       if (selected && data.edit) beginEdit(selected, true);
     } else if (data.type === 'set-slide') {
       list = slideList();
-      var old = list[data.index];
+      const old = list[data.index ?? -1];
       if (!old) return;
-      var tpl = document.createElement('template');
+      const tpl = document.createElement('template');
       tpl.innerHTML = String(data.html || '').trim();
-      var next = tpl.content.firstElementChild;
+      const next = tpl.content.firstElementChild;
       if (!next) return;
-      var wasActive = old.classList.contains('active');
-      var keep = selected && old.contains(selected) ? pathOf(selected) : null;
-      var wasEditing = editing && old.contains(editing);
+      const wasActive = old.classList.contains('active');
+      const keep = selected && old.contains(selected) ? pathOf(selected) : null;
+      const wasEditing = editing && old.contains(editing);
       if (wasEditing) editing = null;
       old.replaceWith(next);
       buildCanvasCss();
@@ -1606,7 +1760,7 @@
         if (!previewing) next.classList.add('mm-static');
       }
       if (selected && (selected === old || keep)) {
-        var again = keep ? elAt(keep) : null;
+        const again = keep ? elAt(keep) : null;
         if (again) {
           selected = again;
           drawSelection(again);
@@ -1615,21 +1769,21 @@
         }
       }
     } else if (data.type === 'patch-element') {
-      var target = elAt(data.path);
+      const target = elAt(data.path);
       if (!target) return;
-      var attrs = data.attrs || {};
-      Object.keys(attrs).forEach(function (name) {
+      const attrs = data.attrs || {};
+      Object.keys(attrs).forEach(function (name: string) {
         if (attrs[name] === null) target.removeAttribute(name);
         else target.setAttribute(name, String(attrs[name]));
       });
-      var classes = data.classes || {};
-      (classes.remove || []).forEach(function (name) {
+      const classes = data.classes || {};
+      (classes.remove || []).forEach(function (name: string) {
         target.classList.remove(name);
       });
-      (classes.add || []).forEach(function (name) {
+      (classes.add || []).forEach(function (name: string) {
         target.classList.add(name);
       });
-      var styles = data.style || {};
+      const styles = data.style || {};
       Object.keys(styles).forEach(function (name) {
         if (styles[name] === null) target.style.removeProperty(name);
         else target.style.setProperty(name, String(styles[name]));
@@ -1671,10 +1825,10 @@
           drawSelection(selected);
         }, 620);
     } else if (data.type === 'palette') {
-      var pa = activeSlide();
+      const pa = activeSlide();
       post({ type: 'palette', colors: pa ? paletteOf(pa) : [] });
     } else if (data.type === 'highlight') {
-      var hl = data.indices || [];
+      const hl = data.indices || [];
       slideList().forEach(function (sl, i) {
         sl.classList.toggle('mm-hl', hl.indexOf(i) >= 0);
       });
@@ -1687,58 +1841,58 @@
   });
 
   /* ---------- paleta de cores do slide ---------- */
-  function toLab(r, g, b) {
-    function lin(c) {
+  function toLab(r: number, g: number, b: number): number[] {
+    function lin(c: number): number {
       c /= 255;
       return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
     }
-    var R = lin(r),
+    const R = lin(r),
       G = lin(g),
       B = lin(b);
-    var x = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047;
-    var y = R * 0.2126 + G * 0.7152 + B * 0.0722;
-    var z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
-    function f(t) {
+    const x = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047;
+    const y = R * 0.2126 + G * 0.7152 + B * 0.0722;
+    const z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
+    function f(t: number): number {
       return t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
     }
     return [116 * f(y) - 16, 500 * (f(x) - f(y)), 200 * (f(y) - f(z))];
   }
-  function hex2(n) {
-    var s = Math.max(0, Math.min(255, Math.round(n))).toString(16);
+  function hex2(n: number): string {
+    const s = Math.max(0, Math.min(255, Math.round(n))).toString(16);
     return s.length < 2 ? '0' + s : s;
   }
   /* Colhe cores (fundos, degradês, textos, bordas, SVG) com peso por tamanho e as agrupa
      por semelhança perceptual. A quantidade (4 a 9) segue a variedade real do slide. */
-  function paletteOf(slide) {
-    var items = [];
-    function add(str, w) {
-      var m = /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+%?))?\s*\)/.exec(
+  function paletteOf(slide: El): string[] {
+    const items: { r: number; g: number; b: number; lab: number[]; w: number }[] = [];
+    function add(str: string, w: number) {
+      const m = /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+%?))?\s*\)/.exec(
         str || ''
       );
       if (!m) return;
-      var a =
+      const a =
         m[4] === undefined ? 1 : m[4].indexOf('%') > 0 ? parseFloat(m[4]) / 100 : parseFloat(m[4]);
       if (!(a > 0.04) || !(w > 0)) return;
-      var r = +m[1],
-        g = +m[2],
-        b = +m[3];
+      const r = Number(m[1]),
+        g = Number(m[2]),
+        b = Number(m[3]);
       items.push({ r: r, g: g, b: b, lab: toLab(r, g, b), w: w * a });
     }
-    function addAll(str, w) {
-      var found = String(str || '').match(/rgba?\([^)]+\)/g) || [];
+    function addAll(str: string, w: number) {
+      const found = String(str || '').match(/rgba?\([^)]+\)/g) || [];
       found.forEach(function (c) {
         add(c, w / found.length);
       });
     }
-    var nodes = [slide].concat(Array.prototype.slice.call(slide.querySelectorAll('*'), 0, 900));
+    const nodes = [slide].concat(Array.prototype.slice.call(slide.querySelectorAll('*'), 0, 900));
     nodes.forEach(function (el) {
-      var cs = window.getComputedStyle(el);
+      const cs = window.getComputedStyle(el);
       if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.05)
         return;
-      var r = el.getBoundingClientRect();
-      var area = Math.min((r.width / scale) * (r.height / scale), SLIDE_W * SLIDE_H);
+      const r = el.getBoundingClientRect();
+      const area = Math.min((r.width / scale) * (r.height / scale), SLIDE_W * SLIDE_H);
       if (!(area > 40)) return;
-      var side = Math.sqrt(area);
+      const side = Math.sqrt(area);
       add(cs.backgroundColor, side);
       if (
         cs.backgroundImage &&
@@ -1747,15 +1901,15 @@
       ) {
         addAll(cs.backgroundImage, side * 0.8);
       }
-      var bw = parseFloat(cs.borderTopWidth) || 0;
+      const bw = parseFloat(cs.borderTopWidth) || 0;
       if (bw > 0 && cs.borderTopStyle !== 'none')
         add(cs.borderTopColor, Math.sqrt(bw * side * 4) * 3);
-      var text = 0;
-      for (var n = el.firstChild; n; n = n.nextSibling) {
-        if (n.nodeType === 3) text += n.nodeValue.replace(/\s+/g, '').length;
+      let text = 0;
+      for (let n = el.firstChild; n; n = n.nextSibling) {
+        if (n.nodeType === 3) text += (n.nodeValue ?? '').replace(/\s+/g, '').length;
       }
       if (text > 0) {
-        var fs = parseFloat(cs.fontSize) || 16;
+        const fs = parseFloat(cs.fontSize) || 16;
         add(cs.color, Math.sqrt(text * fs * fs * 0.6));
       }
       if (el instanceof SVGElement && !(el instanceof SVGSVGElement)) {
@@ -1764,19 +1918,22 @@
       }
     });
     if (!items.length) return [];
-    var total = items.reduce(function (s, i) {
+    const total = items.reduce(function (s, i) {
       return s + i.w;
     }, 0);
-    function cluster(thr) {
-      var list = items.slice().sort(function (a, b) {
+    function cluster(thr: number): Cluster[] {
+      const list = items.slice().sort(function (a, b) {
         return b.w - a.w;
       });
-      var cl = [];
+      const cl: Cluster[] = [];
       list.forEach(function (it) {
-        var hit = null;
-        for (var i = 0; i < cl.length; i++) {
-          var c = cl[i];
-          var d = Math.hypot(c.lab[0] - it.lab[0], c.lab[1] - it.lab[1], c.lab[2] - it.lab[2]);
+        let hit: Cluster | null = null;
+        for (const c of cl) {
+          const d = Math.hypot(
+            (c.lab[0] ?? 0) - (it.lab[0] ?? 0),
+            (c.lab[1] ?? 0) - (it.lab[1] ?? 0),
+            (c.lab[2] ?? 0) - (it.lab[2] ?? 0)
+          );
           if (d < thr) {
             hit = c;
             break;
@@ -1795,15 +1952,15 @@
         return b.w - a.w;
       });
     }
-    var picked = [];
-    var plan = [
+    let picked: Cluster[] = [];
+    const plan: [number, number][] = [
       [16, 0.012],
       [10, 0.008],
       [6, 0.004],
     ];
-    for (var p = 0; p < plan.length; p++) {
-      picked = cluster(plan[p][0]).filter(function (c) {
-        return c.w / total >= plan[p][1];
+    for (const [thr, min] of plan) {
+      picked = cluster(thr).filter(function (c) {
+        return c.w / total >= min;
       });
       if (picked.length >= 4) break;
     }
@@ -1816,10 +1973,12 @@
      Contornos-fantasma: o que sai do slide é cortado (como na apresentação);
      um contorno tracejado mostra onde está o elemento.
      ====================================================================== */
-  var ghosts = document.createElement('div');
+  /** Contorno-fantasma → elemento que ele representa. */
+  const ghostTarget = new WeakMap<Element, El>();
+  const ghosts = document.createElement('div');
   ghosts.id = 'mm-ghosts';
   deck.appendChild(ghosts);
-  var ghostQueued = false;
+  let ghostQueued = false;
   function scheduleGhosts() {
     if (ghostQueued) return;
     ghostQueued = true;
@@ -1828,7 +1987,7 @@
       drawGhosts();
     });
   }
-  function isOverlay(el) {
+  function isOverlay(el: Element): boolean {
     return (
       el.classList &&
       (el.classList.contains('mm-bgl') ||
@@ -1840,18 +1999,18 @@
   function drawGhosts() {
     ghosts.innerHTML = '';
     if (mode !== 'edit' || previewing || document.body.classList.contains('mm-dragging')) return;
-    var s = activeSlide();
+    const s = activeSlide();
     if (!s) return;
-    var sr = rectOf(s);
-    var pad = 0.5;
-    function visit(node, depth) {
+    const sr = rectOf(s);
+    const pad = 0.5;
+    function visit(node: El, depth: number) {
       kidsOf(node).forEach(function (el) {
         if (isOverlay(el)) return;
-        var cs = window.getComputedStyle(el);
+        const cs = window.getComputedStyle(el);
         if (cs.display === 'none' || cs.visibility === 'hidden') return;
-        var r = rectOf(el);
+        const r = rectOf(el);
         if (r.width < 1 || r.height < 1) return;
-        var inside =
+        const inside =
           r.left >= sr.left - pad &&
           r.top >= sr.top - pad &&
           r.left + r.width <= sr.left + sr.width + pad &&
@@ -1860,12 +2019,12 @@
           if (depth < 3) visit(el, depth + 1);
           return;
         }
-        var outside =
+        const outside =
           r.left >= sr.left + sr.width ||
           r.top >= sr.top + sr.height ||
           r.left + r.width <= sr.left ||
           r.top + r.height <= sr.top;
-        var g = document.createElement('div');
+        const g = document.createElement('div');
         g.className = 'mm-ghost' + (outside ? ' mm-ghost-off' : '');
         g.title = outside
           ? 'Fora do slide (não aparece na apresentação) — clique para selecionar'
@@ -1875,7 +2034,7 @@
         g.style.width = r.width + 'px';
         g.style.height = r.height + 'px';
         g.style.borderWidth = Math.max(1, 1.5 / scale).toFixed(2) + 'px';
-        g.__el = el;
+        ghostTarget.set(g, el);
         ghosts.appendChild(g);
       });
     }
@@ -1886,15 +2045,15 @@
      Alinhamento inteligente: guias para as bordas/centro do slide e dos outros
      elementos. Ctrl desliga; Shift trava o eixo; Alt + arrastar duplica.
      ====================================================================== */
-  var guides = document.createElement('div');
+  const guides = document.createElement('div');
   guides.id = 'mm-guides';
   deck.appendChild(guides);
   function clearGuides() {
     guides.innerHTML = '';
   }
-  function localRect(el, slide, ls) {
-    var sr = rectOf(slide);
-    var r = rectOf(el);
+  function localRect(el: Element, slide: El, ls: number): Box {
+    const sr = rectOf(slide);
+    const r = rectOf(el);
     return {
       left: (r.left - sr.left) / ls,
       top: (r.top - sr.top) / ls,
@@ -1903,15 +2062,15 @@
     };
   }
   /* Alvos de alinhamento (em px do slide): bordas e centro do slide e dos outros elementos. */
-  function snapTargets(el, slide, ls) {
-    var xs = [0, SLIDE_W / 2, SLIDE_W];
-    var ys = [0, SLIDE_H / 2, SLIDE_H];
+  function snapTargets(el: El, slide: El, ls: number): Snap {
+    const xs = [0, SLIDE_W / 2, SLIDE_W];
+    const ys = [0, SLIDE_H / 2, SLIDE_H];
     Array.prototype.forEach.call(slide.querySelectorAll('*'), function (o) {
       if (o === el || el.contains(o) || o.contains(el) || isOverlay(o)) return;
       if (o.closest('.mm-bgl')) return;
-      var cs = window.getComputedStyle(o);
+      const cs = window.getComputedStyle(o);
       if (cs.display === 'none' || cs.visibility === 'hidden' || cs.display === 'inline') return;
-      var r = localRect(o, slide, ls);
+      const r = localRect(o, slide, ls);
       if (r.width < 4 || r.height < 4) return;
       if (r.width > SLIDE_W * 0.98 && r.height > SLIDE_H * 0.9) return;
       xs.push(r.left, r.left + r.width / 2, r.left + r.width);
@@ -1920,11 +2079,15 @@
     return { xs: xs, ys: ys };
   }
   /* Menor ajuste para encostar alguma das posições `edges` num alvo (ou null). */
-  function bestSnap(edges, targets, thr) {
-    var best = null;
+  function bestSnap(
+    edges: number[],
+    targets: number[],
+    thr: number
+  ): { d: number; at: number } | null {
+    let best: { d: number; at: number } | null = null;
     edges.forEach(function (e) {
       targets.forEach(function (t) {
-        var d = t - e;
+        const d = t - e;
         if (Math.abs(d) <= thr && (best === null || Math.abs(d) < Math.abs(best.d))) {
           best = { d: d, at: t };
         }
@@ -1932,11 +2095,11 @@
     });
     return best;
   }
-  function drawGuide(slide, ls, axis, at) {
-    var sr = rectOf(slide);
-    var g = document.createElement('div');
+  function drawGuide(slide: El, ls: number, axis: 'x' | 'y', at: number) {
+    const sr = rectOf(slide);
+    const g = document.createElement('div');
     g.className = 'mm-guide';
-    var w = Math.max(1, 1 / scale);
+    const w = Math.max(1, 1 / scale);
     if (axis === 'x') {
       g.style.left = sr.left + at * ls - w / 2 + 'px';
       g.style.top = sr.top + 'px';
@@ -1951,58 +2114,60 @@
     guides.appendChild(g);
   }
   /* Aplica o alinhamento no arrasto (move) e devolve o deslocamento ajustado (px do slide). */
-  function snapMove(d, ax, ay, e) {
+  function snapMove(d: Drag, ax: number, ay: number, e: PointerEvent) {
     clearGuides();
-    if (e.ctrlKey || e.metaKey || !d.snap) return { ax: ax, ay: ay };
-    var thr = 7 / (scale * d.ls);
-    var L = d.r0.left + ax;
-    var T = d.r0.top + ay;
-    var W = d.r0.width;
-    var H = d.r0.height;
-    var sx = ax !== 0 || !e.shiftKey ? bestSnap([L, L + W / 2, L + W], d.snap.xs, thr) : null;
-    var sy = ay !== 0 || !e.shiftKey ? bestSnap([T, T + H / 2, T + H], d.snap.ys, thr) : null;
+    const { snap, slide, ls, r0 } = d;
+    if (e.ctrlKey || e.metaKey || !snap || !slide || !ls || !r0) return { ax: ax, ay: ay };
+    const thr = 7 / (scale * ls);
+    const L = r0.left + ax;
+    const T = r0.top + ay;
+    const W = r0.width;
+    const H = r0.height;
+    const sx = ax !== 0 || !e.shiftKey ? bestSnap([L, L + W / 2, L + W], snap.xs, thr) : null;
+    const sy = ay !== 0 || !e.shiftKey ? bestSnap([T, T + H / 2, T + H], snap.ys, thr) : null;
     if (sx && !(e.shiftKey && d.lock === 'y')) {
       ax += sx.d;
-      drawGuide(d.slide, d.ls, 'x', sx.at);
+      drawGuide(slide, ls, 'x', sx.at);
     }
     if (sy && !(e.shiftKey && d.lock === 'x')) {
       ay += sy.d;
-      drawGuide(d.slide, d.ls, 'y', sy.at);
+      drawGuide(slide, ls, 'y', sy.at);
     }
     return { ax: ax, ay: ay };
   }
   /* Alinhamento no redimensionar: a borda direita/inferior encosta nos alvos. */
-  function snapResize(d, w, h, e) {
+  function snapResize(d: Drag, w: number, h: number, e: PointerEvent) {
     clearGuides();
-    if (e.ctrlKey || e.metaKey || !d.snap) return { w: w, h: h };
-    var thr = 7 / (scale * d.ls);
+    const { snap, slide, ls, r0 } = d;
+    if (e.ctrlKey || e.metaKey || !snap || !slide || !ls || !r0) return { w: w, h: h };
+    const thr = 7 / (scale * ls);
     if (d.h !== 's') {
-      var sx = bestSnap([d.r0.left + w], d.snap.xs, thr);
+      const sx = bestSnap([r0.left + w], snap.xs, thr);
       if (sx) {
         w += sx.d;
-        drawGuide(d.slide, d.ls, 'x', sx.at);
+        drawGuide(slide, ls, 'x', sx.at);
       }
     }
     if (d.h !== 'e') {
-      var sy = bestSnap([d.r0.top + h], d.snap.ys, thr);
+      const sy = bestSnap([r0.top + h], snap.ys, thr);
       if (sy) {
         h += sy.d;
-        drawGuide(d.slide, d.ls, 'y', sy.at);
+        drawGuide(slide, ls, 'y', sy.at);
       }
     }
     return { w: w, h: h };
   }
 
   /* Alinha o elemento ao slide (h: left|center|right; v: top|middle|bottom). */
-  function alignToSlide(h, v) {
+  function alignToSlide(h: string | null, v: string | null) {
     if (!selected || !isSlideChild(selected) || isLocked(selected)) return;
-    var s = slideOf(selected);
+    const s = slideOf(selected);
     if (!s) return;
-    var ls = layoutOf(s, slideIndexOf(s)).s;
-    var r = localRect(selected, s, ls);
-    var t = getTrans(selected);
-    var dx = 0;
-    var dy = 0;
+    const ls = layoutOf(s, slideIndexOf(s)).s;
+    const r = localRect(selected, s, ls);
+    const t = getTrans(selected);
+    let dx = 0;
+    let dy = 0;
     if (h === 'left') dx = -r.left;
     else if (h === 'center') dx = (SLIDE_W - r.width) / 2 - r.left;
     else if (h === 'right') dx = SLIDE_W - r.width - r.left;
@@ -2018,23 +2183,24 @@
      Camadas: a ordem entre irmãos vira z-index explícito (1, 2, 3…), então
      "frente/trás" anda exatamente uma posição entre os que se sobrepõem.
      ====================================================================== */
-  function zOf(el) {
-    var z = parseInt(window.getComputedStyle(el).zIndex, 10);
+  function zOf(el: El): number {
+    const z = parseInt(window.getComputedStyle(el).zIndex, 10);
     return isNaN(z) ? 0 : z;
   }
-  function overlaps(a, b) {
-    var ra = a.getBoundingClientRect();
-    var rb = b.getBoundingClientRect();
+  function overlaps(a: El, b: El): boolean {
+    const ra = a.getBoundingClientRect();
+    const rb = b.getBoundingClientRect();
     return ra.left < rb.right && rb.left < ra.right && ra.top < rb.bottom && rb.top < ra.bottom;
   }
-  function zOrder(dir) {
+  function zOrder(dir: 'top' | 'bottom' | 'forward' | 'backward') {
     if (!selected || !isSlideChild(selected)) return;
-    var el = selected;
-    var parent = el.parentElement;
-    var sibs = kidsOf(parent).filter(function (x) {
+    const el = selected;
+    const parent = el.parentElement;
+    if (!parent) return;
+    const sibs = kidsOf(parent).filter(function (x) {
       return !isOverlay(x) && x.nodeType === 1;
     });
-    var order = sibs
+    const order = sibs
       .map(function (x, i) {
         return { el: x, z: zOf(x), i: i };
       })
@@ -2044,24 +2210,26 @@
       .map(function (o) {
         return o.el;
       });
-    var at = order.indexOf(el);
+    const at = order.indexOf(el);
     if (at < 0) return;
     order.splice(at, 1);
-    var to = at;
+    let to = at;
     if (dir === 'top') to = order.length;
     else if (dir === 'bottom') to = 0;
     else if (dir === 'forward') {
       to = order.length;
-      for (var i = at; i < order.length; i++) {
-        if (overlaps(order[i], el)) {
+      for (let i = at; i < order.length; i++) {
+        const o = order[i];
+        if (o && overlaps(o, el)) {
           to = i + 1;
           break;
         }
       }
     } else if (dir === 'backward') {
       to = 0;
-      for (var j = at - 1; j >= 0; j--) {
-        if (overlaps(order[j], el)) {
+      for (let j = at - 1; j >= 0; j--) {
+        const o = order[j];
+        if (o && overlaps(o, el)) {
           to = j;
           break;
         }
@@ -2080,18 +2248,19 @@
   /* ======================================================================
      Pai e filho: o filho passa a morar dentro do pai (move, anima e some junto).
      ====================================================================== */
-  var pickingParent = null;
-  function canBeParent(p, child) {
+  let pickingParent: El | null = null;
+  function canBeParent(p: El | null, child: El): p is El {
     if (!p || p === child || child.contains(p)) return false;
     if (/^(img|video|svg|input|br|hr|iframe|textarea)$/i.test(p.tagName)) return false;
     if (p.closest && p.closest('svg') && p.tagName.toLowerCase() !== 'svg') return false;
     return slideOf(p) === slideOf(child);
   }
   /* Coloca `child` dentro de `parent` (ou da raiz do slide) sem mudar onde ele aparece. */
-  function moveInto(child, parent) {
-    var s = slideOf(child);
-    var es = layoutOf(s, slideIndexOf(s)).s;
-    var before = rectOf(child);
+  function moveInto(child: El, parent: El) {
+    const s = slideOf(child);
+    if (!s) return;
+    const es = layoutOf(s, slideIndexOf(s)).s;
+    const before = rectOf(child);
     if (parent !== s) ensurePos(parent);
     parent.appendChild(child);
     child.style.position = 'absolute';
@@ -2102,7 +2271,7 @@
     if (!child.style.width) child.style.width = Math.round(before.width / es) + 'px';
     child.style.left = '0px';
     child.style.top = '0px';
-    var now = rectOf(child);
+    const now = rectOf(child);
     child.style.left = Math.round((before.left - now.left) / es) + 'px';
     child.style.top = Math.round((before.top - now.top) / es) + 'px';
   }
@@ -2118,8 +2287,8 @@
     document.body.classList.remove('mm-picking');
     post({ type: 'picking', on: false });
   }
-  function finishPickParent(target) {
-    var child = pickingParent;
+  function finishPickParent(target: El | null) {
+    const child = pickingParent;
     stopPickParent();
     if (!child) return;
     if (!canBeParent(target, child)) {
@@ -2135,7 +2304,7 @@
   }
   function unparent() {
     if (!selected || !isSlideChild(selected)) return;
-    var s = slideOf(selected);
+    const s = slideOf(selected);
     if (!s || selected.parentElement === s) return;
     moveInto(selected, s);
     select(selected);
@@ -2146,7 +2315,7 @@
      Formatação de trecho do texto em edição. A barra fica no app (fora do iframe);
      aqui ficam o trecho guardado, os comandos e o aviso de onde ele está na tela.
      ====================================================================== */
-  var savedRange = null;
+  let savedRange: Range | null = null;
 
   /* O slide corta o que vaza (overflow:hidden), mas ainda pode ser rolado pelo navegador
      (foco, cursor no fim do texto…): isso "puxava" o slide inteiro. Mantém tudo no lugar. */
@@ -2165,10 +2334,10 @@
   document.addEventListener(
     'scroll',
     function (e) {
-      var t = e.target;
-      if (t === document || t === deck || (t && t.classList && t.classList.contains('slide')))
+      const t = e.target;
+      if (t === document || t === deck || (t instanceof Element && t.classList.contains('slide')))
         resetScroll();
-      else if (t && t.nodeType === 1 && deck.contains(t) && (t.scrollLeft || t.scrollTop)) {
+      else if (t instanceof Element && deck.contains(t) && (t.scrollLeft || t.scrollTop)) {
         t.scrollLeft = 0;
         t.scrollTop = 0;
       }
@@ -2177,66 +2346,70 @@
   );
 
   function selectionInEditing() {
-    var s = window.getSelection();
+    const s = window.getSelection();
     if (!editing || !s || s.rangeCount === 0 || s.isCollapsed) return null;
-    var r = s.getRangeAt(0);
+    const r = s.getRangeAt(0);
     return editing.contains(r.commonAncestorContainer) ? r : null;
   }
   /* Sem `focus`: a barra fica no app e seus campos (cor, tamanho) não podem perder o foco. */
-  function restoreRange(focus) {
+  function restoreRange(focus?: boolean): boolean {
     if (!savedRange || !editing) return false;
     if (focus && document.activeElement !== editing) editing.focus({ preventScroll: true });
-    var s = window.getSelection();
+    const s = window.getSelection();
+    if (!s) return false;
     s.removeAllRanges();
     s.addRange(savedRange);
     return true;
   }
   /* Primeiro pedaço de texto dentro do trecho (o início pode cair entre elementos). */
-  function firstTextIn(range) {
-    var root = range.commonAncestorContainer;
-    if (root.nodeType === 3) return root;
-    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-    var n;
+  function firstTextIn(range: Range): Text | null {
+    const root = range.commonAncestorContainer;
+    if (root instanceof Text) return root;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    let n: Node | null;
     while ((n = walker.nextNode())) {
-      if (!n.nodeValue || !range.intersectsNode(n)) continue;
+      if (!(n instanceof Text) || !n.nodeValue || !range.intersectsNode(n)) continue;
       if (n === range.startContainer && range.startOffset >= n.nodeValue.length) continue;
       return n;
     }
     return null;
   }
-  function styleAt(range) {
-    var t = firstTextIn(range);
-    var el = t ? t.parentElement : range.startContainer;
-    if (el && el.nodeType !== 1) el = el.parentElement;
-    return window.getComputedStyle(el || editing);
+  function styleAt(range: Range): CSSStyleDeclaration {
+    const t = firstTextIn(range);
+    let node: Node | null = t ? t.parentElement : range.startContainer;
+    if (node && !(node instanceof Element)) node = node.parentElement;
+    const el = (node as Element | null) || editing || deck;
+    return window.getComputedStyle(el);
   }
-  function hexOf(c) {
-    var m = /rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/.exec(c || '');
+  function hexOf(c: string): string {
+    const m = /rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/.exec(c || '');
     if (!m) return '';
     return (
       '#' +
       [m[1], m[2], m[3]]
         .map(function (n) {
-          return ('0' + (+n).toString(16)).slice(-2);
+          return ('0' + Number(n).toString(16)).slice(-2);
         })
         .join('')
         .toUpperCase()
     );
   }
-  var fmtTimer = null;
+  let fmtTimer: number | null = null;
   function reportFormat() {
-    var r = editing ? selectionInEditing() : null;
+    const r = editing ? selectionInEditing() : null;
     if (r) savedRange = r.cloneRange();
     if (!r) {
       post({ type: 'text-format', open: false });
       return;
     }
-    var b = r.getBoundingClientRect();
-    var cs = styleAt(r);
-    var q = function (c) {
+    const box = editing;
+    if (!box) return;
+    const b = r.getBoundingClientRect();
+    const cs = styleAt(r);
+    const q = function (c: string) {
       try {
         return document.queryCommandState(c);
-      } catch (e) {
+      } catch {
         return false;
       }
     };
@@ -2256,13 +2429,14 @@
         sub: q('subscript'),
         fx: fxOf(styleOwner(r)),
         reflect:
-          editing.getAttribute('data-reflect') ||
-          (editing.style.getPropertyValue('-webkit-box-reflect') ? '{}' : null),
+          box.getAttribute('data-reflect') ||
+          (box.style.getPropertyValue('-webkit-box-reflect') ? '{}' : null),
       },
     });
   }
   /* Configuração de efeitos que vale no trecho: o data-fx mais próximo (até a caixa). */
-  function fxOf(el) {
+  function fxOf(el: Element | null): string | null {
+    if (!editing) return null;
     while (el && el !== editing.parentElement) {
       if (el.nodeType === 1 && el.hasAttribute('data-fx')) return el.getAttribute('data-fx');
       if (el === editing) break;
@@ -2270,8 +2444,8 @@
     }
     return null;
   }
-  function styleOwner(range) {
-    var t = firstTextIn(range);
+  function styleOwner(range: Range): El | null {
+    const t = firstTextIn(range);
     return t ? t.parentElement : null;
   }
   function scheduleFormat() {
@@ -2282,9 +2456,9 @@
     });
   }
   /* Durante a animação da câmera: informa a posição do trecho a cada quadro. */
-  var followUntil = 0;
-  function followFormat(ms) {
-    var running = followUntil > Date.now();
+  let followUntil = 0;
+  function followFormat(ms: number) {
+    const running = followUntil > Date.now();
     followUntil = Date.now() + ms;
     if (running) return;
     (function tick() {
@@ -2296,17 +2470,24 @@
 
   /* Aplica estilos (e classes) só ao trecho: cada pedaço de texto ganha (ou reaproveita)
      um <span>. Previsível em qualquer navegador, ao contrário do execCommand("fontSize"). */
-  function styleRange(styles, addClass, removeClass, attrs, nestedStyles) {
+  function styleRange(
+    styles: StyleMap,
+    addClass?: string[] | null,
+    removeClass?: string[] | null,
+    attrs?: StyleMap,
+    nestedStyles?: StyleMap | null
+  ) {
     if (!restoreRange()) return;
-    var r = savedRange;
-    if (r.collapsed) return;
-    var sc = r.startContainer;
-    var so = r.startOffset;
-    var ec = r.endContainer;
-    var eo = r.endOffset;
-    if (ec.nodeType === 3 && eo < ec.nodeValue.length && eo > 0) ec.splitText(eo);
-    if (sc.nodeType === 3 && so > 0 && so < sc.nodeValue.length) {
-      var rest = sc.splitText(so);
+    const r = savedRange;
+    const box = editing;
+    if (!r || !box || r.collapsed) return;
+    let sc: Node = r.startContainer;
+    let so = r.startOffset;
+    let ec: Node = r.endContainer;
+    let eo = r.endOffset;
+    if (ec instanceof Text && eo < ec.length && eo > 0) ec.splitText(eo);
+    if (sc instanceof Text && so > 0 && so < sc.length) {
+      const rest = sc.splitText(so);
       if (ec === sc) {
         ec = rest;
         eo = eo - so;
@@ -2314,48 +2495,45 @@
       sc = rest;
       so = 0;
     }
-    var range = document.createRange();
+    const range = document.createRange();
     range.setStart(sc, so);
-    if (ec.nodeType === 3) range.setEnd(ec, Math.min(eo, ec.nodeValue.length));
+    if (ec instanceof Text) range.setEnd(ec, Math.min(eo, ec.length));
     else range.setEnd(ec, eo);
-    var walker = document.createTreeWalker(editing, NodeFilter.SHOW_TEXT, null);
-    var texts = [];
-    var n;
+    const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT, null);
+    const texts: Text[] = [];
+    let n: Node | null;
     while ((n = walker.nextNode())) {
-      if (!n.nodeValue || !range.intersectsNode(n)) continue;
+      if (!(n instanceof Text) || !n.nodeValue || !range.intersectsNode(n)) continue;
       if (n === range.startContainer && range.startOffset >= n.nodeValue.length) continue;
       if (n === range.endContainer && range.endOffset === 0) continue;
       texts.push(n);
     }
-    var targets = [];
+    const targets: El[] = [];
     texts.forEach(function (t) {
-      var parent = t.parentElement;
-      var target;
-      if (
-        parent &&
-        parent !== editing &&
-        parent.tagName === 'SPAN' &&
-        parent.childNodes.length === 1
-      ) {
+      const parent = t.parentElement;
+      let target: El;
+      if (parent && parent !== box && parent.tagName === 'SPAN' && parent.childNodes.length === 1) {
         target = parent;
       } else {
         target = document.createElement('span');
-        t.parentNode.insertBefore(target, t);
+        t.parentNode?.insertBefore(target, t);
         target.appendChild(t);
       }
       /* dentro de outro trecho (ou caixa) com efeito: valores neutros explícitos */
-      var up = target.parentElement;
-      var fxUp = nestedStyles && up ? up.closest('[data-fx]') : null;
-      var nested = !!fxUp && editing.contains(fxUp);
-      var use = nested ? nestedStyles : styles;
-      Object.keys(use || {}).forEach(function (k) {
-        var v = use[k];
-        if (v === null || v === '') target.style.removeProperty(k);
+      const up = target.parentElement;
+      const fxUp = nestedStyles && up ? up.closest('[data-fx]') : null;
+      const nested = !!fxUp && box.contains(fxUp);
+      const use: StyleMap = (nested ? nestedStyles : styles) || {};
+      Object.keys(use).forEach(function (k) {
+        const v = use[k];
+        if (v === null || v === undefined || v === '') target.style.removeProperty(k);
         else target.style.setProperty(k, v);
       });
-      Object.keys(attrs || {}).forEach(function (k) {
-        if (attrs[k] === null || attrs[k] === undefined) target.removeAttribute(k);
-        else target.setAttribute(k, attrs[k]);
+      const at: StyleMap = attrs || {};
+      Object.keys(at).forEach(function (k) {
+        const v = at[k];
+        if (v === null || v === undefined) target.removeAttribute(k);
+        else target.setAttribute(k, v);
       });
       (removeClass || []).forEach(function (c) {
         target.classList.remove(c);
@@ -2369,13 +2547,12 @@
     });
     if (!targets.length) return;
     /* junta vizinhos idênticos e desfaz <span> vazios de estilo */
-    var first = targets[0];
-    var last = targets[targets.length - 1];
+    let first = targets[0] as El;
+    const last = targets[targets.length - 1] as El;
     targets.forEach(function (t) {
-      var next = t.nextSibling;
+      const next = t.nextSibling;
       if (
-        next &&
-        next.nodeType === 1 &&
+        next instanceof HTMLElement &&
         next.tagName === 'SPAN' &&
         targets.indexOf(next) >= 0 &&
         next.getAttribute('style') === t.getAttribute('style') &&
@@ -2383,26 +2560,26 @@
         next.getAttribute('data-fx') === t.getAttribute('data-fx')
       ) {
         /* tudo antes do primeiro filho original (inserir sempre no começo invertia a ordem) */
-        var anchor = next.firstChild;
+        const anchor = next.firstChild;
         while (t.firstChild) next.insertBefore(t.firstChild, anchor);
         if (first === t) first = next;
         t.remove();
       }
     });
-    var sel = document.createRange();
+    const sel = document.createRange();
     sel.setStartBefore(first.isConnected ? first : last);
     sel.setEndAfter(last);
-    var ws = window.getSelection();
-    ws.removeAllRanges();
-    ws.addRange(sel);
+    const ws = window.getSelection();
+    ws?.removeAllRanges();
+    ws?.addRange(sel);
     savedRange = sel.cloneRange();
-    drawSelection(editing);
+    drawSelection(box);
     resetScroll();
     reportFormat();
   }
 
   /* Remove spans vazios de estilo que sobraram (sem style, classe nem atributos). */
-  function unwrapBare(root) {
+  function unwrapBare(root: El) {
     Array.prototype.slice.call(root.querySelectorAll('span')).forEach(function (sp) {
       if (sp.attributes.length === 0) {
         while (sp.firstChild) sp.parentNode.insertBefore(sp.firstChild, sp);
@@ -2411,13 +2588,13 @@
     });
   }
 
-  function runFormat(arg) {
+  function runFormat(arg: CommandArg | undefined) {
     if (!editing || !arg) return;
-    var cmd = arg.cmd || arg.command || (arg.color ? 'color' : '');
-    var v = arg.cmd ? arg.value : arg.color;
+    const cmd = arg.cmd || arg.command || (arg.color ? 'color' : '');
+    const v = arg.cmd ? arg.value : arg.color;
     if (cmd === 'reflect') {
       /* reflexo: vale para a caixa de texto toda */
-      var rv = v || {};
+      const rv = (v || {}) as { css?: string; data?: string };
       if (rv.css) editing.style.setProperty('-webkit-box-reflect', String(rv.css));
       else editing.style.removeProperty('-webkit-box-reflect');
       if (rv.data) editing.setAttribute('data-reflect', rv.data);
@@ -2427,17 +2604,22 @@
       reportFormat();
       return;
     }
-    if (!restoreRange()) return;
+    if (!restoreRange() || !savedRange) return;
     if (cmd === 'size' || cmd === 'size-step') {
-      var cur = Math.round(parseFloat(styleAt(savedRange).fontSize) || 24);
-      var px = cmd === 'size' ? Number(v) : cur + Number(v);
+      const cur = Math.round(parseFloat(styleAt(savedRange).fontSize) || 24);
+      const px = cmd === 'size' ? Number(v) : cur + Number(v);
       if (!isFinite(px)) return;
       styleRange({ 'font-size': Math.max(4, Math.min(600, Math.round(px))) + 'px' });
     } else if (cmd === 'font') {
-      styleRange({ 'font-family': v || null });
+      styleRange({ 'font-family': typeof v === 'string' && v ? v : null });
     } else if (cmd === 'fx') {
       /* efeitos (preenchimento, contorno, sombras…): CSS pronto + configuração no data-fx */
-      var fv = v || {};
+      const fv = (v || {}) as {
+        css?: StyleMap;
+        shine?: boolean;
+        data?: string;
+        nested?: StyleMap;
+      };
       styleRange(
         fv.css || {},
         fv.shine ? ['mm-shine'] : null,
@@ -2446,18 +2628,18 @@
         fv.nested || null
       );
     } else if (cmd === 'style') {
-      styleRange(v || {});
+      styleRange((v || {}) as StyleMap);
     } else {
       restoreRange(true);
-      document.execCommand('styleWithCSS', false, false);
+      document.execCommand('styleWithCSS', false, 'false');
       if (cmd === 'removeFormat') {
         document.execCommand('removeFormat');
-        var clear = { 'font-size': null, 'font-family': null };
+        const clear: StyleMap = { 'font-size': null, 'font-family': null };
         (arg.props || []).forEach(function (k) {
           clear[k] = null;
         });
         /* trechos inteiros dentro da seleção (inclusive os que têm outros trechos dentro) */
-        var selNow = window.getSelection();
+        const selNow = window.getSelection();
         Array.prototype.slice.call(editing.querySelectorAll('span')).forEach(function (sp) {
           if (!selNow || !selNow.containsNode(sp, false)) return;
           Object.keys(clear).forEach(function (k) {
@@ -2473,7 +2655,7 @@
         return;
       }
       document.execCommand(cmd);
-      var s2 = window.getSelection();
+      const s2 = window.getSelection();
       if (s2 && s2.rangeCount) savedRange = s2.getRangeAt(0).cloneRange();
       drawSelection(editing);
       resetScroll();
@@ -2489,7 +2671,7 @@
   document.addEventListener(
     'play',
     function (e) {
-      if (!previewing && e.target && e.target.tagName === 'VIDEO') e.target.pause();
+      if (!previewing && e.target instanceof HTMLVideoElement) e.target.pause();
     },
     true
   );
@@ -2503,20 +2685,21 @@
   document.addEventListener(
     'contextmenu',
     function (e) {
-      if (editing && editing.contains(e.target)) return;
+      if (editing && editing.contains(e.target as Node)) return;
       e.preventDefault();
       if (previewing) return;
-      var t = document.elementFromPoint(e.clientX, e.clientY) || e.target;
-      var kind = 'canvas';
-      var index = null;
+      const t = document.elementFromPoint(e.clientX, e.clientY) || e.target;
+      let kind = 'canvas';
+      let index = null;
       if (t && t instanceof Element && deck.contains(t)) {
-        var g = t.closest ? t.closest('.mm-ghost') : null;
-        var sl = g && g.__el ? slideOf(g.__el) : slideOf(t);
+        const g = t.closest('.mm-ghost');
+        const ghostOf = g ? ghostTarget.get(g) : undefined;
+        const sl = ghostOf ? slideOf(ghostOf) : slideOf(t);
         if (sl) {
           index = slideIndexOf(sl);
           kind = 'slide';
           if (mode === 'edit' && sl === activeSlide()) {
-            var el = g && g.__el ? g.__el : pick(t);
+            const el = ghostOf ?? pick(t);
             if (el) {
               select(el);
               kind = 'element';
@@ -2545,7 +2728,7 @@
     true
   );
 
-  function runCommand(name, arg) {
+  function runCommand(name: string | undefined, arg: CommandArg | undefined) {
     if (name === 'delete') delEl();
     else if (name === 'duplicate') dupEl();
     else if (name === 'front') zOrder('top');
@@ -2561,7 +2744,7 @@
     else if (name === 'copy') {
       if (selected) copyEl();
     } else if (name === 'paste') {
-      var cp = getClip();
+      const cp = getClip();
       if (cp && cp.kind === 'element') pasteEl(cp);
     } else if (name === 'parent') selectParent();
     else if (name === 'edit') {
@@ -2570,8 +2753,10 @@
   }
 
   /* estado inicial: sem animações ao editar */
-  var first = activeSlide();
+  const first = activeSlide();
   if (first) first.classList.add('mm-static');
 
   post({ type: 'ready', count: slideList().length });
 })();
+
+export {};

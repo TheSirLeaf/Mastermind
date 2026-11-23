@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { ChatMessage } from '../live/protocol';
+import { DECK_FRAME_SANDBOX } from '../packages/core/frameSandbox';
 
 import { screenChannelName, type ScreenMessage } from './screenChannel';
 
@@ -59,6 +60,8 @@ export default function ScreenView() {
         <iframe
           ref={frameRef}
           title="Apresentação"
+          sandbox={DECK_FRAME_SANDBOX}
+          allowFullScreen
           srcDoc={html}
           onLoad={() => {
             goto(indexRef.current);

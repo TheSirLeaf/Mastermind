@@ -4,6 +4,12 @@
 /** Versão do package.json, injetada pelo Vite. */
 declare const __APP_VERSION__: string;
 
+/** Script compilado e devolvido como string (ver `vite.inlineScript.ts`). */
+declare module '*?inline-script' {
+  const source: string;
+  export default source;
+}
+
 declare module '*.css' {
   const content: string;
   export default content;

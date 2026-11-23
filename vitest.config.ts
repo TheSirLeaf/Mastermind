@@ -2,7 +2,11 @@ import { fileURLToPath, URL } from 'node:url';
 
 import { defineConfig } from 'vitest/config';
 
+import { inlineScript } from './vite.inlineScript';
+
 export default defineConfig({
+  // O Vitest traz a própria cópia do Vite: o plugin é o mesmo, só o tipo vem de outro pacote.
+  plugins: [inlineScript() as never],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

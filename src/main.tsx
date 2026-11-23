@@ -1,10 +1,12 @@
-import { StrictMode } from 'react';
+import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import App from './App';
 import './index.css';
-import ScreenView from './spectator/ScreenView';
-import SpectatorApp from './spectator/SpectatorApp';
+
+// Cada tela é um pedaço separado do bundle: o celular do espectador não baixa o editor inteiro.
+const App = lazy(() => import('./App'));
+const ScreenView = lazy(() => import('./spectator/ScreenView'));
+const SpectatorApp = lazy(() => import('./spectator/SpectatorApp'));
 
 /** `/join/CODIGO`: espectador (celular). `/screen/CODIGO`: tela exibida. O resto: o editor. */
 function pickApp() {
@@ -16,4 +18,8 @@ function pickApp() {
 const root = document.getElementById('root');
 if (!root) throw new Error('Elemento #root não encontrado.');
 
-createRoot(root).render(<StrictMode>{pickApp()}</StrictMode>);
+createRoot(root).render(
+  <StrictMode>
+    <Suspense fallback={null}>{pickApp()}</Suspense>
+  </StrictMode>
+);

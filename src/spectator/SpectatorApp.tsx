@@ -15,6 +15,7 @@ import {
   type RoomState,
 } from '../live/protocol';
 import { roomMessage } from '../live/roomLink';
+import { DECK_FRAME_SANDBOX } from '../packages/core/frameSandbox';
 
 const NAME_KEY = 'mm-spectator-name';
 
@@ -73,6 +74,7 @@ function SlideViewer({
         <iframe
           ref={frameRef}
           title="Slide atual"
+          sandbox={DECK_FRAME_SANDBOX}
           srcDoc={html}
           onLoad={() => {
             frameRef.current?.contentWindow?.postMessage(

@@ -31,5 +31,13 @@
     },
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["src", "tests", "stories", "vite.config.ts", "vitest.config.ts", "vitest.setup.ts"]
+  "include": [
+    "src",
+    "tests",
+    "stories",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "vite.inlineScript.ts",
+    "vitest.setup.ts"
+  ]
 }

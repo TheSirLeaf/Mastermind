@@ -99,11 +99,33 @@ export interface BuildPresentationOptions {
   packageIds?: string[];
 }
 
-/** Registry no formato do host: `{ [id]: { def } }`. */
-export function buildRegistryPayload(registry: PackageRegistry, ids?: string[]): string {
+/**
+ * Registry no formato do host: `{ [id]: { def } }`.
+ *
+ * Com `codeOnlyFromBuiltins`, os pacotes importados entram sem `runtime` nem `scene`: o palco do
+ * editor tem a mesma origem do editor, então código de fora não roda lá (só nas molduras
+ * isoladas da visualização e da apresentação).
+ */
+export function buildRegistryPayload(
+  registry: PackageRegistry,
+  ids?: string[],
+  options: { codeOnlyFromBuiltins?: boolean } = {}
+): string {
   const packages = registry.serialize(ids);
   const payload: Record<string, { def: unknown }> = {};
-  for (const def of packages) payload[def.id] = { def };
+  for (const def of packages) {
+    if (options.codeOnlyFromBuiltins && !registry.isBuiltin(def.id)) {
+      const { runtime: _runtime, transitions, ...rest } = def;
+      payload[def.id] = {
+        def: {
+          ...rest,
+          ...(transitions && { transitions: transitions.map(({ scene: _scene, ...t }) => t) }),
+        },
+      };
+      continue;
+    }
+    payload[def.id] = { def };
+  }
   return JSON.stringify(payload);
 }
 
@@ -145,7 +167,11 @@ export function buildEditorHTML(
   html = fill(html, '{{TITLE}}', escapeText(deck.title || 'Apresentação'));
   html = fill(html, '{{SLIDES}}', deckSlidesHTML(deck, true));
   html = fill(html, '{{PKG_CSS}}', registry.css());
-  html = fill(html, '{{PKG_REGISTRY}}', buildRegistryPayload(registry));
+  html = fill(
+    html,
+    '{{PKG_REGISTRY}}',
+    buildRegistryPayload(registry, undefined, { codeOnlyFromBuiltins: true })
+  );
   // O host expõe `window.__anim`, usado pelo preview para rodar os runtimes dos pacotes.
   html = fill(html, '{{PKG_HOST}}', PKG_HOST_SRC);
   html = fill(html, '{{NAV}}', EDITOR_BRIDGE_SRC);

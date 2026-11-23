@@ -14,6 +14,7 @@ import { useUIStore } from '@stores/uiStore';
 import { useEffect, useState } from 'react';
 
 import { handleDroppedFile } from './editor/actions';
+import { listenForLaunchedFiles, registerServiceWorker } from './editor/pwa';
 import { handleGlobalKey } from './editor/shortcuts';
 
 let initialized = false;
@@ -90,6 +91,13 @@ export default function App() {
       cancelled = true;
     };
   }, [store]);
+
+  // App instalado: service worker e .mmdeck abertos pelo sistema (depois do rascunho carregado).
+  useEffect(() => {
+    if (!booted) return;
+    registerServiceWorker();
+    listenForLaunchedFiles();
+  }, [booted]);
 
   // Auto-save.
   useEffect(() => {
